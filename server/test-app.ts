@@ -31,7 +31,7 @@ export function createTestApp(customUser?: any) {
   // app.get('/api/assets', async (req: any, res) => {
   //   try {
   //     const { mockStorage } = await import('./__mocks__/storage');
-  //     const assets = await mockStorage.getCompanyAssetsByTenantId(req.user.tenantId);
+  //     const assets = await mockStorage.getCompanyAssetsByTenantId(req.user?.tenantId);
   //     res.json(assets);
   //   } catch (error) {
   //     res.status(500).json({ error: 'Internal server error' });
@@ -41,7 +41,7 @@ export function createTestApp(customUser?: any) {
   app.get('/api/company-assets', async (req: any, res) => {
     try {
       const { mockStorage } = await import('./__mocks__/storage');
-      const assets = await mockStorage.getCompanyAssetsByTenantId(req.user.tenantId);
+      const assets = await mockStorage.getCompanyAssetsByTenantId(req.user?.tenantId);
       res.json(assets);
     } catch (error) {
       res.status(500).json({ error: 'Internal server error' });
@@ -51,7 +51,7 @@ export function createTestApp(customUser?: any) {
   app.post('/api/company-assets', async (req: any, res) => {
     try {
       const { mockStorage } = await import('./__mocks__/storage');
-      const assetData = { ...req.body, tenantId: req.user.tenantId };
+      const assetData = { ...req.body, tenantId: req.user?.tenantId };
       const asset = await mockStorage.createCompanyAsset(assetData);
       res.status(201).json(asset);
     } catch (error) {
@@ -66,7 +66,7 @@ export function createTestApp(customUser?: any) {
       const { status } = req.body;
       
       const asset = await mockStorage.getCompanyAsset(id);
-      if (!asset || asset.tenantId !== req.user.tenantId) {
+      if (!asset || asset.tenantId !== req.user?.tenantId) {
         return res.status(404).json({ error: 'Asset not found' });
       }
       
@@ -83,7 +83,7 @@ export function createTestApp(customUser?: any) {
       const { barcode } = req.query;
       const asset = await mockStorage.getCompanyAssetByBarcode(barcode as string);
       
-      if (!asset || asset.tenantId !== req.user.tenantId) {
+      if (!asset || asset.tenantId !== req.user?.tenantId) {
         return res.status(404).json({ error: 'Asset not found' });
       }
       
@@ -102,7 +102,7 @@ export function createTestApp(customUser?: any) {
       for (const assetData of assets) {
         const asset = await mockStorage.createCompanyAsset({
           ...assetData,
-          tenantId: req.user.tenantId
+          tenantId: req.user?.tenantId
         });
         imported.push(asset);
       }
@@ -147,7 +147,7 @@ export function createTestApp(customUser?: any) {
       }
 
       // TENANT SAFETY: Ensure asset belongs to the user's tenant
-      if (existingAsset.tenantId !== req.user.tenantId) {
+      if (existingAsset.tenantId !== req.user?.tenantId) {
         return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
       }
 
@@ -187,7 +187,7 @@ export function createTestApp(customUser?: any) {
       }
 
       // TENANT SAFETY: Ensure asset belongs to the user's tenant
-      if (existingAsset.tenantId !== req.user.tenantId) {
+      if (existingAsset.tenantId !== req.user?.tenantId) {
         return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
       }
 
@@ -214,7 +214,7 @@ export function createTestApp(customUser?: any) {
         return res.status(404).json({ error: 'Schedule not found' });
       }
       
-      const bolData = { ...req.body, scheduleId, tenantId: req.user.tenantId };
+      const bolData = { ...req.body, scheduleId, tenantId: req.user?.tenantId };
       const bol = await mockStorage.createBolDocument(bolData);
       res.status(201).json(bol);
     } catch (error) {
@@ -244,7 +244,7 @@ export function createTestApp(customUser?: any) {
       }
       
       // Check permissions (admin or owner)
-      if (req.user.role !== 'admin' && bol.createdBy !== req.user.id) {
+      if (req.user?.role !== 'admin' && bol.createdBy !== req.user?.id) {
         return res.status(403).json({ error: 'Forbidden' });
       }
       

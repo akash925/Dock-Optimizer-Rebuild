@@ -79,6 +79,9 @@ export async function generateQRCodeDataURL(confirmationCode: string, baseUrl: s
 export function registerQrCodeRoutes(app: any) {
   // Test endpoint to display a QR code
   app.get('/api/qr-code-test', async (req: Request, res: Response) => {
+    if (!isAuthenticated(req)) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
     try {
       // Generate a random test code
       const testCode = 'TEST' + Math.floor(Math.random() * 10000);
@@ -126,6 +129,9 @@ export function registerQrCodeRoutes(app: any) {
   // Endpoint that generates a QR code SVG for a specific confirmation code
   // This is used by the email templates and driver check-in page
   app.get('/api/qr-code/:confirmationCode', async (req: Request, res: Response) => {
+    if (!isAuthenticated(req)) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
     try {
       const confirmationCode = req.params.confirmationCode;
       if (!confirmationCode) {
@@ -167,6 +173,9 @@ export function registerQrCodeRoutes(app: any) {
   // Endpoint that generates a QR code image for a specific confirmation code
   // This provides an IMG-friendly URL for email clients that can't handle SVG
   app.get('/api/qr-code-image/:confirmationCode', async (req: Request, res: Response) => {
+    if (!isAuthenticated(req)) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
     try {
       const confirmationCode = req.params.confirmationCode;
       if (!confirmationCode) {

@@ -6,7 +6,7 @@
     "noEmitOnError": false,
     "outDir": "dist/server",
 
-    "module": "CommonJS",
+    "module": "ES2022",
     "moduleResolution": "Node",
     "target": "ES2020",
 

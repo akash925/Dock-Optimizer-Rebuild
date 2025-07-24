@@ -1,0 +1,798 @@
+npm warn Unknown project config "store-dir". This will stop working in the next major version of npm.
+server/auth.ts(162,23): error TS2339: Property 'id' does not exist on type 'User'.
+server/auth.ts(163,29): error TS2339: Property 'username' does not exist on type 'User'.
+server/auth.ts(164,25): error TS2339: Property 'email' does not exist on type 'User'.
+server/auth.ts(165,29): error TS2339: Property 'firstName' does not exist on type 'User'.
+server/auth.ts(166,28): error TS2339: Property 'lastName' does not exist on type 'User'.
+server/auth.ts(167,25): error TS2339: Property 'role' does not exist on type 'User'.
+server/auth.ts(169,27): error TS2339: Property 'modules' does not exist on type 'User'.
+server/controllers/admin-controller.ts(30,26): error TS2339: Property 'primaryColor' does not exist on type '{ id: number; name: string; slug: string; tenantId: number | null; createdBy: number; createdAt: Date; lastModifiedAt: Date | null; lastModifiedBy: number | null; }'.
+server/endpoints/booking-pages-logo-fixed.ts(9,48): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<any>' is not assignable to parameter of type 'Application<Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<any>' is missing the following properties from type 'Application<Record<string, any>>': init, defaultConfiguration, engine, set, and 63 more.
+server/endpoints/booking-pages-logo-fixed.ts(11,32): error TS2339: Property 'params' does not exist on type 'Request'.
+server/endpoints/booking-pages-logo-fixed.ts(27,20): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/endpoints/booking-pages-logo-fixed.ts(38,25): error TS2554: Expected 0 arguments, but got 1.
+server/endpoints/booking-pages-logo-fixed.ts(60,23): error TS2554: Expected 0 arguments, but got 1.
+server/endpoints/booking-pages-logo-fixed.ts(63,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/endpoints/booking-pages-logo-fixed.ts(73,28): error TS2339: Property 'params' does not exist on type 'Request'.
+server/endpoints/booking-pages-logo-fixed.ts(77,20): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/endpoints/booking-pages-logo-fixed.ts(86,20): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/endpoints/booking-pages-logo-fixed.ts(94,20): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/endpoints/booking-pages-logo-fixed.ts(100,20): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/endpoints/booking-pages-logo-fixed.ts(111,25): error TS2554: Expected 0 arguments, but got 1.
+server/endpoints/booking-pages-logo-fixed.ts(133,23): error TS2554: Expected 0 arguments, but got 1.
+server/endpoints/booking-pages-logo-fixed.ts(136,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/endpoints/booking-pages-logo.ts(9,48): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<any>' is not assignable to parameter of type 'Application<Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<any>' is missing the following properties from type 'Application<Record<string, any>>': init, defaultConfiguration, engine, set, and 63 more.
+server/endpoints/booking-pages-logo.ts(11,32): error TS2339: Property 'params' does not exist on type 'Request'.
+server/endpoints/booking-pages-logo.ts(15,59): error TS2339: Property 'originalUrl' does not exist on type 'Request'.
+server/endpoints/booking-pages-logo.ts(29,20): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/endpoints/booking-pages-logo.ts(41,25): error TS2554: Expected 0 arguments, but got 1.
+server/endpoints/booking-pages-logo.ts(64,23): error TS2554: Expected 0 arguments, but got 1.
+server/endpoints/booking-pages-logo.ts(67,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/endpoints/booking-pages-logo.ts(77,32): error TS2339: Property 'params' does not exist on type 'Request'.
+server/endpoints/booking-pages-logo.ts(82,20): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/endpoints/booking-pages-logo.ts(91,20): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/endpoints/booking-pages-logo.ts(99,20): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/endpoints/booking-pages-logo.ts(105,20): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/endpoints/booking-pages-logo.ts(116,25): error TS2554: Expected 0 arguments, but got 1.
+server/endpoints/booking-pages-logo.ts(138,23): error TS2554: Expected 0 arguments, but got 1.
+server/endpoints/booking-pages-logo.ts(141,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/endpoints/qr-codes.ts(82,10): error TS2304: Cannot find name 'isAuthenticated'.
+server/endpoints/qr-codes.ts(132,10): error TS2304: Cannot find name 'isAuthenticated'.
+server/endpoints/qr-codes.ts(176,10): error TS2304: Cannot find name 'isAuthenticated'.
+server/index.ts(81,41): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+server/middleware/validation.ts(24,17): error TS2339: Property 'role' does not exist on type 'User'.
+server/middleware/validation.ts(24,53): error TS2339: Property 'username' does not exist on type 'User'.
+server/middleware/validation.ts(55,32): error TS2339: Property 'role' does not exist on type 'User'.
+server/modules/admin/organizations/routes.ts(4,41): error TS2305: Module '"@shared/schema"' has no exported member 'activityLogs'.
+server/modules/admin/organizations/routes.ts(13,10): error TS2304: Cannot find name 'isAuthenticated'.
+server/modules/admin/organizations/routes.ts(46,10): error TS2304: Cannot find name 'isAuthenticated'.
+server/modules/admin/organizations/routes.ts(89,10): error TS2304: Cannot find name 'isAuthenticated'.
+server/modules/admin/organizations/routes.ts(131,19): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/admin/organizations/routes.ts(205,50): error TS2339: Property 'role' does not exist on type 'User'.
+server/modules/admin/organizations/routes.ts(205,119): error TS2339: Property 'role' does not exist on type 'User'.
+server/modules/admin/organizations/routes.ts(208,60): error TS2339: Property 'role' does not exist on type 'User'.
+server/modules/admin/organizations/routes.ts(212,111): error TS2339: Property 'role' does not exist on type 'User'.
+server/modules/admin/organizations/routes.ts(319,30): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/admin/organizations/routes.ts(365,30): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/admin/organizations/routes.ts(394,71): error TS2339: Property 'role' does not exist on type 'User'.
+server/modules/admin/organizations/routes.ts(395,131): error TS2339: Property 'role' does not exist on type 'User'.
+server/modules/admin/organizations/routes.ts(433,30): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/admin/organizations/routes.ts(439,19): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/admin/organizations/routes.ts(444,39): error TS18048: 'updatedOrg' is possibly 'undefined'.
+server/modules/admin/organizations/routes.ts(469,54): error TS2339: Property 'role' does not exist on type 'User'.
+server/modules/admin/organizations/routes.ts(643,34): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/admin/organizations/routes.ts(690,34): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/admin/organizations/routes.ts(756,41): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/admin/organizations/routes.ts(771,41): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/admin/organizations/routes.ts(892,11): error TS2741: Property 'updatedAt' is missing in type '{ moduleName: string; enabled: true; id: number; createdAt: Date; organizationId: number; }' but required in type '{ id: number; createdAt: Date; updatedAt: Date | null; organizationId: number; moduleName: string; enabled: boolean | null; }'.
+server/modules/admin/organizations/routes.ts(893,11): error TS2741: Property 'updatedAt' is missing in type '{ moduleName: string; enabled: true; id: number; createdAt: Date; organizationId: number; }' but required in type '{ id: number; createdAt: Date; updatedAt: Date | null; organizationId: number; moduleName: string; enabled: boolean | null; }'.
+server/modules/admin/organizations/routes.ts(894,11): error TS2741: Property 'updatedAt' is missing in type '{ moduleName: string; enabled: false; id: number; createdAt: Date; organizationId: number; }' but required in type '{ id: number; createdAt: Date; updatedAt: Date | null; organizationId: number; moduleName: string; enabled: boolean | null; }'.
+server/modules/admin/organizations/routes.ts(895,11): error TS2741: Property 'updatedAt' is missing in type '{ moduleName: string; enabled: false; id: number; createdAt: Date; organizationId: number; }' but required in type '{ id: number; createdAt: Date; updatedAt: Date | null; organizationId: number; moduleName: string; enabled: boolean | null; }'.
+server/modules/admin/organizations/routes.ts(896,11): error TS2741: Property 'updatedAt' is missing in type '{ moduleName: string; enabled: false; id: number; createdAt: Date; organizationId: number; }' but required in type '{ id: number; createdAt: Date; updatedAt: Date | null; organizationId: number; moduleName: string; enabled: boolean | null; }'.
+server/modules/admin/organizations/routes.ts(897,11): error TS2741: Property 'updatedAt' is missing in type '{ moduleName: string; enabled: true; id: number; createdAt: Date; organizationId: number; }' but required in type '{ id: number; createdAt: Date; updatedAt: Date | null; organizationId: number; moduleName: string; enabled: boolean | null; }'.
+server/modules/admin/organizations/routes.ts(898,11): error TS2741: Property 'updatedAt' is missing in type '{ moduleName: string; enabled: true; id: number; createdAt: Date; organizationId: number; }' but required in type '{ id: number; createdAt: Date; updatedAt: Date | null; organizationId: number; moduleName: string; enabled: boolean | null; }'.
+server/modules/admin/organizations/routes.ts(899,11): error TS2741: Property 'updatedAt' is missing in type '{ moduleName: string; enabled: true; id: number; createdAt: Date; organizationId: number; }' but required in type '{ id: number; createdAt: Date; updatedAt: Date | null; organizationId: number; moduleName: string; enabled: boolean | null; }'.
+server/modules/admin/organizations/routes.ts(910,11): error TS7034: Variable 'userDetails' implicitly has type 'any[]' in some locations where its type cannot be determined.
+server/modules/admin/organizations/routes.ts(920,28): error TS7005: Variable 'userDetails' implicitly has an 'any[]' type.
+server/modules/admin/routes.ts(53,17): error TS2339: Property 'role' does not exist on type 'User'.
+server/modules/admin/routes.ts(53,53): error TS2339: Property 'role' does not exist on type 'User'.
+server/modules/admin/routes.ts(56,27): error TS2339: Property 'role' does not exist on type 'User'.
+server/modules/admin/routes.ts(60,72): error TS2339: Property 'role' does not exist on type 'User'.
+server/modules/admin/routes.ts(159,35): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/admin/routes.ts(181,19): error TS2339: Property 'hashPassword' does not exist on type 'typeof import("/Users/Akash/Desktop/Dock-Optimizer-Rebuild-1/server/auth")'.
+server/modules/admin/routes.ts(265,35): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/admin/routes.ts(473,60): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(callbackfn: (previousValue: 0 | 1, currentValue: 0 | 1, currentIndex: number, array: (0 | 1)[]) => 0 | 1, initialValue: 0 | 1): 0 | 1', gave the following error.
+    Type 'number' is not assignable to type '0 | 1'.
+  Overload 2 of 3, '(callbackfn: (previousValue: 0 | 1, currentValue: 0 | 1, currentIndex: number, array: (0 | 1)[]) => 0 | 1, initialValue: 0 | 1): 0 | 1', gave the following error.
+    Type 'number' is not assignable to type '0 | 1'.
+server/modules/admin/routes.ts(610,29): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/admin/routes.ts(901,78): error TS2554: Expected 1 arguments, but got 2.
+server/modules/admin/routes.ts(902,64): error TS2554: Expected 1 arguments, but got 2.
+server/modules/admin/routes.ts(905,30): error TS2345: Argument of type '{}' is not assignable to parameter of type 'string'.
+server/modules/admin/routes.ts(995,65): error TS2554: Expected 1 arguments, but got 2.
+server/modules/admin/routes.ts(1004,11): error TS7034: Variable 'customFields' implicitly has type 'any[]' in some locations where its type cannot be determined.
+server/modules/admin/routes.ts(1012,80): error TS2554: Expected 1 arguments, but got 2.
+server/modules/admin/routes.ts(1022,9): error TS7005: Variable 'customFields' implicitly has an 'any[]' type.
+server/modules/admin/routes.ts(1080,43): error TS2551: Property 'getCompanyAssetById' does not exist on type 'IStorage'. Did you mean 'getCompanyAsset'?
+server/modules/admin/routes.ts(1087,9): error TS2353: Object literal may only specify known properties, and 'status' does not exist in type 'Partial<{ name: string; tenantId: number; id?: number | undefined; createdAt?: Date | undefined; updatedAt?: Date | undefined; implementationDate?: string | null | undefined; implemented_date?: string | ... 1 more ... | undefined; last_service_date?: string | ... 1 more ... | undefined; next_service_date?: string | ...'.
+server/modules/admin/routes.ts(1122,43): error TS2551: Property 'getCompanyAssetById' does not exist on type 'IStorage'. Did you mean 'getCompanyAsset'?
+server/modules/admin/settings/routes.ts(13,17): error TS2339: Property 'role' does not exist on type 'User'.
+server/modules/admin/users/routes.ts(16,17): error TS2339: Property 'role' does not exist on type 'User'.
+server/modules/admin/users/routes.ts(161,17): error TS2339: Property 'length' does not exist on type 'QueryResult<Record<string, unknown>>'.
+server/modules/admin/users/routes.ts(165,14): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'QueryResult<Record<string, unknown>>'.
+  Property '0' does not exist on type 'QueryResult<Record<string, unknown>>'.
+server/modules/appointments/controllers/bolController.ts(6,10): error TS2724: '"@shared/schema"' has no exported member named 'insertBolDocumentSchema'. Did you mean 'InsertBolDocument'?
+server/modules/appointments/controllers/bolController.ts(56,33): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/appointments/controllers/bolController.ts(91,31): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/appointments/controllers/bolController.ts(102,29): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/appointments/controllers/bolController.ts(129,33): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/appointments/controllers/bolController.ts(157,65): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+server/modules/appointments/controllers/bolController.ts(158,48): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(id: number): Promise<{ id: number; createdAt: Date; tenantId: number | null; username: string; email: string; password: string; firstName: string; lastName: string; role: string; } | undefined>', gave the following error.
+    Argument of type 'number | null' is not assignable to parameter of type 'number'.
+      Type 'null' is not assignable to type 'number'.
+  Overload 2 of 2, '(id: number): Promise<{ id: number; createdAt: Date; tenantId: number | null; username: string; email: string; password: string; firstName: string; lastName: string; role: string; } | undefined>', gave the following error.
+    Argument of type 'number | null' is not assignable to parameter of type 'number'.
+      Type 'null' is not assignable to type 'number'.
+server/modules/appointments/controllers/bolController.ts(181,33): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/appointments/controllers/bolController.ts(204,32): error TS2339: Property 'role' does not exist on type 'User'.
+server/modules/appointments/controllers/bolController.ts(208,44): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/appointments/controllers/bolController.ts(218,43): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+server/modules/bolUpload/controllers.ts(6,11): error TS2430: Interface 'AuthenticatedRequest' incorrectly extends interface 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+  The types of 'user.tenantId' are incompatible between these types.
+    Type 'number | null' is not assignable to type 'number | undefined'.
+      Type 'null' is not assignable to type 'number | undefined'.
+server/modules/bolUpload/controllers.ts(108,34): error TS2307: Cannot find module 'busboy' or its corresponding type declarations.
+server/modules/bolUpload/controllers.ts(133,26): error TS7006: Parameter 'name' implicitly has an 'any' type.
+server/modules/bolUpload/controllers.ts(133,32): error TS7006: Parameter 'file' implicitly has an 'any' type.
+server/modules/bolUpload/controllers.ts(133,38): error TS7006: Parameter 'info' implicitly has an 'any' type.
+server/modules/bolUpload/controllers.ts(168,11): error TS2353: Object literal may only specify known properties, and 's3Key' does not exist in type '{ tenantId: number; sourceAssetId: number; error?: string | null | undefined; id?: number | undefined; status?: string | undefined; createdAt?: Date | null | undefined; updatedAt?: Date | ... 1 more ... | undefined; }'.
+server/modules/bolUpload/controllers.ts(181,21): error TS7006: Parameter 'name' implicitly has an 'any' type.
+server/modules/bolUpload/controllers.ts(181,27): error TS7006: Parameter 'value' implicitly has an 'any' type.
+server/modules/bolUpload/controllers.ts(201,21): error TS7006: Parameter 'error' implicitly has an 'any' type.
+server/modules/bolUpload/controllers.ts(302,27): error TS2339: Property 'customFormData' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/modules/bolUpload/index.ts(8,58): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: AuthenticatedRequest, res: Response) => Promise<Response<any, Record<string, any>> | undefined>' is not assignable to parameter of type 'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+      Type '(req: AuthenticatedRequest, res: Response) => Promise<Response<any, Record<string, any>> | undefined>' is not assignable to type 'RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+        Types of parameters 'req' and 'req' are incompatible.
+          Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is not assignable to type 'AuthenticatedRequest'.
+            Types of property 'user' are incompatible.
+              Type 'User | undefined' is not assignable to type 'User'.
+                Type 'undefined' is not assignable to type 'User'.
+server/modules/bolUpload/index.ts(9,57): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: AuthenticatedRequest, res: Response) => Promise<void>' is not assignable to parameter of type 'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+      Type '(req: AuthenticatedRequest, res: Response) => Promise<void>' is not assignable to type 'RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+        Types of parameters 'req' and 'req' are incompatible.
+          Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is not assignable to type 'AuthenticatedRequest'.
+            Types of property 'user' are incompatible.
+              Type 'User | undefined' is not assignable to type 'User'.
+                Type 'undefined' is not assignable to type 'User'.
+server/modules/bolUpload/index.ts(10,58): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: AuthenticatedRequest, res: Response) => Promise<Response<any, Record<string, any>> | undefined>' is not assignable to parameter of type 'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+      Type '(req: AuthenticatedRequest, res: Response) => Promise<Response<any, Record<string, any>> | undefined>' is not assignable to type 'RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+        Types of parameters 'req' and 'req' are incompatible.
+          Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is not assignable to type 'AuthenticatedRequest'.
+            Types of property 'user' are incompatible.
+              Type 'User | undefined' is not assignable to type 'User'.
+                Type 'undefined' is not assignable to type 'User'.
+server/modules/calendar/routes.ts(17,10): error TS2305: Module '"../../middleware/auth"' has no exported member 'AuthenticatedRequest'.
+server/modules/calendar/routes.ts(200,9): error TS2740: Type '{ facilityName: string; appointmentTypeName: string; dockName: string; timezone: string; userTimeZone: string; confirmationCode: string; creatorEmail: any; bolFileUploaded: boolean; id: number; ... 9 more ...; endTime: Date; }' is missing the following properties from type 'EnhancedSchedule': truckNumber, trailerNumber, driverName, driverPhone, and 15 more.
+server/modules/calendar/routes.ts(206,9): error TS2740: Type '{ facilityName: string; appointmentTypeName: string; dockName: string; timezone: string; userTimeZone: string; confirmationCode: string; creatorEmail: any; bolFileUploaded: boolean; id: number; ... 9 more ...; endTime: Date; }' is missing the following properties from type 'EnhancedSchedule': truckNumber, trailerNumber, driverName, driverPhone, and 15 more.
+server/modules/calendar/routes.ts(247,11): error TS2345: Argument of type '{ facilityName: string; appointmentTypeName: string; dockName: string; timezone: string; userTimeZone: string; confirmationCode: string; creatorEmail: any; bolFileUploaded: boolean; id: number; ... 9 more ...; endTime: Date; }' is not assignable to parameter of type 'EnhancedSchedule'.
+  Type '{ facilityName: string; appointmentTypeName: string; dockName: string; timezone: string; userTimeZone: string; confirmationCode: string; creatorEmail: any; bolFileUploaded: boolean; id: number; ... 9 more ...; endTime: Date; }' is missing the following properties from type 'EnhancedSchedule': truckNumber, trailerNumber, driverName, driverPhone, and 15 more.
+server/modules/calendar/routes.ts(385,9): error TS2740: Type '{ facilityName: string; appointmentTypeName: string; dockName: string; timezone: string; userTimeZone: string; confirmationCode: string; creatorEmail: any; bolFileUploaded: boolean; id: number; ... 9 more ...; endTime: Date; }' is missing the following properties from type 'EnhancedSchedule': truckNumber, trailerNumber, driverName, driverPhone, and 15 more.
+server/modules/calendar/routes.ts(386,31): error TS2339: Property 'tenantId' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/modules/calendar/routes.ts(391,9): error TS2740: Type '{ facilityName: string; appointmentTypeName: string; dockName: string; timezone: string; userTimeZone: string; confirmationCode: string; creatorEmail: any; bolFileUploaded: boolean; id: number; ... 9 more ...; endTime: Date; }' is missing the following properties from type 'EnhancedSchedule': truckNumber, trailerNumber, driverName, driverPhone, and 15 more.
+server/modules/calendar/routes.ts(392,31): error TS2339: Property 'tenantId' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/modules/companyAssets/controllers.ts(8,10): error TS2724: '"@shared/schema"' has no exported member named 'insertAssetSchema'. Did you mean 'insertUserSchema'?
+server/modules/companyAssets/controllers.ts(8,55): error TS2724: '"@shared/schema"' has no exported member named 'updateCompanyAssetSchema'. Did you mean 'UpdateCompanyAsset'?
+server/modules/companyAssets/controllers.ts(83,29): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/companyAssets/controllers.ts(124,30): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/companyAssets/controllers.ts(125,32): error TS2339: Property 'role' does not exist on type 'User'.
+server/modules/companyAssets/controllers.ts(126,23): error TS2339: Property 'uploadedBy' does not exist on type '{ id: number; filename: string; lastAccessedAt: Date | null; }'.
+server/modules/companyAssets/controllers.ts(134,18): error TS2339: Property 'description' does not exist on type 'Partial<{ id: number; filename: string; lastAccessedAt: Date | null; }>'.
+server/modules/companyAssets/controllers.ts(138,18): error TS2339: Property 'tags' does not exist on type 'Partial<{ id: number; filename: string; lastAccessedAt: Date | null; }>'.
+server/modules/companyAssets/controllers.ts(172,30): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/companyAssets/controllers.ts(173,32): error TS2339: Property 'role' does not exist on type 'User'.
+server/modules/companyAssets/controllers.ts(174,23): error TS2339: Property 'uploadedBy' does not exist on type '{ id: number; filename: string; lastAccessedAt: Date | null; }'.
+server/modules/companyAssets/controllers.ts(687,78): error TS2353: Object literal may only specify known properties, and 'photoUrl' does not exist in type 'Partial<{ name: string; tenantId: number; id?: number | undefined; createdAt?: Date | undefined; updatedAt?: Date | undefined; implementationDate?: string | null | undefined; implemented_date?: string | ... 1 more ... | undefined; last_service_date?: string | ... 1 more ... | undefined; next_service_date?: string | ...'.
+server/modules/companyAssets/controllers.ts(753,7): error TS2353: Object literal may only specify known properties, and 'compressedImage' does not exist in type 'Partial<{ name: string; tenantId: number; id?: number | undefined; createdAt?: Date | undefined; updatedAt?: Date | undefined; implementationDate?: string | null | undefined; implemented_date?: string | ... 1 more ... | undefined; last_service_date?: string | ... 1 more ... | undefined; next_service_date?: string | ...'.
+server/modules/companyAssets/controllers.ts(806,16): error TS2339: Property 'compressedImage' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/controllers.ts(811,27): error TS2339: Property 'compressedImage' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/controllers.ts(866,7): error TS2353: Object literal may only specify known properties, and 'compressedImage' does not exist in type 'Partial<{ name: string; tenantId: number; id?: number | undefined; createdAt?: Date | undefined; updatedAt?: Date | undefined; implementationDate?: string | null | undefined; implemented_date?: string | ... 1 more ... | undefined; last_service_date?: string | ... 1 more ... | undefined; next_service_date?: string | ...'.
+server/modules/companyAssets/controllers.ts(1111,82): error TS2353: Object literal may only specify known properties, and 'photoUrl' does not exist in type 'Partial<{ name: string; tenantId: number; id?: number | undefined; createdAt?: Date | undefined; updatedAt?: Date | undefined; implementationDate?: string | null | undefined; implemented_date?: string | ... 1 more ... | undefined; last_service_date?: string | ... 1 more ... | undefined; next_service_date?: string | ...'.
+server/modules/companyAssets/serializer.ts(13,24): error TS2339: Property 'photoUrl' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(96,15): error TS2339: Property 'fileType' does not exist on type '{ filename: string; id?: number | undefined; lastAccessedAt?: Date | null | undefined; }'.
+server/modules/companyAssets/service.ts(157,17): error TS2339: Property 'url' does not exist on type '{ id: number; filename: string; lastAccessedAt: Date | null; }'.
+server/modules/companyAssets/service.ts(157,30): error TS2339: Property 'url' does not exist on type '{ id: number; filename: string; lastAccessedAt: Date | null; }'.
+server/modules/companyAssets/service.ts(159,32): error TS2339: Property 'url' does not exist on type '{ id: number; filename: string; lastAccessedAt: Date | null; }'.
+server/modules/companyAssets/service.ts(257,17): error TS2339: Property 'description' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(258,17): error TS2339: Property 'manufacturer' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(259,17): error TS2339: Property 'model' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(260,17): error TS2339: Property 'notes' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(261,17): error TS2339: Property 'department' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(262,17): error TS2339: Property 'owner' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(263,17): error TS2339: Property 'barcode' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(264,17): error TS2339: Property 'serialNumber' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(273,37): error TS2339: Property 'category' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(278,35): error TS2339: Property 'status' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(283,37): error TS2339: Property 'location' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(288,33): error TS2339: Property 'tags' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(294,44): error TS2339: Property 'tags' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(295,34): error TS2339: Property 'tags' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(296,38): error TS2339: Property 'tags' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(296,52): error TS2339: Property 'tags' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(372,65): error TS2353: Object literal may only specify known properties, and 'photoUrl' does not exist in type 'Partial<{ name: string; tenantId: number; id?: number | undefined; createdAt?: Date | undefined; updatedAt?: Date | undefined; implementationDate?: string | null | undefined; implemented_date?: string | ... 1 more ... | undefined; last_service_date?: string | ... 1 more ... | undefined; next_service_date?: string | ...'.
+server/modules/companyAssets/service.ts(373,39): error TS2353: Object literal may only specify known properties, and 'photoUrl' does not exist in type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(417,20): error TS2339: Property 'photoUrl' does not exist on type 'Partial<{ name: string; tenantId: number; id?: number | undefined; createdAt?: Date | undefined; updatedAt?: Date | undefined; implementationDate?: string | null | undefined; implemented_date?: string | ... 1 more ... | undefined; last_service_date?: string | ... 1 more ... | undefined; next_service_date?: string | ...'.
+server/modules/companyAssets/service.ts(476,17): error TS2339: Property 'photoUrl' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(476,35): error TS2339: Property 'photoUrl' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(478,32): error TS2339: Property 'photoUrl' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/companyAssets/service.ts(517,43): error TS2339: Property 'barcode' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
+server/modules/facilityManagement/routes.ts(10,44): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<void>' is not assignable to parameter of type 'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<void>' is not assignable to type 'RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+        Types of parameters 'req' and 'req' are incompatible.
+          Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is missing the following properties from type 'Request': cache, credentials, destination, integrity, and 13 more.
+server/modules/facilityManagement/routes.ts(13,22): error TS2339: Property 'user' does not exist on type 'Request'.
+server/modules/facilityManagement/routes.ts(17,14): error TS2554: Expected 0 arguments, but got 1.
+server/modules/facilityManagement/routes.ts(20,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(25,48): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<any>' is not assignable to parameter of type 'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<any>' is not assignable to type 'RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+        Types of parameters 'req' and 'req' are incompatible.
+          Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is missing the following properties from type 'Request': cache, credentials, destination, integrity, and 13 more.
+server/modules/facilityManagement/routes.ts(28,37): error TS2339: Property 'params' does not exist on type 'Request'.
+server/modules/facilityManagement/routes.ts(29,22): error TS2339: Property 'user' does not exist on type 'Request'.
+server/modules/facilityManagement/routes.ts(34,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(37,14): error TS2554: Expected 0 arguments, but got 1.
+server/modules/facilityManagement/routes.ts(40,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(45,45): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<void>' is not assignable to parameter of type 'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<void>' is not assignable to type 'RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+        Types of parameters 'req' and 'req' are incompatible.
+          Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is missing the following properties from type 'Request': cache, credentials, destination, integrity, and 13 more.
+server/modules/facilityManagement/routes.ts(48,22): error TS2339: Property 'user' does not exist on type 'Request'.
+server/modules/facilityManagement/routes.ts(50,51): error TS2345: Argument of type 'ReadableStream<Uint8Array> | null' is not assignable to parameter of type '{ name: string; address1: string; city: string; state: string; pincode: string; country: string; id?: number | undefined; timezone?: string | null | undefined; createdAt?: Date | undefined; ... 7 more ...; lastModifiedAt?: Date | ... 1 more ... | undefined; }'.
+  Type 'null' is not assignable to type '{ name: string; address1: string; city: string; state: string; pincode: string; country: string; id?: number | undefined; timezone?: string | null | undefined; createdAt?: Date | undefined; ... 7 more ...; lastModifiedAt?: Date | ... 1 more ... | undefined; }'.
+server/modules/facilityManagement/routes.ts(61,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(64,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(69,48): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<any>' is not assignable to parameter of type 'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<any>' is not assignable to type 'RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+        Types of parameters 'req' and 'req' are incompatible.
+          Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is missing the following properties from type 'Request': cache, credentials, destination, integrity, and 13 more.
+server/modules/facilityManagement/routes.ts(72,37): error TS2339: Property 'params' does not exist on type 'Request'.
+server/modules/facilityManagement/routes.ts(74,63): error TS2345: Argument of type 'ReadableStream<Uint8Array> | null' is not assignable to parameter of type 'Partial<{ id: number; name: string; timezone: string | null; createdAt: Date; tenantId: number | null; address1: string; address2: string | null; city: string; state: string; pincode: string; ... 6 more ...; lastModifiedAt: Date | null; }>'.
+  Type 'null' is not assignable to type 'Partial<{ id: number; name: string; timezone: string | null; createdAt: Date; tenantId: number | null; address1: string; address2: string | null; city: string; state: string; pincode: string; ... 6 more ...; lastModifiedAt: Date | null; }>'.
+server/modules/facilityManagement/routes.ts(76,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(79,14): error TS2554: Expected 0 arguments, but got 1.
+server/modules/facilityManagement/routes.ts(82,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(87,51): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<void>' is not assignable to parameter of type 'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<void>' is not assignable to type 'RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+        Types of parameters 'req' and 'req' are incompatible.
+          Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is missing the following properties from type 'Request': cache, credentials, destination, integrity, and 13 more.
+server/modules/facilityManagement/routes.ts(90,37): error TS2339: Property 'params' does not exist on type 'Request'.
+server/modules/facilityManagement/routes.ts(93,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(96,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(103,54): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<any>' is not assignable to parameter of type 'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<any>' is not assignable to type 'RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+        Types of parameters 'req' and 'req' are incompatible.
+          Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is missing the following properties from type 'Request': cache, credentials, destination, integrity, and 13 more.
+server/modules/facilityManagement/routes.ts(106,37): error TS2339: Property 'params' does not exist on type 'Request'.
+server/modules/facilityManagement/routes.ts(107,22): error TS2339: Property 'user' does not exist on type 'Request'.
+server/modules/facilityManagement/routes.ts(113,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(117,14): error TS2554: Expected 0 arguments, but got 1.
+server/modules/facilityManagement/routes.ts(120,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(125,55): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<any>' is not assignable to parameter of type 'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<any>' is not assignable to type 'RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+        Types of parameters 'req' and 'req' are incompatible.
+          Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is missing the following properties from type 'Request': cache, credentials, destination, integrity, and 13 more.
+server/modules/facilityManagement/routes.ts(128,37): error TS2339: Property 'params' does not exist on type 'Request'.
+server/modules/facilityManagement/routes.ts(129,22): error TS2339: Property 'user' does not exist on type 'Request'.
+server/modules/facilityManagement/routes.ts(135,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(143,43): error TS2345: Argument of type '{ facilityId: number; locked?: boolean | undefined; cancel?: ((reason?: any) => Promise<void>) | undefined; getReader?: { (options: { mode: "byob"; }): ReadableStreamBYOBReader; (): ReadableStreamDefaultReader<...>; (options?: ReadableStreamGetReaderOptions): ReadableStreamReader<...>; } | undefined; pipeThrough?: (...' is not assignable to parameter of type '{ name: string; type: DoorType; facilityId: number; id?: number | undefined; isActive?: boolean | undefined; customType?: string | null | undefined; constraints?: unknown; }'.
+  Type '{ facilityId: number; locked?: boolean | undefined; cancel?: ((reason?: any) => Promise<void>) | undefined; getReader?: { (options: { mode: "byob"; }): ReadableStreamBYOBReader; (): ReadableStreamDefaultReader<...>; (options?: ReadableStreamGetReaderOptions | undefined): ReadableStreamReader<...>; } | undefined; pip...' is missing the following properties from type '{ name: string; type: DoorType; facilityId: number; id?: number | undefined; isActive?: boolean | undefined; customType?: string | null | undefined; constraints?: unknown; }': name, type
+server/modules/facilityManagement/routes.ts(144,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(147,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(152,43): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<any>' is not assignable to parameter of type 'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<any>' is not assignable to type 'RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+        Types of parameters 'req' and 'req' are incompatible.
+          Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is missing the following properties from type 'Request': cache, credentials, destination, integrity, and 13 more.
+server/modules/facilityManagement/routes.ts(155,33): error TS2339: Property 'params' does not exist on type 'Request'.
+server/modules/facilityManagement/routes.ts(156,22): error TS2339: Property 'user' does not exist on type 'Request'.
+server/modules/facilityManagement/routes.ts(162,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(168,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(171,51): error TS2345: Argument of type 'ReadableStream<Uint8Array> | null' is not assignable to parameter of type 'Partial<{ id: number; name: string; type: DoorType; facilityId: number; isActive: boolean; customType: string | null; constraints: unknown; }>'.
+  Type 'null' is not assignable to type 'Partial<{ id: number; name: string; type: DoorType; facilityId: number; isActive: boolean; customType: string | null; constraints: unknown; }>'.
+server/modules/facilityManagement/routes.ts(172,14): error TS2554: Expected 0 arguments, but got 1.
+server/modules/facilityManagement/routes.ts(175,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(180,46): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<any>' is not assignable to parameter of type 'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<any>' is not assignable to type 'RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+        Types of parameters 'req' and 'req' are incompatible.
+          Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is missing the following properties from type 'Request': cache, credentials, destination, integrity, and 13 more.
+server/modules/facilityManagement/routes.ts(183,33): error TS2339: Property 'params' does not exist on type 'Request'.
+server/modules/facilityManagement/routes.ts(184,22): error TS2339: Property 'user' does not exist on type 'Request'.
+server/modules/facilityManagement/routes.ts(190,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(196,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(200,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/facilityManagement/routes.ts(203,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/modules/featureFlags/service.ts(2,19): error TS2724: '"@shared/schema"' has no exported member named 'featureFlags'. Did you mean 'FeatureFlag'?
+server/modules/hours/routes.ts(7,10): error TS2304: Cannot find name 'isAuthenticated'.
+server/modules/modules/routes.ts(57,72): error TS2339: Property 'username' does not exist on type 'User'.
+server/modules/modules/routes.ts(110,74): error TS2339: Property 'username' does not exist on type 'User'.
+server/modules/organizations/controllers.ts(9,30): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/organizations/controllers.ts(37,30): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/organizations/controllers.ts(53,7): error TS2353: Object literal may only specify known properties, and 'description' does not exist in type 'Partial<{ id: number; name: string; subdomain: string; status: TenantStatus | null; primaryContact: string | null; contactEmail: string | null; contactPhone: string | null; ... 12 more ...; updatedBy: number | null; }>'.
+server/modules/organizations/controllers.ts(127,30): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/organizations/controllers.ts(190,30): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/organizations/controllers.ts(208,7): error TS2353: Object literal may only specify known properties, and 'name' does not exist in type '{ organizationId: number; holidayId: number; id?: number | undefined; createdAt?: Date | undefined; }'.
+server/modules/organizations/controllers.ts(228,30): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/organizations/controllers.ts(247,7): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(id: number, holiday: Partial<{ id: number; createdAt: Date; organizationId: number; holidayId: number; }>): Promise<{ id: number; createdAt: Date; organizationId: number; holidayId: number; } | undefined>', gave the following error.
+    Object literal may only specify known properties, and 'name' does not exist in type 'Partial<{ id: number; createdAt: Date; organizationId: number; holidayId: number; }>'.
+  Overload 2 of 2, '(id: number, holiday: Partial<{ id: number; createdAt: Date; organizationId: number; holidayId: number; }>): Promise<{ id: number; createdAt: Date; organizationId: number; holidayId: number; } | undefined>', gave the following error.
+    Object literal may only specify known properties, and 'name' does not exist in type 'Partial<{ id: number; createdAt: Date; organizationId: number; holidayId: number; }>'.
+server/modules/organizations/controllers.ts(284,72): error TS2554: Expected 1 arguments, but got 2.
+server/modules/organizations/controllers.ts(326,30): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/organizations/controllers.ts(436,30): error TS2339: Property 'id' does not exist on type 'User'.
+server/modules/organizations/holidays.ts(128,45): error TS2339: Property 'holidays' does not exist on type '{}'.
+server/modules/organizations/holidays.ts(169,14): error TS2339: Property 'holidays' does not exist on type '{}'.
+server/modules/organizations/holidays.ts(172,14): error TS2339: Property 'holidaysLastSynced' does not exist on type '{}'.
+server/modules/organizations/holidays.ts(206,64): error TS2339: Property 'holidays' does not exist on type '{}'.
+server/modules/organizations/holidays.ts(231,14): error TS2339: Property 'holidays' does not exist on type '{}'.
+server/modules/organizations/holidays.ts(232,14): error TS2339: Property 'holidaysLastSynced' does not exist on type '{}'.
+server/modules/organizations/holidays.ts(263,56): error TS2339: Property 'holidays' does not exist on type '{}'.
+server/modules/tenants/service.ts(2,33): error TS2305: Module '"@shared/schema"' has no exported member 'InsertTenant'.
+server/modules/tenants/service.ts(2,47): error TS2724: '"@shared/schema"' has no exported member named 'featureFlags'. Did you mean 'FeatureFlag'?
+server/notifications.ts(2163,8): error TS2304: Cannot find name 'isEmailServiceConfigured'.
+server/reminder-scheduler.ts(45,24): error TS2339: Property 'emailReminderTime' does not exist on type '{ id: number; name: string; createdAt: Date; tenantId: number | null; lastModifiedAt: Date | null; facilityId: number; duration: number; }'.
+server/reminder-scheduler.ts(45,61): error TS2339: Property 'emailReminderTime' does not exist on type '{ id: number; name: string; createdAt: Date; tenantId: number | null; lastModifiedAt: Date | null; facilityId: number; duration: number; }'.
+server/reminder-scheduler.ts(62,51): error TS2339: Property 'emailReminderTime' does not exist on type '{ id: number; name: string; createdAt: Date; tenantId: number | null; lastModifiedAt: Date | null; facilityId: number; duration: number; }'.
+server/reminder-scheduler.ts(63,51): error TS2339: Property 'emailReminderTime' does not exist on type '{ id: number; name: string; createdAt: Date; tenantId: number | null; lastModifiedAt: Date | null; facilityId: number; duration: number; }'.
+server/reminder-scheduler.ts(89,64): error TS2345: Argument of type 'number | null' is not assignable to parameter of type 'number'.
+  Type 'null' is not assignable to type 'number'.
+server/reminder-scheduler.ts(99,41): error TS2339: Property 'driverEmail' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/reminder-scheduler.ts(117,54): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(id: number, tenantId?: number | undefined): Promise<{ id: number; name: string; timezone: string | null; createdAt: Date; tenantId: number | null; address1: string; address2: string | null; ... 9 more ...; lastModifiedAt: Date | null; } | undefined>', gave the following error.
+    Argument of type 'number | null' is not assignable to parameter of type 'number'.
+      Type 'null' is not assignable to type 'number'.
+  Overload 2 of 2, '(id: number, tenantId?: number | undefined): Promise<{ id: number; name: string; timezone: string | null; createdAt: Date; tenantId: number | null; address1: string; address2: string | null; ... 9 more ...; lastModifiedAt: Date | null; } | undefined>', gave the following error.
+    Argument of type 'number | null' is not assignable to parameter of type 'number'.
+      Type 'null' is not assignable to type 'number'.
+server/reminder-scheduler.ts(152,13): error TS2345: Argument of type 'EnhancedSchedule' is not assignable to parameter of type 'import("/Users/Akash/Desktop/Dock-Optimizer-Rebuild-1/server/notifications").EnhancedSchedule'.
+  Type 'EnhancedSchedule' is missing the following properties from type 'EnhancedSchedule': truckNumber, trailerNumber, driverName, driverPhone, and 15 more.
+server/repositories/bolRepository.ts(3,31): error TS2724: '"../../shared/schema"' has no exported member named 'InsertAppointmentBolLink'. Did you mean 'appointmentBolLinks'?
+server/repositories/bolRepository.ts(51,15): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { bolDocumentId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; status?: string | SQL<...> | Placeholder<...> | null | undefined; ... 5 more ...; documentType?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Argument of type '{ bolDocumentId: number; status?: string | null | undefined; tenantId?: number | null | undefined; processingTime?: number | undefined; confidenceScore?: number | undefined; engineVersion?: string | ... 1 more ... | undefined; documentType?: string | ... 1 more ... | undefined; }' is not assignable to parameter of type '{ bolDocumentId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; status?: string | SQL<...> | Placeholder<...> | null | undefined; ... 5 more ...; documentType?: string | ... 3 more ... | undefined; }'.
+      Types of property 'processingTime' are incompatible.
+        Type 'number | undefined' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any> | null | undefined'.
+          Type 'number' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any> | null | undefined'.
+  Overload 2 of 2, '(values: { bolDocumentId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; status?: string | SQL<...> | Placeholder<...> | null | undefined; ... 5 more ...; documentType?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Argument of type '{ bolDocumentId: number; status?: string | null | undefined; tenantId?: number | null | undefined; processingTime?: number | undefined; confidenceScore?: number | undefined; engineVersion?: string | ... 1 more ... | undefined; documentType?: string | ... 1 more ... | undefined; }' is not assignable to parameter of type '{ bolDocumentId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; status?: string | SQL<...> | Placeholder<...> | null | undefined; ... 5 more ...; documentType?: string | ... 3 more ... | undefined; }[]'.
+      Type '{ bolDocumentId: number; status?: string | null | undefined; tenantId?: number | null | undefined; processingTime?: number | undefined; confidenceScore?: number | undefined; engineVersion?: string | ... 1 more ... | undefined; documentType?: string | ... 1 more ... | undefined; }' is missing the following properties from type '{ bolDocumentId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; status?: string | SQL<...> | Placeholder<...> | null | undefined; ... 5 more ...; documentType?: string | ... 3 more ... | undefined; }[]': length, pop, push, concat, and 35 more.
+server/routes.ts(92,29): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<void>' is not assignable to parameter of type 'Application<Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<void>' is missing the following properties from type 'Application<Record<string, any>>': init, defaultConfiguration, engine, set, and 63 more.
+server/routes.ts(96,13): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes.ts(98,13): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes.ts(101,11): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes.ts(311,9): error TS2353: Object literal may only specify known properties, and 'actualStartTime' does not exist in type 'Partial<{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }>'.
+server/routes.ts(321,48): error TS2339: Property 'customerName' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes.ts(347,9): error TS2353: Object literal may only specify known properties, and 'actualEndTime' does not exist in type 'Partial<{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }>'.
+server/routes.ts(348,43): error TS2339: Property 'notes' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes.ts(349,61): error TS2339: Property 'customFormData' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes.ts(355,22): error TS2339: Property 'driverEmail' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes.ts(360,17): error TS2740: Type '{ facilityName: string | undefined; carrierName: string | null; dockName: string | undefined; appointmentTypeName: string; timezone: string; creatorEmail: any; confirmationCode: any; ... 13 more ...; endTime: Date; }' is missing the following properties from type 'EnhancedSchedule': truckNumber, trailerNumber, driverName, driverPhone, and 13 more.
+server/routes.ts(368,36): error TS2339: Property 'creatorEmail' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes.ts(373,47): error TS2339: Property 'notes' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes.ts(383,22): error TS2339: Property 'driverEmail' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes.ts(423,9): error TS2561: Object literal may only specify known properties, but 'lastModifiedBy' does not exist in type 'Partial<{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }>'. Did you mean to write 'lastModifiedAt'?
+server/routes.ts(466,40): error TS2339: Property 'notes' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes.ts(472,39): error TS2339: Property 'customFormData' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes.ts(496,22): error TS2339: Property 'driverEmail' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes.ts(513,36): error TS2339: Property 'creatorEmail' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes.ts(519,75): error TS2339: Property 'driverEmail' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes.ts(521,22): error TS2339: Property 'driverEmail' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes.ts(523,13): error TS2345: Argument of type '{ facilityName: string | undefined; carrierName: string | null; dockName: string | undefined; appointmentTypeName: string; timezone: string; creatorEmail: any; confirmationCode: any; ... 12 more ...; endTime: Date; }' is not assignable to parameter of type 'EnhancedSchedule'.
+  Type '{ facilityName: string | undefined; carrierName: string | null; dockName: string | undefined; appointmentTypeName: string; timezone: string; creatorEmail: any; confirmationCode: any; ... 12 more ...; endTime: Date; }' is missing the following properties from type 'EnhancedSchedule': truckNumber, trailerNumber, driverName, driverPhone, and 14 more.
+server/routes.ts(552,9): error TS2561: Object literal may only specify known properties, but 'lastModifiedBy' does not exist in type 'Partial<{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }>'. Did you mean to write 'lastModifiedAt'?
+server/routes.ts(580,9): error TS2561: Object literal may only specify known properties, but 'lastModifiedBy' does not exist in type 'Partial<{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }>'. Did you mean to write 'lastModifiedAt'?
+server/routes.ts(584,22): error TS2339: Property 'driverEmail' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes.ts(589,17): error TS2740: Type '{ facilityName: string | undefined; carrierName: string | null; dockName: string | undefined; appointmentTypeName: string; timezone: string; creatorEmail: any; confirmationCode: any; ... 12 more ...; endTime: Date; }' is missing the following properties from type 'EnhancedSchedule': truckNumber, trailerNumber, driverName, driverPhone, and 14 more.
+server/routes.ts(597,36): error TS2339: Property 'creatorEmail' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes.ts(603,46): error TS2339: Property 'driverEmail' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes.ts(850,44): error TS2554: Expected 0 arguments, but got 1.
+server/routes.ts(872,50): error TS2554: Expected 0 arguments, but got 1.
+server/routes.ts(958,27): error TS2339: Property 'customFormData' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes.ts(1245,33): error TS2339: Property 'customFormData' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/files.ts(51,65): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<any>' is not assignable to parameter of type 'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<any>' is not assignable to type 'RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+        Types of parameters 'req' and 'req' are incompatible.
+          Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is missing the following properties from type 'Request': cache, credentials, destination, integrity, and 13 more.
+server/routes/files.ts(53,14): error TS2339: Property 'file' does not exist on type 'Request'.
+server/routes/files.ts(54,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/files.ts(57,13): error TS2339: Property 'organizationId' does not exist on type 'ReadableStream<Uint8Array> | null'.
+server/routes/files.ts(59,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/files.ts(66,11): error TS2339: Property 'file' does not exist on type 'Request'.
+server/routes/files.ts(67,11): error TS2339: Property 'file' does not exist on type 'Request'.
+server/routes/files.ts(68,11): error TS2339: Property 'file' does not exist on type 'Request'.
+server/routes/files.ts(77,36): error TS2345: Argument of type 'StoredFile' is not assignable to parameter of type '{ id: string; filename: string; originalName: string; mimeType: string; size: number; path: string; appointmentId?: number | undefined; ocrText?: string | undefined; metadata?: any; uploadedBy: number; uploadedAt: Date; }'.
+  Type 'StoredFile' is missing the following properties from type '{ id: string; filename: string; originalName: string; mimeType: string; size: number; path: string; appointmentId?: number | undefined; ocrText?: string | undefined; metadata?: any; uploadedBy: number; uploadedAt: Date; }': filename, uploadedAt
+server/routes/files.ts(79,14): error TS2554: Expected 0 arguments, but got 1.
+server/routes/files.ts(89,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/files.ts(94,34): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<any>' is not assignable to parameter of type 'Application<Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<any>' is missing the following properties from type 'Application<Record<string, any>>': init, defaultConfiguration, engine, set, and 63 more.
+server/routes/files.ts(96,38): error TS2339: Property 'params' does not exist on type 'Request'.
+server/routes/files.ts(104,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/files.ts(123,22): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ '.pdf': string; '.jpg': string; '.jpeg': string; '.png': string; '.gif': string; '.tiff': string; '.doc': string; '.docx': string; }'.
+server/routes/files.ts(126,9): error TS2339: Property 'setHeader' does not exist on type 'Response'.
+server/routes/files.ts(127,9): error TS2339: Property 'setHeader' does not exist on type 'Response'.
+server/routes/files.ts(128,9): error TS2339: Property 'setHeader' does not exist on type 'Response'.
+server/routes/files.ts(131,21): error TS2345: Argument of type 'Response' is not assignable to parameter of type 'WritableStream'.
+  Type 'Response' is missing the following properties from type 'WritableStream': writable, write, end, addListener, and 14 more.
+server/routes/files.ts(135,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/files.ts(140,30): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<any>' is not assignable to parameter of type 'Application<Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<any>' is missing the following properties from type 'Application<Record<string, any>>': init, defaultConfiguration, engine, set, and 63 more.
+server/routes/files.ts(142,28): error TS2339: Property 'params' does not exist on type 'Request'.
+server/routes/files.ts(148,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/files.ts(155,9): error TS2339: Property 'setHeader' does not exist on type 'Response'.
+server/routes/files.ts(156,9): error TS2339: Property 'setHeader' does not exist on type 'Response'.
+server/routes/files.ts(157,9): error TS2339: Property 'setHeader' does not exist on type 'Response'.
+server/routes/files.ts(160,21): error TS2345: Argument of type 'Response' is not assignable to parameter of type 'WritableStream'.
+  Type 'Response' is missing the following properties from type 'WritableStream': writable, write, end, addListener, and 14 more.
+server/routes/files.ts(164,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/files.ts(169,47): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<any>' is not assignable to parameter of type 'Application<Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<any>' is missing the following properties from type 'Application<Record<string, any>>': init, defaultConfiguration, engine, set, and 63 more.
+server/routes/files.ts(171,35): error TS2339: Property 'params' does not exist on type 'Request'.
+server/routes/files.ts(177,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/files.ts(182,36): error TS2339: Property 'customFormData' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/files.ts(191,14): error TS2554: Expected 0 arguments, but got 1.
+server/routes/files.ts(194,30): error TS2339: Property 'bolNumber' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/files.ts(199,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/files.ts(204,57): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<any>' is not assignable to parameter of type 'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<any>' is not assignable to type 'RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+        Types of parameters 'req' and 'req' are incompatible.
+          Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is missing the following properties from type 'Request': cache, credentials, destination, integrity, and 13 more.
+server/routes/files.ts(206,14): error TS2339: Property 'file' does not exist on type 'Request'.
+server/routes/files.ts(207,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/files.ts(210,13): error TS2339: Property 'scheduleId' does not exist on type 'ReadableStream<Uint8Array> | null'.
+server/routes/files.ts(210,25): error TS2339: Property 'appointmentId' does not exist on type 'ReadableStream<Uint8Array> | null'.
+server/routes/files.ts(218,11): error TS2339: Property 'file' does not exist on type 'Request'.
+server/routes/files.ts(219,11): error TS2339: Property 'file' does not exist on type 'Request'.
+server/routes/files.ts(220,11): error TS2339: Property 'file' does not exist on type 'Request'.
+server/routes/files.ts(238,13): error TS2353: Object literal may only specify known properties, and 'bolNumber' does not exist in type 'Partial<{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }>'.
+server/routes/files.ts(238,24): error TS18047: 'req.body' is possibly 'null'.
+server/routes/files.ts(238,33): error TS2339: Property 'bolNumber' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/files.ts(242,31): error TS2339: Property 'customFormData' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/files.ts(256,14): error TS2554: Expected 0 arguments, but got 1.
+server/routes/files.ts(269,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/files.ts(274,27): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<any>' is not assignable to parameter of type 'Application<Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<any>' is missing the following properties from type 'Application<Record<string, any>>': init, defaultConfiguration, engine, set, and 63 more.
+server/routes/files.ts(276,28): error TS2339: Property 'params' does not exist on type 'Request'.
+server/routes/files.ts(282,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/files.ts(291,14): error TS2554: Expected 0 arguments, but got 1.
+server/routes/files.ts(295,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/health.ts(12,23): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => void' is not assignable to parameter of type 'Application<Record<string, any>>'.
+      Type '(req: Request, res: Response) => void' is missing the following properties from type 'Application<Record<string, any>>': init, defaultConfiguration, engine, set, and 63 more.
+server/routes/health.ts(19,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/health.ts(26,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/health.ts(36,22): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => void' is not assignable to parameter of type 'Application<Record<string, any>>'.
+      Type '(req: Request, res: Response) => void' is missing the following properties from type 'Application<Record<string, any>>': init, defaultConfiguration, engine, set, and 63 more.
+server/routes/health.ts(37,7): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/health.ts(44,22): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => void' is not assignable to parameter of type 'Application<Record<string, any>>'.
+      Type '(req: Request, res: Response) => void' is missing the following properties from type 'Application<Record<string, any>>': init, defaultConfiguration, engine, set, and 63 more.
+server/routes/health.ts(45,7): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/public/booking.ts(10,41): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<any>' is not assignable to parameter of type 'Application<Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<any>' is missing the following properties from type 'Application<Record<string, any>>': init, defaultConfiguration, engine, set, and 63 more.
+server/routes/public/booking.ts(11,24): error TS2339: Property 'params' does not exist on type 'Request'.
+server/routes/public/booking.ts(15,33): error TS2339: Property 'bookingPages' does not exist on type '{}'.
+server/routes/public/booking.ts(19,27): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/public/booking.ts(105,14): error TS2554: Expected 0 arguments, but got 1.
+server/routes/public/booking.ts(108,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/public/booking.ts(113,85): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<any>' is not assignable to parameter of type 'Application<Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<any>' is missing the following properties from type 'Application<Record<string, any>>': init, defaultConfiguration, engine, set, and 63 more.
+server/routes/public/booking.ts(114,37): error TS2339: Property 'params' does not exist on type 'Request'.
+server/routes/public/booking.ts(120,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/public/booking.ts(145,14): error TS2554: Expected 0 arguments, but got 1.
+server/routes/public/booking.ts(148,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/public/booking.ts(153,42): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: Request, res: Response) => Promise<any>' is not assignable to parameter of type 'Application<Record<string, any>>'.
+      Type '(req: Request, res: Response) => Promise<any>' is missing the following properties from type 'Application<Record<string, any>>': init, defaultConfiguration, engine, set, and 63 more.
+server/routes/public/booking.ts(154,24): error TS2339: Property 'params' does not exist on type 'Request'.
+server/routes/public/booking.ts(161,40): error TS2339: Property 'bookingPages' does not exist on type '{}'.
+server/routes/public/booking.ts(166,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/public/booking.ts(170,18): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/routes/public/booking.ts(178,48): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(178,60): error TS2339: Property 'facilityId' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(182,55): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(182,67): error TS2339: Property 'date' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(182,82): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(182,94): error TS2339: Property 'time' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(188,62): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(188,74): error TS2339: Property 'date' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(188,80): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(188,92): error TS2339: Property 'time' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(191,62): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(191,74): error TS2339: Property 'appointmentTypeId' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(203,19): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(203,31): error TS2339: Property 'facilityId' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(204,26): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(204,38): error TS2339: Property 'appointmentTypeId' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(209,7): error TS2353: Object literal may only specify known properties, and 'driverName' does not exist in type '{ status: string; type: string; startTime: Date; endTime: Date; id?: number | undefined; createdAt?: Date | undefined; lastModifiedAt?: Date | null | undefined; facilityId?: number | ... 1 more ... | undefined; dockId?: number | ... 1 more ... | undefined; carrierId?: number | ... 1 more ... | undefined; appointment...'.
+server/routes/public/booking.ts(209,19): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(209,31): error TS2339: Property 'driverName' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(210,20): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(210,32): error TS2339: Property 'driverPhone' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(211,20): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(211,32): error TS2339: Property 'driverEmail' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(212,20): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(212,32): error TS2339: Property 'truckNumber' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(213,22): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(213,34): error TS2339: Property 'trailerNumber' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(214,18): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(214,30): error TS2339: Property 'bolNumber' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(215,20): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(215,32): error TS2339: Property 'palletCount' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(215,55): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(215,67): error TS2339: Property 'palletCount' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(216,15): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(216,27): error TS2339: Property 'weight' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(217,14): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(217,26): error TS2339: Property 'notes' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(218,20): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(218,32): error TS2339: Property 'carrierName' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(219,21): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(219,33): error TS2339: Property 'customerName' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(222,24): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(222,36): error TS2339: Property 'bolDocumentPath' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(223,22): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(223,34): error TS2339: Property 'parsedOcrText' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(227,113): error TS2339: Property 'confirmationCode' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(241,39): error TS2339: Property 'confirmationCode' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(242,23): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(242,35): error TS2339: Property 'driverEmail' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(251,9): error TS2740: Type '{ facilityName: string; appointmentTypeName: string; dockName: string; timezone: string; userTimeZone: string; confirmationCode: any; creatorEmail: any; bolFileUploaded: boolean; id: number; ... 9 more ...; endTime: Date; }' is missing the following properties from type 'EnhancedSchedule': truckNumber, trailerNumber, driverName, driverPhone, and 15 more.
+server/routes/public/booking.ts(262,15): error TS2554: Expected 3 arguments, but got 2.
+server/routes/public/booking.ts(266,43): error TS2339: Property 'confirmationCode' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(270,37): error TS2339: Property 'driverName' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(271,64): error TS2339: Property 'confirmationCode' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(283,11): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(283,23): error TS2339: Property 'driverEmail' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(284,75): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(284,87): error TS2339: Property 'driverEmail' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(288,26): error TS2339: Property 'confirmationCode' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(300,38): error TS2339: Property 'truckNumber' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(301,40): error TS2339: Property 'trailerNumber' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(302,37): error TS2339: Property 'driverName' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(303,38): error TS2339: Property 'driverPhone' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(304,38): error TS2339: Property 'driverEmail' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(305,39): error TS2339: Property 'customerName' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(306,38): error TS2339: Property 'carrierName' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(307,35): error TS2339: Property 'mcNumber' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(308,36): error TS2339: Property 'bolNumber' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(309,35): error TS2339: Property 'poNumber' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(310,38): error TS2339: Property 'palletCount' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(311,33): error TS2339: Property 'weight' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(312,42): error TS2339: Property 'appointmentMode' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(316,42): error TS2339: Property 'actualStartTime' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(316,81): error TS2339: Property 'actualStartTime' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(317,40): error TS2339: Property 'actualEndTime' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(317,77): error TS2339: Property 'actualEndTime' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(320,32): error TS2339: Property 'notes' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(321,41): error TS2339: Property 'customFormData' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(322,36): error TS2339: Property 'createdBy' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(325,41): error TS2551: Property 'lastModifiedBy' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'. Did you mean 'lastModifiedAt'?
+server/routes/public/booking.ts(333,43): error TS2339: Property 'confirmationCode' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(334,27): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(334,39): error TS2339: Property 'driverEmail' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(354,13): error TS18047: 'bookingData' is possibly 'null'.
+server/routes/public/booking.ts(354,25): error TS2339: Property 'driverEmail' does not exist on type 'ReadableStream<Uint8Array>'.
+server/routes/public/booking.ts(355,25): error TS2339: Property 'confirmationCode' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(373,63): error TS18046: 'emailError' is of type 'unknown'.
+server/routes/public/booking.ts(379,14): error TS2554: Expected 0 arguments, but got 1.
+server/routes/public/booking.ts(384,39): error TS2339: Property 'confirmationCode' does not exist on type '{ id: number; status: string; createdAt: Date; type: string; lastModifiedAt: Date | null; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; startTime: Date; endTime: Date; }'.
+server/routes/public/booking.ts(398,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+server/scripts/comprehensive-production-fixes.ts(42,34): error TS2339: Property 'status' does not exist on type 'PgTableWithColumns<{ name: "company_assets"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "company_assets"; dataType: "number"; columnType: "PgSerial"; data: number; driverParam: number; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 7 more ...; updatedAt: PgColumn<...>; ...'.
+server/scripts/comprehensive-production-fixes.ts(52,14): error TS2353: Object literal may only specify known properties, and 'status' does not exist in type '{ name?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; tenantId?: number | SQL<unknown> | PgColumn<...> | undefined; ... 6 more ...; next_service_date?: string | ... 3 more ... | undefined; }'.
+server/scripts/comprehensive-production-fixes.ts(55,36): error TS2339: Property 'status' does not exist on type 'PgTableWithColumns<{ name: "company_assets"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "company_assets"; dataType: "number"; columnType: "PgSerial"; data: number; driverParam: number; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 7 more ...; updatedAt: PgColumn<...>; ...'.
+server/scripts/comprehensive-production-fixes.ts(64,70): error TS2339: Property 'owner' does not exist on type '{ id: number; name: string; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; tenantId: number; createdAt: Date; updatedAt: Date; }'.
+server/scripts/comprehensive-production-fixes.ts(363,5): error TS1343: The 'import.meta' meta-property is only allowed when the '--module' option is 'es2020', 'es2022', 'esnext', 'system', 'node16', or 'nodenext'.
+server/scripts/create-default-appointment-types.ts(154,5): error TS1343: The 'import.meta' meta-property is only allowed when the '--module' option is 'es2020', 'es2022', 'esnext', 'system', 'node16', or 'nodenext'.
+server/scripts/create-missing-organizations.ts(140,5): error TS1343: The 'import.meta' meta-property is only allowed when the '--module' option is 'es2020', 'es2022', 'esnext', 'system', 'node16', or 'nodenext'.
+server/scripts/fix-user-org-associations.ts(138,5): error TS1343: The 'import.meta' meta-property is only allowed when the '--module' option is 'es2020', 'es2022', 'esnext', 'system', 'node16', or 'nodenext'.
+server/scripts/fix-user-organization-mapping.ts(169,5): error TS1343: The 'import.meta' meta-property is only allowed when the '--module' option is 'es2020', 'es2022', 'esnext', 'system', 'node16', or 'nodenext'.
+server/scripts/initialize-org-modules.ts(66,5): error TS1343: The 'import.meta' meta-property is only allowed when the '--module' option is 'es2020', 'es2022', 'esnext', 'system', 'node16', or 'nodenext'.
+server/scripts/performance-optimizations.ts(266,5): error TS1343: The 'import.meta' meta-property is only allowed when the '--module' option is 'es2020', 'es2022', 'esnext', 'system', 'node16', or 'nodenext'.
+server/scripts/production-readiness-check.ts(264,5): error TS1343: The 'import.meta' meta-property is only allowed when the '--module' option is 'es2020', 'es2022', 'esnext', 'system', 'node16', or 'nodenext'.
+server/scripts/seed-us-holidays-2025-2026.ts(66,13): error TS2353: Object literal may only specify known properties, and 'tenantId' does not exist in type '{ organizationId: number; holidayId: number; id?: number | undefined; createdAt?: Date | undefined; }'.
+server/scripts/targeted-production-fixes.ts(270,5): error TS1343: The 'import.meta' meta-property is only allowed when the '--module' option is 'es2020', 'es2022', 'esnext', 'system', 'node16', or 'nodenext'.
+server/seeds/20250623_us_holidays.ts(70,15): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { organizationId: number | SQL<unknown> | Placeholder<string, any>; holidayId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'tenantId' does not exist in type '{ organizationId: number | SQL<unknown> | Placeholder<string, any>; holidayId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; }'.
+  Overload 2 of 2, '(values: { organizationId: number | SQL<unknown> | Placeholder<string, any>; holidayId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'tenantId' does not exist in type '{ organizationId: number | SQL<unknown> | Placeholder<string, any>; holidayId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; }[]'.
+server/seeds/20250623_us_holidays.ts(88,19): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { organizationId: number | SQL<unknown> | Placeholder<string, any>; holidayId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'tenantId' does not exist in type '{ organizationId: number | SQL<unknown> | Placeholder<string, any>; holidayId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; }'.
+  Overload 2 of 2, '(values: { organizationId: number | SQL<unknown> | Placeholder<string, any>; holidayId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'tenantId' does not exist in type '{ organizationId: number | SQL<unknown> | Placeholder<string, any>; holidayId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; }[]'.
+server/seeds/20250623_us_holidays.ts(152,5): error TS1343: The 'import.meta' meta-property is only allowed when the '--module' option is 'es2020', 'es2022', 'esnext', 'system', 'node16', or 'nodenext'.
+server/services/bolService.ts(2,34): error TS7016: Could not find a declaration file for module '../ocr/ocr_connector.mjs'. '/Users/Akash/Desktop/Dock-Optimizer-Rebuild-1/server/ocr/ocr_connector.mjs' implicitly has an 'any' type.
+server/services/bolService.ts(3,43): error TS7016: Could not find a declaration file for module '../ocr/tesseract-processor.mjs'. '/Users/Akash/Desktop/Dock-Optimizer-Rebuild-1/server/ocr/tesseract-processor.mjs' implicitly has an 'any' type.
+server/services/bolService.ts(48,87): error TS18046: 'paddleError' is of type 'unknown'.
+server/services/bolService.ts(61,93): error TS2339: Property 'ocrEngine' does not exist on type '{ success: boolean; error?: string | undefined; metadata?: { fileName?: string | undefined; mimeType?: string | undefined; fileSize?: number | undefined; fileId?: string | undefined; originalName?: string | undefined; } | undefined; ... 5 more ...; errorType?: string | undefined; }'.
+server/services/bolService.ts(69,80): error TS18046: 'error' is of type 'unknown'.
+server/services/bolService.ts(74,74): error TS18046: 'error' is of type 'unknown'.
+server/services/bolService.ts(77,18): error TS18046: 'error' is of type 'unknown'.
+server/services/bolService.ts(78,22): error TS18046: 'error' is of type 'unknown'.
+server/services/database-optimizer.ts(139,36): error TS2339: Property 'length' does not exist on type 'QueryResult<Record<string, unknown>>'.
+server/services/database-optimizer.ts(221,30): error TS2339: Property 'length' does not exist on type 'QueryResult<Record<string, unknown>>'.
+server/services/database-optimizer.ts(230,28): error TS2339: Property 'length' does not exist on type 'QueryResult<Record<string, unknown>>'.
+server/services/database-optimizer.ts(236,7): error TS2740: Type 'QueryResult<Record<string, unknown>>' is missing the following properties from type 'any[]': length, pop, push, concat, and 35 more.
+server/services/database-optimizer.ts(283,30): error TS2339: Property 'length' does not exist on type 'QueryResult<Record<string, unknown>>'.
+server/services/database-optimizer.ts(288,7): error TS2740: Type 'QueryResult<Record<string, unknown>>' is missing the following properties from type 'any[]': length, pop, push, concat, and 35 more.
+server/services/enhanced-event-system.ts(87,24): error TS2339: Property 'tenantId' does not exist on type '{ schedule: EnhancedSchedule; tenantId: number; } | { schedule: EnhancedSchedule; oldSchedule: EnhancedSchedule; tenantId: number; } | ... 24 more ... | { ...; }'.
+  Property 'tenantId' does not exist on type '{ enabled: boolean; message?: string | undefined; }'.
+server/services/enhanced-event-system.ts(105,33): error TS2554: Expected 2 arguments, but got 3.
+server/src/controllers/ocr-controller.ts(25,30): error TS2339: Property 'id' does not exist on type 'User'.
+server/src/middleware/auth.ts(3,18): error TS2430: Interface 'AuthenticatedRequest' incorrectly extends interface 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+  Types of property 'isAuthenticated' are incompatible.
+    Type '() => boolean' is not assignable to type '() => this is AuthenticatedRequest'.
+      Signature '(): boolean' must be a type predicate.
+server/src/services/sample-data.ts(158,29): error TS2693: 'AppointmentType' only refers to a type, but is being used as a value here.
+server/src/services/sample-data.ts(158,55): error TS2693: 'AppointmentType' only refers to a type, but is being used as a value here.
+  Try `npm i --save-dev @types/connect-pg-simple` if it exists or add a new declaration (.d.ts) file containing `declare module 'connect-pg-simple';`
+  Try `npm i --save-dev @types/connect-redis` if it exists or add a new declaration (.d.ts) file containing `declare module 'connect-redis';`
+  Property 'appointmentTime' is missing in type '{ confirmationCode: any; facilityName: string | undefined; appointmentDate: Date; customerName: any; timezone: string; template: any; }' but required in type '{ confirmationCode?: string | null | undefined; facilityName?: string | undefined; appointmentDate: Date; appointmentTime: Date; customerName?: string | null | undefined; timezone: string; template: any; }'.
+  Property 'options' is optional in type '{ id: number; createdAt: Date; fieldType: any; included: boolean; required: boolean; orderPosition: number; appointmentTypeId: number; fieldKey: string; label: string; options?: unknown; }' but required in type '{ id: number; createdAt: Date; options: unknown; appointmentTypeId: number; fieldKey: string; label: string; fieldType: string; included: boolean; required: boolean; orderPosition: number; }'.
+  Property 'options' is optional in type '{ createdAt: Date; fieldType: any; included: boolean; required: boolean; orderPosition: number; appointmentTypeId: number; fieldKey: string; label: string; id: number; options?: unknown; }' but required in type '{ id: number; createdAt: Date; options: unknown; appointmentTypeId: number; fieldKey: string; label: string; fieldType: string; included: boolean; required: boolean; orderPosition: number; }'.
+  Types of property 'updatedAt' are incompatible.
+    Type 'Date | null | undefined' is not assignable to type 'Date | null'.
+      Type 'undefined' is not assignable to type 'Date | null'.
+  Types of property 'updatedAt' are incompatible.
+    Type 'Date | null | undefined' is not assignable to type 'Date | null'.
+      Type 'undefined' is not assignable to type 'Date | null'.
+  Type '(userId: number, preferencesUpdate: Partial<{ id: number; createdAt: Date; updatedAt: Date | null; organizationId: number; userId: number; emailNotificationsEnabled: boolean; }>) => Promise<...>' is not assignable to type '{ (userId: number, preferences: Partial<{ id: number; createdAt: Date; updatedAt: Date | null; organizationId: number; userId: number; emailNotificationsEnabled: boolean; }>): Promise<...>; (userId: number, organizationId: number, preferences: Partial<...>): Promise<...>; }'.
+    Types of parameters 'preferencesUpdate' and 'organizationId' are incompatible.
+      Type 'number' has no properties in common with type 'Partial<{ id: number; createdAt: Date; updatedAt: Date | null; organizationId: number; userId: number; emailNotificationsEnabled: boolean; }>'.
+  Types of property 'organizationId' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+  Property 'appointmentTime' is missing in type '{ confirmationCode: any; facilityName: string | undefined; appointmentDate: Date; customerName: any; timezone: string; template: any; }' but required in type '{ confirmationCode?: string | null | undefined; facilityName?: string | undefined; appointmentDate: Date; appointmentTime: Date; customerName?: string | null | undefined; timezone: string; template: any; }'.
+  Type '(id: number, question: any) => Promise<{ id: number; createdAt: Date; options: unknown; appointmentTypeId: number; fieldKey: string; label: string; fieldType: string; included: boolean; required: boolean; orderPosition: number; }>' is not assignable to type '{ (question: { appointmentTypeId: number; fieldKey: string; label: string; fieldType: string; orderPosition: number; id?: number | undefined; createdAt?: Date | undefined; options?: unknown; included?: boolean | undefined; required?: boolean | undefined; } & { ...; }): Promise<...>; (question: { ...; } & { ...; }): ...'.
+    Target signature provides too few arguments. Expected 2 or more, but got 1.
+  Overload 1 of 2, '(value: { organizationId: number | SQL<unknown> | Placeholder<string, any>; dayOfWeek: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; startTime?: string | ... 3 more ... | undefined; endTime?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'tenantId' does not exist in type '{ organizationId: number | SQL<unknown> | Placeholder<string, any>; dayOfWeek: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; startTime?: string | ... 3 more ... | undefined; endTime?: string | ... 3 more...'.
+  Overload 2 of 2, '(values: { organizationId: number | SQL<unknown> | Placeholder<string, any>; dayOfWeek: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; startTime?: string | ... 3 more ... | undefined; endTime?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'tenantId' does not exist in type '{ organizationId: number | SQL<unknown> | Placeholder<string, any>; dayOfWeek: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; startTime?: string | ... 3 more ... | undefined; endTime?: string | ... 3 more...'.
+  Overload 1 of 2, '(value: { organizationId: number | SQL<unknown> | Placeholder<string, any>; holidayId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'tenantId' does not exist in type '{ organizationId: number | SQL<unknown> | Placeholder<string, any>; holidayId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; }'.
+  Overload 2 of 2, '(values: { organizationId: number | SQL<unknown> | Placeholder<string, any>; holidayId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'tenantId' does not exist in type '{ organizationId: number | SQL<unknown> | Placeholder<string, any>; holidayId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; }[]'.
+  Type '{ id: number; label: any; type: string; isRequired: any; placeholder: any; options: any; defaultValue: any; order: any; appointmentTypeId: any; applicableType: any; createdAt: Date | null; lastModifiedAt: any; }' is missing the following properties from type '{ id: number; createdAt: Date | null; tenantId: string; type: string; question: string; }': tenantId, question
+  Overload 1 of 2, '(value: { tenantId: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; question: string | SQL<unknown> | Placeholder<...>; id?: number | ... 2 more ... | undefined; createdAt?: SQL<...> | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Argument of type '{ label: any; type: string; isRequired: boolean; placeholder: any; options: any; defaultValue: any; order: any; appointmentTypeId: any; applicableType: any; createdAt: Date; lastModifiedAt: Date; }' is not assignable to parameter of type '{ tenantId: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; question: string | SQL<unknown> | Placeholder<...>; id?: number | ... 2 more ... | undefined; createdAt?: SQL<...> | ... 3 more ... | undefined; }'.
+      Type '{ label: any; type: string; isRequired: boolean; placeholder: any; options: any; defaultValue: any; order: any; appointmentTypeId: any; applicableType: any; createdAt: Date; lastModifiedAt: Date; }' is missing the following properties from type '{ tenantId: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; question: string | SQL<unknown> | Placeholder<...>; id?: number | ... 2 more ... | undefined; createdAt?: SQL<...> | ... 3 more ... | undefined; }': tenantId, question
+  Overload 2 of 2, '(values: { tenantId: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; question: string | SQL<unknown> | Placeholder<...>; id?: number | ... 2 more ... | undefined; createdAt?: SQL<...> | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Argument of type '{ label: any; type: string; isRequired: boolean; placeholder: any; options: any; defaultValue: any; order: any; appointmentTypeId: any; applicableType: any; createdAt: Date; lastModifiedAt: Date; }' is not assignable to parameter of type '{ tenantId: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; question: string | SQL<unknown> | Placeholder<...>; id?: number | ... 2 more ... | undefined; createdAt?: SQL<...> | ... 3 more ... | undefined; }[]'.
+      Type '{ label: any; type: string; isRequired: boolean; placeholder: any; options: any; defaultValue: any; order: any; appointmentTypeId: any; applicableType: any; createdAt: Date; lastModifiedAt: Date; }' is missing the following properties from type '{ tenantId: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; question: string | SQL<unknown> | Placeholder<...>; id?: number | ... 2 more ... | undefined; createdAt?: SQL<...> | ... 3 more ... | undefined; }[]': length, pop, push, concat, and 35 more.
+  Property 'options' is missing in type '{ id: number; appointmentTypeId: number; fieldKey: string; label: string; fieldType: string; included: boolean; required: boolean; orderPosition: number; createdAt: Date; }' but required in type '{ id: number; createdAt: Date; options: unknown; appointmentTypeId: number; fieldKey: string; label: string; fieldType: string; included: boolean; required: boolean; orderPosition: number; }'.
+  Type '(userId: number, preferencesUpdate: Partial<{ id: number; createdAt: Date; updatedAt: Date | null; organizationId: number; userId: number; emailNotificationsEnabled: boolean; }>) => Promise<...>' is not assignable to type '{ (userId: number, preferences: Partial<{ id: number; createdAt: Date; updatedAt: Date | null; organizationId: number; userId: number; emailNotificationsEnabled: boolean; }>): Promise<...>; (userId: number, organizationId: number, preferences: Partial<...>): Promise<...>; }'.
+    Types of parameters 'preferencesUpdate' and 'organizationId' are incompatible.
+      Type 'number' has no properties in common with type 'Partial<{ id: number; createdAt: Date; updatedAt: Date | null; organizationId: number; userId: number; emailNotificationsEnabled: boolean; }>'.
+  Type 'null' is not assignable to type 'IStorage'.
+server/storage/features.ts(4,10): error TS2724: '"@shared/schema"' has no exported member named 'featureFlags'. Did you mean 'FeatureFlag'?
+server/storage/organizations.ts(10,39): error TS2339: Property 'name' does not exist on type 'PgTableWithColumns<{ name: "organization_users"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "organization_users"; dataType: "number"; columnType: "PgSerial"; data: number; driverParam: number; ... 8 more ...; generated: undefined; }, {}, {}>; ... 4 more ...; updatedAt: PgColumn<...>; }; dial...'.
+server/storage/organizations.ts(12,33): error TS2339: Property 'eq' does not exist on type 'PgColumn<{ name: "id"; tableName: "organization_users"; dataType: "number"; columnType: "PgSerial"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>'.
+server/test-utils/db-test-helper.ts(2,59): error TS2307: Cannot find module 'better-sqlite3' or its corresponding type declarations.
+server/tests/setup.ts(12,1): error TS2708: Cannot use namespace 'jest' as a value.
+server/tests/setup.ts(15,1): error TS2304: Cannot find name 'beforeAll'.
+server/tests/setup.ts(46,1): error TS2304: Cannot find name 'afterAll'.
+server/tests/test-db.ts(113,9): error TS18047: 'exists.rowCount' is possibly 'null'.
+server/vite.ts(39,5): error TS2322: Type '{ middlewareMode: boolean; hmr: { server: Server<typeof IncomingMessage, typeof ServerResponse>; }; allowedHosts: boolean; }' is not assignable to type 'ServerOptions'.
+  Types of property 'allowedHosts' are incompatible.
+    Type 'boolean' is not assignable to type 'true | string[] | undefined'.
+server/vite.ts(49,9): error TS1343: The 'import.meta' meta-property is only allowed when the '--module' option is 'es2020', 'es2022', 'esnext', 'system', 'node16', or 'nodenext'.
+server/vite.ts(71,33): error TS1343: The 'import.meta' meta-property is only allowed when the '--module' option is 'es2020', 'es2022', 'esnext', 'system', 'node16', or 'nodenext'.
+shared/env-helper.ts(19,13): error TS1343: The 'import.meta' meta-property is only allowed when the '--module' option is 'es2020', 'es2022', 'esnext', 'system', 'node16', or 'nodenext'.
+vite.config.ts(12,46): error TS1343: The 'import.meta' meta-property is only allowed when the '--module' option is 'es2020', 'es2022', 'esnext', 'system', 'node16', or 'nodenext'.
+vite.config.ts(44,29): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '() => Promise<{ plugins: any[]; logLevel: string; root: string; resolve: { alias: { "@": string; "@shared": string; "@assets": string; "/src": string; }; }; build: { outDir: string; emptyOutDir: boolean; sourcemap: string | boolean; cssCodeSplit: boolean; reportCompressedSize: boolean; rollupOptions: { ...; }; chunk...' is not assignable to parameter of type 'UserConfigExport'.
+      Type '() => Promise<{ plugins: any[]; logLevel: string; root: string; resolve: { alias: { "@": string; "@shared": string; "@assets": string; "/src": string; }; }; build: { outDir: string; emptyOutDir: boolean; sourcemap: string | boolean; cssCodeSplit: boolean; reportCompressedSize: boolean; rollupOptions: { ...; }; chunk...' is not assignable to type 'UserConfigFnObject'.
+        Type 'Promise<{ plugins: any[]; logLevel: string; root: string; resolve: { alias: { "@": string; "@shared": string; "@assets": string; "/src": string; }; }; build: { outDir: string; emptyOutDir: boolean; sourcemap: string | boolean; cssCodeSplit: boolean; reportCompressedSize: boolean; rollupOptions: { ...; }; chunkSizeWa...' has no properties in common with type 'UserConfig'.
+vite.config.ts(68,22): error TS7006: Parameter 'id' implicitly has an 'any' type.

@@ -20,7 +20,7 @@ const isSuperAdmin = (req: Request, res: Response, next: NextFunction) => {
 const router = Router();
 
 // Get a list of roles
-router.get("/roles", isSuperAdmin, async (req, res) => {
+router.get("/roles", isSuperAdmin, async (req: Request, res: Response) => {
   try {
     const storage = await getStorage();
     const allRoles = await storage.getRoles();
@@ -32,7 +32,7 @@ router.get("/roles", isSuperAdmin, async (req, res) => {
 });
 
 // Update a role
-router.put("/roles/:id", isSuperAdmin, async (req, res) => {
+router.put("/roles/:id", isSuperAdmin, async (req: Request, res: Response) => {
   const roleId = parseInt(req.params.id);
   if (isNaN(roleId)) {
     return res.status(400).json({ message: "Invalid role ID" });
@@ -68,7 +68,7 @@ router.put("/roles/:id", isSuperAdmin, async (req, res) => {
 });
 
 // Get a list of feature flags
-router.get("/feature-flags", isSuperAdmin, async (req, res) => {
+router.get("/feature-flags", isSuperAdmin, async (req: Request, res: Response) => {
   try {
     // Example feature flags - in a real implementation, these would come from a database
     const featureFlags = [
@@ -97,7 +97,7 @@ router.get("/feature-flags", isSuperAdmin, async (req, res) => {
 });
 
 // Update a feature flag
-router.put("/feature-flags/:name", isSuperAdmin, async (req, res) => {
+router.put("/feature-flags/:name", isSuperAdmin, async (req: Request, res: Response) => {
   const { name } = req.params;
   const { enabled } = req.body;
 

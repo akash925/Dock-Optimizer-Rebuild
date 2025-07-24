@@ -4,6 +4,9 @@ import { getStorage } from '../../storage';
 export const registerHoursRoutes = (app: Express) => {
   // New endpoint for organization hours with better default handling
   app.get('/api/org/hours', async (req: Request, res: Response) => {
+    if (!isAuthenticated(req)) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
     console.log('[OrgHours] Request received for organization hours');
     try {
       let tenantId: number | null = null;
@@ -29,7 +32,7 @@ export const registerHoursRoutes = (app: Express) => {
         }
       } else if (req.isAuthenticated?.() && req.user?.tenantId) {
         // Use authenticated user's tenant ID
-        tenantId = req.user.tenantId;
+        tenantId = req.user?.tenantId;
         console.log(`[OrgHours] Using authenticated user's tenant ID: ${tenantId}`);
       } else if (req.query.organizationId) {
         // Use organization ID from query params

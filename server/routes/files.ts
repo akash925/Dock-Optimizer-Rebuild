@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import multer from "multer";
 import { blobStorageService } from "../services/blob-storage";
 import { getStorage } from "../storage";
@@ -48,7 +48,7 @@ const bolUpload = multer({
 });
 
 // Upload organization logo
-router.post('/upload/organization-logo', upload.single('logo'), async (req, res) => {
+router.post('/upload/organization-logo', upload.single('logo'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -91,7 +91,7 @@ router.post('/upload/organization-logo', upload.single('logo'), async (req, res)
 });
 
 // Serve uploaded files by folder and filename (matches blob storage URLs)
-router.get('/:folder/:filename', async (req, res) => {
+router.get('/:folder/:filename', async (req: Request, res: Response) => {
   try {
     const { folder, filename } = req.params;
     const storage = await getStorage();
@@ -137,7 +137,7 @@ router.get('/:folder/:filename', async (req, res) => {
 });
 
 // Serve uploaded files by file ID (legacy support)
-router.get('/serve/:fileId', async (req, res) => {
+router.get('/serve/:fileId', async (req: Request, res: Response) => {
   try {
     const { fileId } = req.params;
     const storage = await getStorage();
@@ -166,7 +166,7 @@ router.get('/serve/:fileId', async (req, res) => {
 });
 
 // Get BOL documents for a specific appointment
-router.get('/bol/appointment/:appointmentId', async (req, res) => {
+router.get('/bol/appointment/:appointmentId', async (req: Request, res: Response) => {
   try {
     const { appointmentId } = req.params;
     const storage = await getStorage();
@@ -201,7 +201,7 @@ router.get('/bol/appointment/:appointmentId', async (req, res) => {
 });
 
 // Upload BOL document 
-router.post('/upload/bol', bolUpload.single('bolFile'), async (req, res) => {
+router.post('/upload/bol', bolUpload.single('bolFile'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No BOL file uploaded' });
@@ -235,7 +235,7 @@ router.post('/upload/bol', bolUpload.single('bolFile'), async (req, res) => {
         if (appointment) {
           // Update appointment with BOL info
           await storage.updateSchedule(parseInt(finalAppointmentId), {
-            bolNumber: req.body.bolNumber || uploadedFile.originalName,
+            bolNumber: req.body?.bolNumber || uploadedFile.originalName,
             lastModifiedAt: new Date(),
             // Add custom data to track BOL upload
             customFormData: {
@@ -271,7 +271,7 @@ router.post('/upload/bol', bolUpload.single('bolFile'), async (req, res) => {
 });
 
 // Delete file
-router.delete('/:fileId', async (req, res) => {
+router.delete('/:fileId', async (req: Request, res: Response) => {
   try {
     const { fileId } = req.params;
     const storage = await getStorage();

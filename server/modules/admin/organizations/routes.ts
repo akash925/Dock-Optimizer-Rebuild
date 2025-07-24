@@ -10,6 +10,9 @@ import { users, tenants, organizationUsers, organizationModules, roles } from '@
 export const registerOrganizationModulesRoutes = (app: Express) => {
   // Public API endpoint to get tenant default hours by ID
   app.get('/api/tenants/:id/default-hours', async (req: Request, res: Response) => {
+    if (!isAuthenticated(req)) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
     try {
       const tenantId = parseInt(req.params.id);
       
@@ -40,6 +43,9 @@ export const registerOrganizationModulesRoutes = (app: Express) => {
 
   // Get organization default hours
   app.get('/api/organizations/default-hours', async (req: Request, res: Response) => {
+    if (!isAuthenticated(req)) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
     // Check if user is authenticated
     if (!req.isAuthenticated || !req.isAuthenticated()) {
       return res.status(401).json({ message: 'Not authenticated' });
@@ -80,6 +86,9 @@ export const registerOrganizationModulesRoutes = (app: Express) => {
 
   // Toggle a single module for an organization
   app.patch('/api/admin/orgs/:orgId/modules/:moduleName', async (req: Request, res: Response) => {
+    if (!isAuthenticated(req)) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
     try {
       const { orgId, moduleName } = req.params;
       const { enabled } = req.body;
@@ -119,7 +128,7 @@ export const registerOrganizationModulesRoutes = (app: Express) => {
       // Log the activity
       await logOrganizationActivity(
         Number(orgId),
-        req.user.id,
+        req.user?.id,
         `module_${enabled ? 'enabled' : 'disabled'}`,
         `${moduleName} module was ${enabled ? 'enabled' : 'disabled'}`
       );
@@ -193,14 +202,14 @@ const isSuperAdmin = async (req: Request, res: Response, next: Function) => {
   }
 
   // Allow both regular admin and super-admin roles
-  if (req.user!.role !== 'super-admin' && req.user!.role !== 'admin') {
+  if ((req.user as NonNullable<typeof req.user>).role !== 'super-admin' && (req.user as NonNullable<typeof req.user>).role !== 'admin') {
     return res.status(403).json({ 
       message: 'Not authorized. Admin access required.', 
-      userRole: req.user!.role 
+      userRole: (req.user as NonNullable<typeof req.user>).role 
     });
   }
 
-  console.log(`Admin API (org) access granted to user with role: ${req.user!.role}`);
+  console.log(`Admin API (org) access granted to user with role: ${(req.user as NonNullable<typeof req.user>).role}`);
   next();
 };
 
@@ -252,7 +261,7 @@ export const organizationsRoutes = (app: Express) => {
   app.get('/api/admin/orgs', isSuperAdmin, getAllOrganizations);
 
   // Get single organization with all details
-  app.get('/api/admin/organizations/:id', isSuperAdmin, async (req, res) => {
+  app.get('/api/admin/organizations/:id', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
       if (isNaN(id)) {
@@ -286,7 +295,7 @@ export const organizationsRoutes = (app: Express) => {
   });
 
   // Create organization
-  app.post('/api/admin/organizations', isSuperAdmin, async (req, res) => {
+  app.post('/api/admin/organizations', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const validationResult = createOrgSchema.safeParse(req.body);
       if (!validationResult.success) {
@@ -319,7 +328,7 @@ export const organizationsRoutes = (app: Express) => {
   });
 
   // Update organization
-  app.put('/api/admin/organizations/:id', isSuperAdmin, async (req, res) => {
+  app.put('/api/admin/organizations/:id', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
       if (isNaN(id)) {
@@ -364,7 +373,7 @@ export const organizationsRoutes = (app: Express) => {
   });
   
   // Update organization logo
-  app.post('/api/admin/organizations/:id/logo', async (req, res) => {
+  app.post('/api/admin/organizations/:id/logo', async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
       if (isNaN(id)) {
@@ -382,14 +391,14 @@ export const organizationsRoutes = (app: Express) => {
         return res.status(401).json({ message: 'Not authenticated' });
       }
       
-      const isSuperAdmin = req.user!.role === 'super-admin';
-      const isOrgAdmin = req.user!.tenantId === id && req.user!.role === 'admin';
+      const isSuperAdmin = (req.user as NonNullable<typeof req.user>).role === 'super-admin';
+      const isOrgAdmin = (req.user as NonNullable<typeof req.user>).tenantId === id && (req.user as NonNullable<typeof req.user>).role === 'admin';
       
       if (!isSuperAdmin && !isOrgAdmin) {
-        console.log(`Access denied: User (tenant ${req.user!.tenantId}) attempted to update logo for organization ${id}`);
+        console.log(`Access denied: User (tenant ${(req.user as NonNullable<typeof req.user>).tenantId}) attempted to update logo for organization ${id}`);
         return res.status(403).json({ 
           message: 'Not authorized to update this organization\'s logo',
-          userTenant: req.user!.tenantId,
+          userTenant: (req.user as NonNullable<typeof req.user>).tenantId,
           requestedTenant: id
         });
       }
@@ -440,7 +449,7 @@ export const organizationsRoutes = (app: Express) => {
   });
 
   // Get organization logo
-  app.get('/api/admin/organizations/:id/logo', async (req, res) => {
+  app.get('/api/admin/organizations/:id/logo', async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
       if (isNaN(id)) {
@@ -454,10 +463,10 @@ export const organizationsRoutes = (app: Express) => {
       
       // Check if the user is requesting a logo for their organization
       const requestedOrgId = id;
-      const userOrgId = req.user!.tenantId;
+      const userOrgId = (req.user as NonNullable<typeof req.user>).tenantId;
       
       // Non-super-admin users can only access their own organization's logo
-      if (req.user!.role !== 'super-admin' && userOrgId !== requestedOrgId) {
+      if ((req.user as NonNullable<typeof req.user>).role !== 'super-admin' && userOrgId !== requestedOrgId) {
         console.log(`Access denied: User (tenant ${userOrgId}) attempted to access logo for organization ${requestedOrgId}`);
         return res.status(403).json({ 
           message: 'Not authorized to access another organization\'s logo',
@@ -504,7 +513,7 @@ export const organizationsRoutes = (app: Express) => {
   });
   
   // Delete organization
-  app.delete('/api/admin/organizations/:id', isSuperAdmin, async (req, res) => {
+  app.delete('/api/admin/organizations/:id', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
       if (isNaN(id)) {
@@ -535,7 +544,7 @@ export const organizationsRoutes = (app: Express) => {
   });
 
   // Get detailed organization data for edit page
-  app.get('/api/admin/orgs/:orgId', isSuperAdmin, async (req, res) => {
+  app.get('/api/admin/orgs/:orgId', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const orgId = Number(req.params.orgId);
       if (isNaN(orgId)) {
@@ -587,7 +596,7 @@ export const organizationsRoutes = (app: Express) => {
   });
 
   // Toggle organization module
-  app.put('/api/admin/orgs/:orgId/modules', isSuperAdmin, async (req, res) => {
+  app.put('/api/admin/orgs/:orgId/modules', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const orgId = Number(req.params.orgId);
       if (isNaN(orgId)) {
@@ -649,7 +658,7 @@ export const organizationsRoutes = (app: Express) => {
   });
 
   // Toggle a specific module for an organization
-  app.put('/api/admin/orgs/:orgId/modules/:moduleName', isSuperAdmin, async (req, res) => {
+  app.put('/api/admin/orgs/:orgId/modules/:moduleName', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const orgId = Number(req.params.orgId);
       const moduleName = req.params.moduleName as AvailableModule;
@@ -696,7 +705,7 @@ export const organizationsRoutes = (app: Express) => {
   });
 
 // Add/remove user from organization
-  app.put('/api/admin/orgs/:orgId/users', isSuperAdmin, async (req, res) => {
+  app.put('/api/admin/orgs/:orgId/users', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const orgId = Number(req.params.orgId);
       if (isNaN(orgId)) {
@@ -778,7 +787,7 @@ export const organizationsRoutes = (app: Express) => {
   });
 
   // Get organization activity logs (paginated)
-  app.get('/api/admin/orgs/:orgId/logs', isSuperAdmin, async (req, res) => {
+  app.get('/api/admin/orgs/:orgId/logs', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const orgId = Number(req.params.orgId);
       if (isNaN(orgId)) {
@@ -853,7 +862,7 @@ export const organizationsRoutes = (app: Express) => {
   });
   
   // Consolidated organization detail endpoint that combines all org data
-  app.get('/api/admin/orgs/:orgId/detail', isSuperAdmin, async (req, res) => {
+  app.get('/api/admin/orgs/:orgId/detail', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const orgId = Number(req.params.orgId);
       if (isNaN(orgId)) {

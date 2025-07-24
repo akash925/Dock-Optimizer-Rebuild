@@ -1,4 +1,4 @@
-import { Express } from 'express';
+import { Express, Request, Response } from 'express';
 import { getStorage } from '../storage';
 
 export function registerBookingPagesLogoEndpoint(app: Express) {
@@ -6,7 +6,7 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
    * Endpoint to get an organization logo by tenant ID directly
    * This is a more reliable way to get a logo without requiring a booking page lookup
    */
-  app.get('/api/booking-pages/logo/:tenantId', async (req, res) => {
+  app.get('/api/booking-pages/logo/:tenantId', async (req: Request, res: Response) => {
     try {
       const { tenantId } = req.params;
       const tenantIdNum = parseInt(tenantId, 10);
@@ -72,7 +72,7 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
    * Endpoint to get an organization logo by booking page slug
    * This allows public booking pages to display tenant-specific logos without requiring authentication
    */
-  const getLogoBySlug = async (req: any, res: any) => {
+  const getLogoBySlug = async (req: Request, res: Response) => {
     try {
       const { tenantId } = req.params; // The slug is actually in the tenantId parameter
       const slug = tenantId; // Use tenantId parameter as slug

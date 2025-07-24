@@ -23,7 +23,7 @@ import {
  *   import { getRedisInstance } from "../../redis";
  * keeps working until refactor is complete.
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
+ 
 export const getRedisInstance = () => getRedis();
 
 /* -------------------------------------------------------------------------- */

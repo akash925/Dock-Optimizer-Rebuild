@@ -3,13 +3,13 @@
  * Provides comprehensive application health status
  */
 
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { getHealthStatus } from '../config/environment';
 
 const router = Router();
 
 // Health check endpoint for deployment monitoring
-router.get('/health', (req, res) => {
+router.get('/health', (req: Request, res: Response) => {
   try {
     const healthStatus = getHealthStatus();
     
@@ -33,7 +33,7 @@ router.get('/health', (req, res) => {
 });
 
 // Simple readiness probe
-router.get('/ready', (req, res) => {
+router.get('/ready', (req: Request, res: Response) => {
   res.status(200).json({
     status: 'ready',
     timestamp: new Date().toISOString()
@@ -41,7 +41,7 @@ router.get('/ready', (req, res) => {
 });
 
 // Simple liveness probe
-router.get('/alive', (req, res) => {
+router.get('/alive', (req: Request, res: Response) => {
   res.status(200).json({
     status: 'alive',
     timestamp: new Date().toISOString()

@@ -110,7 +110,7 @@ export async function createTestTable(tableName: string) {
       WHERE table_schema = 'public' AND table_name = $1
     `, [testTableName]);
     
-    if (exists.rowCount > 0) {
+    if (exists.rowCount && exists.rowCount > 0) {
       console.log(`Test table ${testTableName} already exists. Truncating...`);
       await client.query(`TRUNCATE TABLE "${testTableName}" CASCADE`);
       return testTableName;

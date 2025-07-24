@@ -53,7 +53,7 @@ const listBolsSchema = z.object({
 export const uploadBol = async (req: Request, res: Response) => {
   try {
     // Validate authentication
-    if (!req.user || !req.user.id) {
+    if (!req.user || !req.user?.id) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
@@ -87,8 +87,8 @@ export const uploadBol = async (req: Request, res: Response) => {
       req.file.mimetype,
       {
         folder: 'bol-documents',
-        tenantId: req.user.tenantId || 1,
-        uploadedBy: req.user.id
+        tenantId: req.user?.tenantId || 1,
+        uploadedBy: req.user?.id
       }
     );
 
@@ -99,7 +99,7 @@ export const uploadBol = async (req: Request, res: Response) => {
       fileName: uploadedFile.originalName,
       mimeType: uploadedFile.mimeType,
       pageCount: null, // Could be populated by OCR service later
-      uploadedBy: req.user.id,
+      uploadedBy: req.user?.id,
     };
 
     // Validate BOL document data
@@ -126,7 +126,7 @@ export const uploadBol = async (req: Request, res: Response) => {
 export const listBols = async (req: Request, res: Response) => {
   try {
     // Validate authentication
-    if (!req.user || !req.user.id) {
+    if (!req.user || !req.user?.id) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
@@ -154,8 +154,8 @@ export const listBols = async (req: Request, res: Response) => {
     // Enhance with signed URLs and user information
     const enhancedDocs = await Promise.all(
       bolDocuments.map(async (doc) => {
-        const signedUrl = await blobStorageService.getSignedUrl(doc.fileKey);
-        const uploader = await storage.getUser(doc.uploadedBy);
+        const signedUrl = doc.fileKey ? await blobStorageService.getSignedUrl(doc.fileKey) : null;
+        const uploader = doc.uploadedBy ? await storage.getUser(doc.uploadedBy) : null;
         
         return {
           id: doc.id,
@@ -178,7 +178,7 @@ export const listBols = async (req: Request, res: Response) => {
 export const deleteBol = async (req: Request, res: Response) => {
   try {
     // Validate authentication
-    if (!req.user || !req.user.id) {
+    if (!req.user || !req.user?.id) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
@@ -201,11 +201,11 @@ export const deleteBol = async (req: Request, res: Response) => {
     }
 
     // Check permissions: allow if admin/super_admin or if user uploaded the document
-    const userRole = req.user.role;
+    const userRole = req.user?.role;
     const canDelete = 
       userRole === 'admin' || 
       userRole === 'super_admin' || 
-      bolDocument.uploadedBy === req.user.id;
+      bolDocument.uploadedBy === req.user?.id;
 
     if (!canDelete) {
       return res.status(403).json({ 
@@ -215,7 +215,9 @@ export const deleteBol = async (req: Request, res: Response) => {
 
     // Delete the physical file from blob storage
     try {
-      await blobStorageService.deleteFile(bolDocument.fileKey, req.user.tenantId || 1);
+      if (bolDocument.fileKey) {
+        await blobStorageService.deleteFile(bolDocument.fileKey, req.user?.tenantId || 1);
+      }
     } catch (fileError) {
       console.warn('Warning: Failed to delete physical file:', fileError);
       // Continue with database deletion even if file deletion fails
