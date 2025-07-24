@@ -10,6 +10,9 @@ import { z, ZodError } from 'zod';
 
 // Validate tenant belongs to user
 export const checkTenant = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated?.()) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
   if (req.isAuthenticated && !req.isAuthenticated()) {
     return res.status(401).json({ message: 'Authentication required' });
   }
@@ -33,6 +36,9 @@ export const checkTenant = (req: Request, res: Response, next: NextFunction) => 
 
 // Authentication middleware
 export const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated?.()) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
   if (req.isAuthenticated && req.isAuthenticated()) {
     return next();
   }

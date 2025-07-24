@@ -89,7 +89,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/auth', authRoutes.default);
   
   // Health check endpoint for Redis
-  app.get('/healthz/redis', async (req, res) => {
+  app.get('/healthz/redis', async (req: Request, res: Response) => {
     try {
       const isHealthy = await checkRedisHealth();
       if (isHealthy) {
@@ -198,7 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let effectiveTenantId: number | null = null;
       
       if (req.isAuthenticated?.() && req.user?.tenantId) {
-        effectiveTenantId = req.user.tenantId;
+        effectiveTenantId = req.user?.tenantId;
       } else if (bookingPageSlug && typeof bookingPageSlug === 'string') {
         // For external booking pages, get tenant ID from booking page
         const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
@@ -254,7 +254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let effectiveTenantId: number | null = null;
       
       if (req.isAuthenticated?.() && req.user?.tenantId) {
-        effectiveTenantId = req.user.tenantId;
+        effectiveTenantId = req.user?.tenantId;
       } else if (bookingPageSlug && typeof bookingPageSlug === 'string') {
         // For external booking pages, get tenant ID from booking page
         const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
@@ -1109,7 +1109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // BOL Presigned URL endpoints
   app.post('/api/bol-upload/presign', async (req: any, res) => {
     try {
-      if (!req.user || !req.user.id) {
+      if (!req.user || !req.user?.id) {
         return res.status(401).json({ error: 'Authentication required' });
       }
 
@@ -1158,8 +1158,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileName,
         fileType,
         {
-          tenantId: req.user.tenantId || 1,
-          uploadedBy: req.user.id,
+          tenantId: req.user?.tenantId || 1,
+          uploadedBy: req.user?.id,
           folder: 'bol-documents',
           maxSizeBytes: maxSize,
           allowedMimeTypes: allowedTypes,
@@ -1184,7 +1184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/bol-upload/confirm', async (req: any, res) => {
     try {
-      if (!req.user || !req.user.id) {
+      if (!req.user || !req.user?.id) {
         return res.status(401).json({ error: 'Authentication required' });
       }
 
@@ -1226,8 +1226,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileName,
         fileType,
         {
-          tenantId: req.user.tenantId || 1,
-          uploadedBy: req.user.id,
+          tenantId: req.user?.tenantId || 1,
+          uploadedBy: req.user?.id,
           folder: 'bol-documents',
         }
       );
@@ -1313,7 +1313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let effectiveTenantId: number | null = null;
       
       if (req.isAuthenticated?.() && req.user?.tenantId) {
-        effectiveTenantId = req.user.tenantId;
+        effectiveTenantId = req.user?.tenantId;
       } else if (bookingPageSlug && typeof bookingPageSlug === 'string') {
         // For external booking pages, get tenant ID from booking page
         const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);

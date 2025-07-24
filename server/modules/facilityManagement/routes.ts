@@ -7,7 +7,7 @@ import { organizationFacilities } from "@shared/schema";
 const router = Router();
 
 // Get all facilities
-router.get("/facilities", isAuthenticated, async (req, res) => {
+router.get("/facilities", isAuthenticated, async (req: Request, res: Response) => {
   try {
     const storage = await getStorage();
     const user = req.user as any;
@@ -22,7 +22,7 @@ router.get("/facilities", isAuthenticated, async (req, res) => {
 });
 
 // Get facility by ID
-router.get("/facilities/:id", isAuthenticated, async (req, res) => {
+router.get("/facilities/:id", isAuthenticated, async (req: Request, res: Response) => {
   try {
     const storage = await getStorage();
     const facilityId = parseInt(req.params.id);
@@ -42,7 +42,7 @@ router.get("/facilities/:id", isAuthenticated, async (req, res) => {
 });
 
 // Create facility
-router.post("/facilities", isAuthenticated, async (req, res) => {
+router.post("/facilities", isAuthenticated, async (req: Request, res: Response) => {
   try {
     const storage = await getStorage();
     const user = req.user as any;
@@ -66,7 +66,7 @@ router.post("/facilities", isAuthenticated, async (req, res) => {
 });
 
 // Update facility
-router.put("/facilities/:id", isAuthenticated, async (req, res) => {
+router.put("/facilities/:id", isAuthenticated, async (req: Request, res: Response) => {
   try {
     const storage = await getStorage();
     const facilityId = parseInt(req.params.id);
@@ -84,7 +84,7 @@ router.put("/facilities/:id", isAuthenticated, async (req, res) => {
 });
 
 // Delete facility
-router.delete("/facilities/:id", isAuthenticated, async (req, res) => {
+router.delete("/facilities/:id", isAuthenticated, async (req: Request, res: Response) => {
   try {
     const storage = await getStorage();
     const facilityId = parseInt(req.params.id);
@@ -100,7 +100,7 @@ router.delete("/facilities/:id", isAuthenticated, async (req, res) => {
 // DOCK/DOOR MANAGEMENT ENDPOINTS
 
 // Get docks for a facility
-router.get("/facilities/:id/docks", isAuthenticated, async (req, res) => {
+router.get("/facilities/:id/docks", isAuthenticated, async (req: Request, res: Response) => {
   try {
     const storage = await getStorage();
     const facilityId = parseInt(req.params.id);
@@ -122,7 +122,7 @@ router.get("/facilities/:id/docks", isAuthenticated, async (req, res) => {
 });
 
 // Create dock for a facility
-router.post("/facilities/:id/docks", isAuthenticated, async (req, res) => {
+router.post("/facilities/:id/docks", isAuthenticated, async (req: Request, res: Response) => {
   try {
     const storage = await getStorage();
     const facilityId = parseInt(req.params.id);
@@ -149,7 +149,7 @@ router.post("/facilities/:id/docks", isAuthenticated, async (req, res) => {
 });
 
 // Update dock
-router.put("/docks/:id", isAuthenticated, async (req, res) => {
+router.put("/docks/:id", isAuthenticated, async (req: Request, res: Response) => {
   try {
     const storage = await getStorage();
     const dockId = parseInt(req.params.id);
@@ -177,7 +177,7 @@ router.put("/docks/:id", isAuthenticated, async (req, res) => {
 });
 
 // Delete dock
-router.delete("/docks/:id", isAuthenticated, async (req, res) => {
+router.delete("/docks/:id", isAuthenticated, async (req: Request, res: Response) => {
   try {
     const storage = await getStorage();
     const dockId = parseInt(req.params.id);

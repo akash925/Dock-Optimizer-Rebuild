@@ -112,7 +112,7 @@ export function setupAuth(app: any) {
   app.use(passport.session());
 
   // Login route
-  app.post('/api/login', (req: any, res: any, next: any) => {
+  app.post('/api/login', (req: any, res: any, next: NextFunction) => {
     passport.authenticate('local', (err: any, user: any, info: any) => {
       if (err) {
         console.error('Login error:', err);
@@ -145,7 +145,7 @@ export function setupAuth(app: any) {
   });
 
   // Logout route
-  app.post('/api/logout', (req: any, res: any) => {
+  app.post('/api/logout', (req: Request, res: Response) => {
     req.logout((err: any) => {
       if (err) {
         return res.status(500).json({ error: 'Logout failed' });
@@ -155,16 +155,16 @@ export function setupAuth(app: any) {
   });
 
   // Get current user route
-  app.get('/api/user', (req: any, res: any) => {
+  app.get('/api/user', (req: Request, res: Response) => {
     if (req.isAuthenticated()) {
       res.json({
-        id: req.user.id,
-        username: req.user.username,
+        id: req.user?.id,
+        username: req.user?.username,
         email: req.user.email,
         firstName: req.user.firstName,
         lastName: req.user.lastName,
-        role: req.user.role,
-        tenantId: req.user.tenantId,
+        role: req.user?.role,
+        tenantId: req.user?.tenantId,
         modules: req.user.modules || []
       });
     } else {

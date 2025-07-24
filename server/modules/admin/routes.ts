@@ -50,14 +50,14 @@ const isSuperAdmin = async (req: Request, res: Response, next: Function) => {
   }
 
   // Allow both regular admin and super-admin roles
-  if (req.user.role !== 'super-admin' && req.user.role !== 'admin') {
+  if (req.user?.role !== 'super-admin' && req.user?.role !== 'admin') {
     return res.status(403).json({ 
       message: 'Not authorized. Admin access required.', 
-      userRole: req.user.role 
+      userRole: req.user?.role 
     });
   }
 
-  console.log(`Admin API access granted to user with role: ${req.user.role}`);
+  console.log(`Admin API access granted to user with role: ${req.user?.role}`);
   next();
 };
 
@@ -74,7 +74,7 @@ export const adminRoutes = (app: Express) => {
   // Register settings routes
   app.use('/api/admin/settings', settingsRoutes);
   // Get all organizations (tenants)
-  app.get('/api/admin/orgs', isSuperAdmin, async (req, res) => {
+  app.get('/api/admin/orgs', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const storage = await getStorage();
       const orgs = await storage.getAllTenants();
@@ -104,7 +104,7 @@ export const adminRoutes = (app: Express) => {
   });
 
   // Get single organization detail
-  app.get('/api/admin/orgs/:id', isSuperAdmin, async (req, res) => {
+  app.get('/api/admin/orgs/:id', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
       if (isNaN(id)) {
@@ -136,7 +136,7 @@ export const adminRoutes = (app: Express) => {
   });
 
   // Create a new organization
-  app.post('/api/admin/orgs', isSuperAdmin, async (req, res) => {
+  app.post('/api/admin/orgs', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const validatedData = createOrgSchema.parse(req.body);
       
@@ -235,7 +235,7 @@ export const adminRoutes = (app: Express) => {
   });
 
   // Update an organization
-  app.put('/api/admin/orgs/:id', isSuperAdmin, async (req, res) => {
+  app.put('/api/admin/orgs/:id', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
       if (isNaN(id)) {
@@ -285,7 +285,7 @@ export const adminRoutes = (app: Express) => {
   });
 
   // Delete an organization
-  app.delete('/api/admin/orgs/:id', isSuperAdmin, async (req, res) => {
+  app.delete('/api/admin/orgs/:id', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
       if (isNaN(id)) {
@@ -325,7 +325,7 @@ export const adminRoutes = (app: Express) => {
   });
 
   // Get users for an organization
-  app.get('/api/admin/orgs/:id/users', isSuperAdmin, async (req, res) => {
+  app.get('/api/admin/orgs/:id/users', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
       if (isNaN(id)) {
@@ -370,7 +370,7 @@ export const adminRoutes = (app: Express) => {
   });
 
   // Add user to organization
-  app.post('/api/admin/orgs/:id/users', isSuperAdmin, async (req, res) => {
+  app.post('/api/admin/orgs/:id/users', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
       if (isNaN(id)) {
@@ -438,7 +438,7 @@ export const adminRoutes = (app: Express) => {
   });
 
   // Remove user from organization
-  app.delete('/api/admin/orgs/:orgId/users/:userId', isSuperAdmin, async (req, res) => {
+  app.delete('/api/admin/orgs/:orgId/users/:userId', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const orgId = Number(req.params.orgId);
       const userId = Number(req.params.userId);
@@ -491,7 +491,7 @@ export const adminRoutes = (app: Express) => {
   });
 
   // Add user to organization with role name
-  app.post('/api/admin/orgs/:orgId/users', isSuperAdmin, async (req, res) => {
+  app.post('/api/admin/orgs/:orgId/users', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const orgId = Number(req.params.orgId);
       if (isNaN(orgId)) {
@@ -560,7 +560,7 @@ export const adminRoutes = (app: Express) => {
   });
   
   // Toggle a specific module for an organization
-  app.put('/api/admin/orgs/:orgId/modules/:moduleName', isSuperAdmin, async (req, res) => {
+  app.put('/api/admin/orgs/:orgId/modules/:moduleName', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const orgId = Number(req.params.orgId);
       const moduleName = req.params.moduleName;
@@ -624,7 +624,7 @@ export const adminRoutes = (app: Express) => {
   });
   
   // Get modules for an organization
-  app.get('/api/admin/orgs/:id/modules', isSuperAdmin, async (req, res) => {
+  app.get('/api/admin/orgs/:id/modules', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
       if (isNaN(id)) {
@@ -648,7 +648,7 @@ export const adminRoutes = (app: Express) => {
   });
 
   // Update modules for an organization
-  app.put('/api/admin/orgs/:id/modules', isSuperAdmin, async (req, res) => {
+  app.put('/api/admin/orgs/:id/modules', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
       if (isNaN(id)) {
@@ -690,7 +690,7 @@ export const adminRoutes = (app: Express) => {
   });
 
   // Get all users (for user selection)
-  app.get('/api/admin/users', isSuperAdmin, async (req, res) => {
+  app.get('/api/admin/users', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const storage = await getStorage();
       const users = await storage.getUsers();
@@ -709,7 +709,7 @@ export const adminRoutes = (app: Express) => {
   });
 
   // Get all roles
-  app.get('/api/admin/roles', isSuperAdmin, async (req, res) => {
+  app.get('/api/admin/roles', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const storage = await getStorage();
       const roles = await storage.getRoles();
@@ -724,7 +724,7 @@ export const adminRoutes = (app: Express) => {
   // (These endpoints were duplicated in the file, so we're removing the duplicates)
   
   // Get all users
-  app.get('/api/admin/users', isSuperAdmin, async (req, res) => {
+  app.get('/api/admin/users', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const storage = await getStorage();
       const users = await storage.getUsers();
@@ -736,7 +736,7 @@ export const adminRoutes = (app: Express) => {
   });
   
   // Get admin dashboard stats
-  app.get('/api/admin/stats', isSuperAdmin, async (req, res) => {
+  app.get('/api/admin/stats', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const storage = await getStorage();
       
@@ -765,7 +765,7 @@ export const adminRoutes = (app: Express) => {
   });
   
   // Get all appointments across all organizations (admin view)
-  app.get('/api/admin/appointments', isSuperAdmin, async (req, res) => {
+  app.get('/api/admin/appointments', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const { page = 1, limit = 50, status, organizationId, startDate, endDate, search } = req.query;
       const offset = (Number(page) - 1) * Number(limit);
@@ -925,7 +925,7 @@ export const adminRoutes = (app: Express) => {
   });
 
   // Get single appointment details for admin view
-  app.get('/api/admin/appointments/:id', isSuperAdmin, async (req, res) => {
+  app.get('/api/admin/appointments/:id', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const appointmentId = Number(req.params.id);
       
@@ -1035,7 +1035,7 @@ export const adminRoutes = (app: Express) => {
       }
 
       // Only super-admin can access admin assets
-      if (req.user.role !== 'super-admin') {
+      if (req.user?.role !== 'super-admin') {
         return res.status(403).json({ error: 'Access denied. Super-admin role required.' });
       }
 
@@ -1062,7 +1062,7 @@ export const adminRoutes = (app: Express) => {
       }
 
       // Only super-admin can update asset status
-      if (req.user.role !== 'super-admin') {
+      if (req.user?.role !== 'super-admin') {
         return res.status(403).json({ error: 'Access denied. Super-admin role required.' });
       }
 
@@ -1109,7 +1109,7 @@ export const adminRoutes = (app: Express) => {
       }
 
       // Only super-admin can delete assets
-      if (req.user.role !== 'super-admin') {
+      if (req.user?.role !== 'super-admin') {
         return res.status(403).json({ error: 'Access denied. Super-admin role required.' });
       }
 

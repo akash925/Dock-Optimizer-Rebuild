@@ -7,7 +7,7 @@ import { safeToString } from "@/lib/utils";
 const router = Router();
 
 // GET /api/booking-pages/slug/:slug
-router.get("/booking-pages/slug/:slug", async (req, res) => {
+router.get("/booking-pages/slug/:slug", async (req: Request, res: Response) => {
   const { slug } = req.params;
 
   try {
@@ -110,7 +110,7 @@ router.get("/booking-pages/slug/:slug", async (req, res) => {
 });
 
 // GET /api/booking-pages/standard-questions/appointment-type/:appointmentTypeId
-router.get("/booking-pages/standard-questions/appointment-type/:appointmentTypeId", async (req, res) => {
+router.get("/booking-pages/standard-questions/appointment-type/:appointmentTypeId", async (req: Request, res: Response) => {
   const { appointmentTypeId } = req.params;
   
   try {
@@ -150,7 +150,7 @@ router.get("/booking-pages/standard-questions/appointment-type/:appointmentTypeI
 });
 
 // POST /api/booking-pages/:slug/book - Create a new booking
-router.post("/booking-pages/:slug/book", async (req, res) => {
+router.post("/booking-pages/:slug/book", async (req: Request, res: Response) => {
   const { slug } = req.params;
   const bookingData = req.body;
   

@@ -43,7 +43,7 @@ const DEFAULT_MODULES = [
  * GET /api/modules
  * Returns the list of modules enabled for the authenticated user's organization
  */
-modulesRouter.get('/', isAuthenticated, async (req, res) => {
+modulesRouter.get('/', isAuthenticated, async (req: Request, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -53,7 +53,7 @@ modulesRouter.get('/', isAuthenticated, async (req, res) => {
     const { tenantId } = req.user;
     
     // Log for debugging
-    console.log(`[ModulesRouter] Fetching modules for user ${req.user.username} with tenantId:`, tenantId);
+    console.log(`[ModulesRouter] Fetching modules for user ${req.user?.username} with tenantId:`, tenantId);
 
     // If no tenant ID, provide minimal default modules 
     if (!tenantId) {
@@ -98,7 +98,7 @@ modulesRouter.get('/', isAuthenticated, async (req, res) => {
  * Forces a refresh of the modules cache by returning the latest modules data
  * Used when module settings are changed in admin console
  */
-modulesRouter.get('/refresh', isAuthenticated, async (req, res) => {
+modulesRouter.get('/refresh', isAuthenticated, async (req: Request, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -106,7 +106,7 @@ modulesRouter.get('/refresh', isAuthenticated, async (req, res) => {
 
     const { tenantId } = req.user;
     
-    console.log(`[ModulesRouter] Refreshing modules for user ${req.user.username} with tenantId:`, tenantId);
+    console.log(`[ModulesRouter] Refreshing modules for user ${req.user?.username} with tenantId:`, tenantId);
 
     if (!tenantId) {
       return res.json(DEFAULT_MODULES);
