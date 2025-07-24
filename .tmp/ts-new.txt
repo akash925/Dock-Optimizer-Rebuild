@@ -75,7 +75,6 @@ server/modules/admin/users/routes.ts(16,17): error TS2339: Property 'role' does 
 server/modules/admin/users/routes.ts(161,17): error TS2339: Property 'length' does not exist on type 'QueryResult<Record<string, unknown>>'.
 server/modules/admin/users/routes.ts(165,14): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'QueryResult<Record<string, unknown>>'.
   Property '0' does not exist on type 'QueryResult<Record<string, unknown>>'.
-server/modules/analytics/index.ts(2,29): error TS2307: Cannot find module './routes/index.js' or its corresponding type declarations.
 server/modules/appointments/controllers/bolController.ts(6,10): error TS2724: '"@shared/schema"' has no exported member named 'insertBolDocumentSchema'. Did you mean 'InsertBolDocument'?
 server/modules/appointments/controllers/bolController.ts(56,33): error TS2339: Property 'id' does not exist on type 'User'.
 server/modules/appointments/controllers/bolController.ts(91,31): error TS2339: Property 'id' does not exist on type 'User'.
