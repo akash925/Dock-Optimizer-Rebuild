@@ -79,26 +79,29 @@ export async function setupVite(app: Express, server: Server) {
   });
 }
 
-/* ───────────────────────────── Production static server ─────────────────── */
-
+/* ------------------------------------------------------------------ */
+/*      Production static hosting                                     */
+/* ------------------------------------------------------------------ */
 export function serveStatic(app: Express) {
-  // ≡  <repo-root>/dist/public  (output of `pnpm run build:client`)
+  // <repo-root>/dist/public  (output of `pnpm run build:client`)
   const distPath = path.join(
     path.dirname(fileURLToPath(import.meta.url)),
     "..",
     "dist",
-    "public",
+    "public"
   );
 
   if (!fs.existsSync(distPath)) {
     throw new Error(
-      `Static bundle not found at ${distPath}. Run "pnpm run build:client" first.`,
+      `Static bundle not found at ${distPath}. Run "pnpm run build:client" first.`
     );
   }
 
-  /* ①  Serve all static assets */
+  /* 1️⃣  Serve all static assets */
   app.use(express.static(distPath));
 
-  /* ②  SPA fallback: send index.html for any unknown route */
-  app.get("*", (_req, res) => res.sendFile(path.join(distPath, "index.html")));
+  /* 2️⃣  SPA fallback: send index.html for any unknown route */
+  app.get("*", (_req, res) =>
+    res.sendFile(path.join(distPath, "index.html"))
+  );
 }

@@ -20,12 +20,8 @@ packages = ["atk", "doppler", "freetype", "libimagequant", "libjpeg", "libpng", 
 # -----------------------------------------------------------------
 [deployment]
 deploymentTarget = "autoscale"
-build = [
-  "sh", "-c",
-  "rm -rf ~/.local/share/pnpm/store && pnpm install --force && pnpm run build"
-]
-
-run = ["pnpm", "start"]
+build = ["sh", "-c", "pnpm install --frozen-lockfile && pnpm run build:client"]
+run = ["sh", "-c", 'NODE_ENV=production \ `ENVIRONMENT=production ` `SKIP_INTERNAL_VITE=1 ` `pnpm dlx tsx server/index.ts`']
 
 [[ports]]
 localPort = 5001
