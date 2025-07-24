@@ -15,7 +15,7 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
       
       if (isNaN(tenantIdNum)) {
         // If it's not a number, treat it as a slug
-        return getLogoBySlug(req: Request, res: Response);
+        return getLogoBySlug(req, res);
       }
       
       const storage = await getStorage();
