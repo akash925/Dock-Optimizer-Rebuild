@@ -1,5 +1,5 @@
 import { Express } from "express";
-import facilityRoutes from "./routes";
+import facilityRoutes from './routes/index.js';
 
 export default {
   initialize: (app: Express) => {

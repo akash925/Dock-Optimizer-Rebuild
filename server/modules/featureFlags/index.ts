@@ -1,5 +1,5 @@
 import { Express } from 'express';
-import featureFlagRoutes from './routes';
+import featureFlagRoutes from './routes/index.js';
 
 export default {
   name: 'featureFlags',

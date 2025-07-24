@@ -6,15 +6,15 @@
 // • Redis hardened, global JSON error handler, concise request logging.
 
 import express, { Request, Response, NextFunction } from "express";
-import path               from "node:path";
-import { fileURLToPath }  from "node:url";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-import { registerRoutes }      from "./routes";
+import { registerRoutes } from "./routes.ts";
 import { setupVite, serveStatic, log } from "./vite";
-import { tenantMiddleware }    from "./middleware/tenant";
+import { tenantMiddleware } from "./middleware/tenant";
 import { initializeWebSocket } from "./websocket/index";
-import bookingPublicRouter     from "./routes/public/booking";
-import healthRouter            from "./routes/health";
+import bookingPublicRouter from "./routes/public/booking";
+import healthRouter from "./routes/health";
 import { validateEnvironment, config } from "./config/environment";
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -23,20 +23,29 @@ import { validateEnvironment, config } from "./config/environment";
 
 console.log(`🚀 Starting Dock Optimizer Server (${config.environment})`);
 console.log(`📡 Port: ${config.port}`);
-console.log(`🐘 Database: ${config.database.url ? 'Connected' : 'Not configured'}`);
-console.log(`📧 Email: ${config.email.apiKey ? 'Configured' : 'Not configured'}`);
-console.log(`☁️  AWS S3: ${config.aws.accessKeyId ? 'Configured' : 'Local storage only'}`);
-console.log(`🔴 Redis: ${config.redis.enabled ? 'Enabled' : 'Disabled'}`);
+console.log(
+  `🐘 Database: ${config.database.url ? "Connected" : "Not configured"}`,
+);
+console.log(
+  `📧 Email: ${config.email.apiKey ? "Configured" : "Not configured"}`,
+);
+console.log(
+  `☁️  AWS S3: ${config.aws.accessKeyId ? "Configured" : "Local storage only"}`,
+);
+console.log(`🔴 Redis: ${config.redis.enabled ? "Enabled" : "Disabled"}`);
 
 // Validate environment with error tolerance for deployment
 try {
   validateEnvironment();
 } catch (error) {
-  if (config.environment === 'production') {
-    console.error('❌ Environment validation failed in production:', error);
+  if (config.environment === "production") {
+    console.error("❌ Environment validation failed in production:", error);
     process.exit(1);
   } else {
-    console.warn('⚠️ Environment validation warnings (development mode):', error);
+    console.warn(
+      "⚠️ Environment validation warnings (development mode):",
+      error,
+    );
   }
 }
 
@@ -51,7 +60,7 @@ const SKIP_INTERNAL_VITE = process.env.SKIP_INTERNAL_VITE === "1";
 // --------------------------------------------------------------------------
 
 const app = express();
-export { app };              // tests
+export { app }; // tests
 export default app;
 
 app.use(express.json({ limit: "5mb" }));
@@ -91,7 +100,7 @@ app.use((req, res, next) => {
 });
 
 // ────────────────────────────────────────────────────────────────────────────
-// 3.  Dynamic module configuration                                          
+// 3.  Dynamic module configuration
 // --------------------------------------------------------------------------
 
 const SYSTEM_MODULES = [
@@ -112,7 +121,9 @@ const AVAILABLE_MODULES = [
 ];
 
 // Feature‑flag style env vars (legacy support)
-const ENABLED_MODULES = (process.env.ENABLED_MODULES || "").split(",").filter(Boolean);
+const ENABLED_MODULES = (process.env.ENABLED_MODULES || "")
+  .split(",")
+  .filter(Boolean);
 const ENABLE_ASSET_MANAGER = process.env.ENABLE_ASSET_MANAGER === "true";
 
 // ensure essential UI routes always exist
@@ -127,7 +138,8 @@ function buildModuleList() {
 }
 
 async function loadModules(mods: string[], appRef: express.Express) {
-  let ok = 0, fail = 0;
+  let ok = 0,
+    fail = 0;
   for (const name of mods) {
     try {
       const { default: mod } = await import(`./modules/${name}/index`);
@@ -148,7 +160,7 @@ async function loadModules(mods: string[], appRef: express.Express) {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// 4.  Async bootstrap (routes, modules, ws, vite, server)                    
+// 4.  Async bootstrap (routes, modules, ws, vite, server)
 // --------------------------------------------------------------------------
 
 (async () => {
@@ -182,7 +194,9 @@ async function loadModules(mods: string[], appRef: express.Express) {
   const PORT = config.port;
   server.listen(PORT, "0.0.0.0", () => {
     console.log(`[express] 🔧 Listening on ${PORT} (${config.environment})`);
-    console.log(`🌐 Health check available at http://localhost:${PORT}/api/health`);
+    console.log(
+      `🌐 Health check available at http://localhost:${PORT}/api/health`,
+    );
     console.log(`📊 Ready for deployment on port ${PORT}`);
   });
 })();

@@ -10,9 +10,9 @@
   "scripts": {
     "dev": "CHOKIDAR_USEPOLLING=1 doppler run -- concurrently -n \"VITE,API\" -c \"cyan,green\" \"vite\" \"SKIP_INTERNAL_VITE=1 nodemon --legacy-watch --ext ts,js --watch server --watch shared --signal SIGTERM --exec \\\"tsx server/index.ts\\\"\"",
     "build:client": "vite build --emptyOutDir",
-    "build:server": "tsc -p tsconfig.server.json",
+    "build:server": "echo 'Skipping server build – handled at runtime with tsx'",
     "build": "NODE_OPTIONS=\"--max-old-space-size=4096\" pnpm run build:client && pnpm run build:server",
-    "start": "doppler run --config prd -- node dist/server/index.js",
+    "start": "doppler run --config prd -- tsx server/index.ts",
     "preview": "doppler run -- vite preview",
     "test": "vitest run",
     "lint": "eslint . --ext .ts,.tsx"
@@ -149,6 +149,7 @@
     "drizzle-kit": "^0.30.4",
     "eslint": "^9.29.0",
     "glob": "^11.0.3",
+    "globby": "^14.1.0",
     "nodemon": "^3.1.10",
     "postcss": "^8.4.47",
     "rxjs": "7.8.1",

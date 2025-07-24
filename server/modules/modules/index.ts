@@ -1,5 +1,5 @@
 import { Express } from 'express';
-import { modulesRouter } from './routes';
+import { modulesRouter } from './routes/index.js';
 
 const initialize = (app: Express) => {
   console.log('Initializing Modules service...');

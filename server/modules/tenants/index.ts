@@ -1,5 +1,5 @@
 import { Express } from 'express';
-import tenantRoutes from './routes';
+import tenantRoutes from './routes/index.js';
 
 export default {
   name: 'tenants',
