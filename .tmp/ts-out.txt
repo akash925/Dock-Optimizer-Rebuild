@@ -178,7 +178,6 @@ server/modules/companyAssets/service.ts(478,32): error TS2339: Property 'photoUr
 server/modules/companyAssets/service.ts(517,43): error TS2339: Property 'barcode' does not exist on type '{ id: number; name: string; createdAt: Date; updatedAt: Date; tenantId: number; implementationDate: string | null; implemented_date: string | null; last_service_date: string | null; next_service_date: string | null; }'.
 server/modules/featureFlags/service.ts(2,19): error TS2724: '"@shared/schema"' has no exported member named 'featureFlags'. Did you mean 'FeatureFlag'?
 server/modules/hours/routes.ts(7,10): error TS2304: Cannot find name 'isAuthenticated'.
-server/modules/modules/index.ts(2,31): error TS2307: Cannot find module './routes/index.js' or its corresponding type declarations.
 server/modules/modules/routes.ts(57,72): error TS2339: Property 'username' does not exist on type 'User'.
 server/modules/modules/routes.ts(110,74): error TS2339: Property 'username' does not exist on type 'User'.
 server/modules/organizations/controllers.ts(9,30): error TS2339: Property 'id' does not exist on type 'User'.

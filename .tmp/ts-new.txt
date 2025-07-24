@@ -202,7 +202,6 @@ server/modules/organizations/holidays.ts(206,64): error TS2339: Property 'holida
 server/modules/organizations/holidays.ts(231,14): error TS2339: Property 'holidays' does not exist on type '{}'.
 server/modules/organizations/holidays.ts(232,14): error TS2339: Property 'holidaysLastSynced' does not exist on type '{}'.
 server/modules/organizations/holidays.ts(263,56): error TS2339: Property 'holidays' does not exist on type '{}'.
-server/modules/tenants/index.ts(2,26): error TS2307: Cannot find module './routes/index.js' or its corresponding type declarations.
 server/modules/tenants/service.ts(2,33): error TS2305: Module '"@shared/schema"' has no exported member 'InsertTenant'.
 server/modules/tenants/service.ts(2,47): error TS2724: '"@shared/schema"' has no exported member named 'featureFlags'. Did you mean 'FeatureFlag'?
 server/notifications.ts(2163,8): error TS2304: Cannot find name 'isEmailServiceConfigured'.
