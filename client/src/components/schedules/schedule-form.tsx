@@ -2,8 +2,12 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { insertScheduleSchema } from "@shared/schema";
+import { schedules } from "@shared/schema";
+import { createInsertSchema } from "drizzle-zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+
+// Create the missing schema locally
+const insertScheduleSchema = createInsertSchema(schedules);
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -155,7 +159,9 @@ export default function ScheduleForm({
               <FormField
                 control={form.control}
                 name="dockId"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Dock</FormLabel>
                     <Select 
@@ -168,11 +174,9 @@ export default function ScheduleForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {docks.map(dock => (
-                          <SelectItem key={dock.id} value={dock.id.toString()}>
-                            {dock.name}
-                          </SelectItem>
-                        ))}
+                        {docks.map((dock: any) => <SelectItem key={dock.id} value={dock.id.toString()}>
+                          {dock.name}
+                        </SelectItem>)}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -183,7 +187,9 @@ export default function ScheduleForm({
               <FormField
                 control={form.control}
                 name="carrierId"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Carrier</FormLabel>
                     <Select 
@@ -196,11 +202,9 @@ export default function ScheduleForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {carriers.map(carrier => (
-                          <SelectItem key={carrier.id} value={carrier.id.toString()}>
-                            {carrier.name}
-                          </SelectItem>
-                        ))}
+                        {carriers.map((carrier: any) => <SelectItem key={carrier.id} value={carrier.id.toString()}>
+                          {carrier.name}
+                        </SelectItem>)}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -212,7 +216,9 @@ export default function ScheduleForm({
             <FormField
               control={form.control}
               name="truckNumber"
-              render={({ field }) => (
+              render={({
+                field
+              }: any) => (
                 <FormItem>
                   <FormLabel>Truck Number</FormLabel>
                   <FormControl>
@@ -227,7 +233,9 @@ export default function ScheduleForm({
               <FormField
                 control={form.control}
                 name="startTime"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Start Time</FormLabel>
                     <FormControl>
@@ -241,7 +249,9 @@ export default function ScheduleForm({
               <FormField
                 control={form.control}
                 name="endTime"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>End Time</FormLabel>
                     <FormControl>
@@ -257,7 +267,9 @@ export default function ScheduleForm({
               <FormField
                 control={form.control}
                 name="type"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Type</FormLabel>
                     <Select 
@@ -282,7 +294,9 @@ export default function ScheduleForm({
               <FormField
                 control={form.control}
                 name="status"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Status</FormLabel>
                     <Select 
@@ -310,7 +324,9 @@ export default function ScheduleForm({
             <FormField
               control={form.control}
               name="notes"
-              render={({ field }) => (
+              render={({
+                field
+              }: any) => (
                 <FormItem>
                   <FormLabel>Notes</FormLabel>
                   <FormControl>
