@@ -29,7 +29,7 @@ export default function ScheduleAppointmentForm({
   const { toast } = useToast();
   
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open: any) => !open && onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
@@ -46,7 +46,7 @@ export default function ScheduleAppointmentForm({
           initialDate={initialDate}
           initialDockId={initialDockId}
           appointmentTypeId={appointmentTypeId}
-          facilityId={initialData?.facilityId}
+          facilityId={initialData?.facilityId ?? undefined}
           facilityTimezone={timezone}
           onSubmitSuccess={(data) => {
             toast({
