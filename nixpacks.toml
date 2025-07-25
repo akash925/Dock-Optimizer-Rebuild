@@ -1,18 +1,46 @@
+# ──────────────── nixpacks.toml ────────────────
+# Lean, deterministic image for Replit Deploys
+# 1. Installs deps w/ frozen lockfile
+# 2. Allows only native binaries we truly need
+# 3. Builds client + server once, then strips dev deps
+# 4. Boots with plain Node from compiled output
+
+# ————— INSTALL —————
 [phases.install]
 cmds = [
+  # install exactly what lockfile says
   "pnpm install --frozen-lockfile",
+
+  # allow native post-install for esbuild + @swc/core only
   "pnpm approve-builds esbuild @swc/core"
 ]
 
+# ————— BUILD —————
 [phases.build]
+# Compile *everything* ahead-of-time, then prune
 cmds = [
-  "pnpm run build:client",     # already defined in package.json
-  "pnpm prune --prod --ignore-scripts",  # remove dev deps but keep runtime essentials
-  "pnpm add tsx --prod"                  # add tsx as production dependency for runtime
+  # 1️⃣ React/Vite front-end
+  "pnpm run build:client",
+  # 2️⃣ Express/ts-server → dist/server**
+  "npx tsc -p tsconfig.server.json",
+  # 3️⃣ Remove dev + optional junk (cypress, puppeteer, tesseract, tsx…)
+  "pnpm prune --prod"
 ]
 
+# ————— START —————
 [phases.start]
-cmds = ["npx tsx server/index.ts"]
+cmds = [
+  # Runs the compiled JS (no tsx, no dev tooling)
+  "node dist/server/index.js"
+]
 
+# ————— ENV —————
 [variables]
+# Replit will overwrite this in prod; keep fallback for local tests
 PORT = "3000"
+# Add any other required vars here or via Replit Secrets
+
+# ————— METADATA —————
+# Expected final image size: ≈ 240–300 MB
+# Make sure `npm run build:client` and `tsc -p tsconfig.server.json`
+# exit 0 locally before deploying.

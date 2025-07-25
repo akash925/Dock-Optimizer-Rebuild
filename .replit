@@ -15,7 +15,7 @@ run = ["pnpm", "start"] # workspace Run button ⬅︎
 
 [nix]
 channel = "stable-24_05"
-packages = ["atk", "doppler", "freetype", "libimagequant", "libjpeg", "libpng", "libvips", "libwebp", "nss", "pango", "poppler_utils"]
+packages = ["atk", "doppler", "freetype", "libimagequant", "libjpeg", "libpng", "libvips", "libwebp", "nss", "pango", "poppler_utils", "nixpacks"]
 
 # -----------------------------------------------------------------
 [deployment]
