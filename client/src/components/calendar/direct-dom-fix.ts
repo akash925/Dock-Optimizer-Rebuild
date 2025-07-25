@@ -43,23 +43,23 @@ function fixButtonsVisibility() {
   const buttons = document.querySelectorAll('.calendar-view-button');
   buttons.forEach(button => {
     // Force visibility
-    button.style.display = 'inline-flex';
-    button.style.visibility = 'visible';
-    button.style.opacity = '1';
-    button.style.pointerEvents = 'auto';
+    (button as HTMLElement).style.display = 'inline-flex';
+    (button as HTMLElement).style.visibility = 'visible';
+    (button as HTMLElement).style.opacity = '1';
+    (button as HTMLElement).style.pointerEvents = 'auto';
   });
   
   // Make buttons container sticky
   const buttonsContainer = document.querySelector('.view-buttons-container');
   if (buttonsContainer) {
-    buttonsContainer.style.position = 'sticky';
-    buttonsContainer.style.top = '0';
-    buttonsContainer.style.zIndex = '9999';
-    buttonsContainer.style.backgroundColor = 'white';
-    buttonsContainer.style.padding = '12px 0';
-    buttonsContainer.style.borderBottom = '1px solid #e5e7eb';
-    buttonsContainer.style.marginBottom = '15px';
-    buttonsContainer.style.width = '100%';
+    (buttonsContainer as HTMLElement).style.position = 'sticky';
+    (buttonsContainer as HTMLElement).style.top = '0';
+    (buttonsContainer as HTMLElement).style.zIndex = '9999';
+    (buttonsContainer as HTMLElement).style.backgroundColor = 'white';
+    (buttonsContainer as HTMLElement).style.padding = '12px 0';
+    (buttonsContainer as HTMLElement).style.borderBottom = '1px solid #e5e7eb';
+    (buttonsContainer as HTMLElement).style.marginBottom = '15px';
+    (buttonsContainer as HTMLElement).style.width = '100%';
   }
 }
 
@@ -73,24 +73,24 @@ function fixEventStacking() {
     if (!timeAttr) return;
     
     // Set z-index based on time (earlier events on top)
-    if (timeAttr === '06:00') event.style.zIndex = '2400';
-    else if (timeAttr === '07:00') event.style.zIndex = '2300';
-    else if (timeAttr === '08:00') event.style.zIndex = '2200';
-    else if (timeAttr === '09:00') event.style.zIndex = '2100';
-    else if (timeAttr === '10:00') event.style.zIndex = '2000';
-    else if (timeAttr === '11:00') event.style.zIndex = '1900';
-    else if (timeAttr === '12:00') event.style.zIndex = '1800';
-    else if (timeAttr === '13:00') event.style.zIndex = '1700';
-    else if (timeAttr === '14:00') event.style.zIndex = '1600';
-    else if (timeAttr === '15:00') event.style.zIndex = '1500';
-    else if (timeAttr === '16:00') event.style.zIndex = '1400';
-    else if (timeAttr === '17:00') event.style.zIndex = '1300';
-    else if (timeAttr === '18:00') event.style.zIndex = '1200';
-    else if (timeAttr === '19:00') event.style.zIndex = '1100';
-    else if (timeAttr === '20:00') event.style.zIndex = '1000';
+    if (timeAttr === '06:00') (event as HTMLElement).style.zIndex = '2400';
+    else if (timeAttr === '07:00') (event as HTMLElement).style.zIndex = '2300';
+    else if (timeAttr === '08:00') (event as HTMLElement).style.zIndex = '2200';
+    else if (timeAttr === '09:00') (event as HTMLElement).style.zIndex = '2100';
+    else if (timeAttr === '10:00') (event as HTMLElement).style.zIndex = '2000';
+    else if (timeAttr === '11:00') (event as HTMLElement).style.zIndex = '1900';
+    else if (timeAttr === '12:00') (event as HTMLElement).style.zIndex = '1800';
+    else if (timeAttr === '13:00') (event as HTMLElement).style.zIndex = '1700';
+    else if (timeAttr === '14:00') (event as HTMLElement).style.zIndex = '1600';
+    else if (timeAttr === '15:00') (event as HTMLElement).style.zIndex = '1500';
+    else if (timeAttr === '16:00') (event as HTMLElement).style.zIndex = '1400';
+    else if (timeAttr === '17:00') (event as HTMLElement).style.zIndex = '1300';
+    else if (timeAttr === '18:00') (event as HTMLElement).style.zIndex = '1200';
+    else if (timeAttr === '19:00') (event as HTMLElement).style.zIndex = '1100';
+    else if (timeAttr === '20:00') (event as HTMLElement).style.zIndex = '1000';
     
     // Add a border
-    event.style.border = '1px solid rgba(255,255,255,0.5)';
+    (event as HTMLElement).style.border = '1px solid rgba(255,255,255,0.5)';
   });
 }
 
