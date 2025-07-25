@@ -1,0 +1,185 @@
+deployment logs: 2025-07-25T03:25:30Z info: Deployment: 467fd7db-bb24-4d9c-96dc-abb078526a07
+2025-07-25T03:25:30Z info: Build: 7f3952bb-a2a2-4309-b49f-e234d10a0b28
+2025-07-25T03:25:30Z info: Connecting to builder
+2025-07-25T03:25:33Z info: Builder connected
+2025-07-25T03:25:34Z info: Installing packages
+2025-07-25T03:25:36Z info: Starting Build
+
+added 1 package in 1s
+
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 11.5.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.5.1
+npm notice To update run: npm install -g npm@11.5.1
+npm notice
+
+
+   ╭──────────────────────────────────────────╮
+   │                                          │
+   │   Update available! 10.12.1 → 10.13.1.   │
+   │   Changelog: https://pnpm.io/v/10.13.1   │
+   │     To update, run: pnpm add -g pnpm     │
+   │                                          │
+   ╰──────────────────────────────────────────╯
+
+
+Lockfile is up to date, resolution step is skipped
+
+Progress: resolved 1, reused 0, downloaded 0, added 0
+
+Packages: +1
++
+
+Progress: resolved 1, reused 1, downloaded 0, added 0
+
+Progress: resolved 1, reused 1, downloaded 0, added 1
+
+Progress: resolved 1, reused 1, downloaded 0, added 1, done
+
+
+╭ Warning ─────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Ignored build scripts: @swc/core, bufferutil, cypress, esbuild,            │
+│   msgpackr-extract, puppeteer, tesseract.js.                                 │
+│   Run "pnpm approve-builds" to pick which dependencies should be allowed     │
+│   to run scripts.                                                            │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+Done in 3m 15.6s using pnpm v10.12.1
+
+
+> dock-optimizer@1.0.0 build:client /home/runner/workspace
+> vite build --emptyOutDir
+
+
+x Build failed in 6.37s
+
+error during build:
+[vite:esbuild] Transform failed with 2 errors:
+/home/runner/workspace/shared/schema.ts:752:13: ERROR: Multiple exports with the same name "activityLogs"
+/home/runner/workspace/shared/schema.ts:752:13: ERROR: The symbol "activityLogs" has already been declared
+file: /home/runner/workspace/shared/schema.ts:752:13
+
+Multiple exports with the same name "activityLogs"
+750|  
+751|  /** Canonical list of activity-log event codes used by admin UI & reports.   */
+752|  export const activityLogs = {
+   |               ^
+753|    USER_CREATED:           "USER_CREATED",
+754|    USER_UPDATED:           "USER_UPDATED",
+
+The symbol "activityLogs" has already been declared
+750|  
+751|  /** Canonical list of activity-log event codes used by admin UI & reports.   */
+752|  export const activityLogs = {
+   |               ^
+753|    USER_CREATED:           "USER_CREATED",
+754|    USER_UPDATED:           "USER_UPDATED",
+
+    at failureErrorWithLog (/home/runner/workspace/node_modules/.pnpm/esbuild@0.21.5/node_modules/esbuild/lib/main.js:1472:15)
+    at /home/runner/workspace/node_modules/.pnpm/esbuild@0.21.5/node_modules/esbuild/lib/main.js:755:50
+    at responseCallbacks.<computed> (/home/runner/workspace/node_modules/.pnpm/esbuild@0.21.5/node_modules/esbuild/lib/main.js:622:9)
+    at handleIncomingPacket (/home/runner/workspace/node_modules/.pnpm/esbuild@0.21.5/node_modules/esbuild/lib/main.js:677:12)
+    at Socket.readFromStdout (/home/runner/workspace/node_modules/.pnpm/esbuild@0.21.5/node_modules/esbuild/lib/main.js:600:7)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:191:23)
+
+ ELIFECYCLE  Command failed with exit code 1.
+
+Progress: resolved 1, reused 0, downloaded 0, added 0
+
+Progress: resolved 6, reused 5, downloaded 0, added 0
+
+Progress: resolved 18, reused 17, downloaded 0, added 0
+
+Progress: resolved 42, reused 40, downloaded 0, added 0
+
+Progress: resolved 75, reused 74, downloaded 0, added 0
+
+ WARN  deprecated multer@1.4.5-lts.2: Multer 1.x is impacted by a number of vulnerabilities, which have been patched in 2.x. You should upgrade to the latest 2.x version.
+
+Progress: resolved 125, reused 124, downloaded 0, added 0
+
+Progress: resolved 140, reused 140, downloaded 0, added 0
+
+Progress: resolved 312, reused 292, downloaded 0, added 0
+
+Progress: resolved 419, reused 397, downloaded 0, added 0
+
+Progress: resolved 453, reused 431, downloaded 0, added 0
+
+Progress: resolved 762, reused 633, downloaded 0, added 0
+
+Progress: resolved 1017, reused 895, downloaded 0, added 0
+
+Progress: resolved 1314, reused 1177, downloaded 0, added 0
+
+ WARN  3 deprecated subdependencies found: @esbuild-kit/core-utils@3.3.2, @esbuild-kit/esm-loader@2.6.5, node-domexception@1.0.0
+
+Progress: resolved 1326, reused 1190, downloaded 0, added 0
+
+Packages: -21
+---------------------
+
+Progress: resolved 1326, reused 1190, downloaded 0, added 1
+
+Progress: resolved 1326, reused 1190, downloaded 0, added 1, done
+
+
+devDependencies:
+- @ampproject/remapping 2.2.1
+- @replit/vite-plugin-runtime-error-modal 0.0.3
+- @replit/vite-plugin-shadcn-theme-json 0.0.4
+- @swc/cli 0.7.8
+- @swc/core 1.13.2
+- @tailwindcss/aspect-ratio 0.4.2
+- @tailwindcss/forms 0.5.10
+- @tailwindcss/typography 0.5.16
+- @types/express 4.17.23
+- @types/jest 29.5.14
+- @types/luxon 3.6.2
+- @types/mime-types 3.0.1
+- @types/node 20.16.11
+- @types/passport 1.0.17
+- @types/passport-local 1.0.38
+- @types/react 18.3.23
+- @types/react-dom 18.3.7
+- @typescript-eslint/eslint-plugin 8.37.0
+- @typescript-eslint/parser 8.37.0
+- @vitejs/plugin-react 4.6.0
+- autoprefixer 10.4.21
+- drizzle-kit 0.30.6
+- eslint 9.31.0
+- glob 11.0.3
+- globby 14.1.0
+- nodemon 3.1.10
+- postcss 8.5.6
+- rxjs 7.8.1
+- tailwindcss 3.4.17
+- ts-node 10.9.2
+- tsx 4.20.3
+- typescript 5.6.3
+- vite 5.4.19
+- vitest 3.2.4
+
+╭ Warning ─────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Ignored build scripts: @swc/core, bufferutil, cypress, esbuild,            │
+│   msgpackr-extract, puppeteer, tesseract.js.                                 │
+│   Run "pnpm approve-builds" to pick which dependencies should be allowed     │
+│   to run scripts.                                                            │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+2025-07-25T03:29:53Z info: Pushing pid1 binary layer...
+2025-07-25T03:29:55Z info: Created pid1 binary layer
+2025-07-25T03:30:02Z info: Pushing Repl layer...
+2025-07-25T03:30:02Z info: Retrieved cached nix layer
+2025-07-25T03:30:03Z info: Created hosting layer
+Deployment timed out. Check the Logs tab for more details. - 2025-07-253:34:30.786Z
