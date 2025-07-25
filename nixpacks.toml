@@ -1,0 +1,18 @@
+[phases.install]
+cmds = [
+  "pnpm install --frozen-lockfile",
+  "pnpm approve-builds esbuild @swc/core"
+]
+
+[phases.build]
+cmds = [
+  "pnpm run build:client",     # already defined in package.json
+  "pnpm prune --prod --ignore-scripts",  # remove dev deps but keep runtime essentials
+  "pnpm add tsx --prod"                  # add tsx as production dependency for runtime
+]
+
+[phases.start]
+cmds = ["npx tsx server/index.ts"]
+
+[variables]
+PORT = "3000"

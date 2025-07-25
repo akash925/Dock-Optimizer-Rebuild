@@ -6,6 +6,15 @@ Dock Optimizer is an enterprise-grade warehouse management system that streamlin
 
 ## Recent Changes
 
+### 2025-01-25: Docker Production Image Optimization
+- ✅ Created `nixpacks.toml` configuration for deterministic, minimal Docker images
+- ✅ Configured native build script approval for esbuild and @swc/core only
+- ✅ Implemented production dependency pruning to reduce image size
+- ✅ Added TypeScript runtime with tsx for production server execution
+- ✅ Set proper port configuration (PORT=3000) for container deployment
+- ✅ Optimized build pipeline: client build → dependency pruning → production runtime
+- ✅ Ready for Replit Deployments with minimal image footprint
+
 ### 2025-01-21: Deployment Configuration Fixes Applied
 - ✅ Created comprehensive deployment configuration (`deployment.config.js`)
 - ✅ Enhanced build process with `build-production.cjs` for Autoscale deployment
