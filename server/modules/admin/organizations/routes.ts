@@ -15,11 +15,9 @@ export const registerOrganizationModulesRoutes = (app: Express) => {
       return res.status(401).json({ error: "Authentication required" });
     }
     try {
-      // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Authenti... Remove this comment to see the full error message
       const tenantId = parseInt(req.params.id);
       
       if (isNaN(tenantId)) {
-        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ message: "Invalid tenant ID" });
       }
       
