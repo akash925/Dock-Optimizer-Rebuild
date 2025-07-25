@@ -99,24 +99,24 @@ function fixContainerConstraints() {
   // Find the calendar container
   const container = document.querySelector('.calendar-container');
   if (container) {
-    container.style.height = '70vh';
-    container.style.width = '100%';
-    container.style.position = 'relative';
-    container.style.overflow = 'auto';
-    container.style.zIndex = '1';
+    (container as HTMLElement).style.height = '70vh';
+    (container as HTMLElement).style.width = '100%';
+    (container as HTMLElement).style.position = 'relative';
+    (container as HTMLElement).style.overflow = 'auto';
+    (container as HTMLElement).style.zIndex = '1';
   }
   
   // Find view harness
   const viewHarness = document.querySelector('.fc-view-harness');
   if (viewHarness) {
-    viewHarness.style.width = '100%';
-    viewHarness.style.minHeight = '500px';
+    (viewHarness as HTMLElement).style.width = '100%';
+    (viewHarness as HTMLElement).style.minHeight = '500px';
   }
   
   // Handle responsive view
   const scrollgridTable = document.querySelector('.fc-scrollgrid-sync-table');
   if (scrollgridTable) {
-    scrollgridTable.style.width = '100%';
+    (scrollgridTable as HTMLElement).style.width = '100%';
   }
 }
 
