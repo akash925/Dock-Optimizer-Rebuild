@@ -15,8 +15,6 @@ interface ScheduleWithTime extends Schedule {
   _displayStartHour?: number;
   _displayEndHour?: number;
   _spanMultipleHours?: boolean;
-  startTime: string | Date;
-  endTime: string | Date;
 }
 
 // Type for organizing schedules by hour and dock
@@ -253,7 +251,7 @@ export default function ScheduleDayCalendar({
       {/* Calendar Header with view mode toggle */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
         <div className="flex items-center space-x-2">
-          <Button 
+          <Button
             variant="outline" 
             size="icon" 
             onClick={goToPreviousDay}
@@ -262,7 +260,7 @@ export default function ScheduleDayCalendar({
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button 
+          <Button
             variant="outline" 
             size="sm"
             onClick={goToToday}
@@ -271,7 +269,7 @@ export default function ScheduleDayCalendar({
           >
             today
           </Button>
-          <Button 
+          <Button
             variant="outline" 
             size="icon" 
             onClick={goToNextDay}
@@ -290,7 +288,7 @@ export default function ScheduleDayCalendar({
         {/* View Mode Switch */}
         <div className="flex items-center space-x-2 ml-auto">
           <div className="flex rounded overflow-hidden border">
-            <Button 
+            <Button
               variant="ghost" 
               size="sm" 
               className="h-7 px-3 text-xs rounded-none border-r"
@@ -311,7 +309,7 @@ export default function ScheduleDayCalendar({
             >
               month
             </Button>
-            <Button 
+            <Button
               variant="ghost" 
               size="sm" 
               className="h-7 px-3 text-xs rounded-none border-r"
@@ -332,7 +330,7 @@ export default function ScheduleDayCalendar({
             >
               week
             </Button>
-            <Button 
+            <Button
               variant="default" 
               size="sm" 
               className="h-7 px-3 text-xs rounded-none border-r"
@@ -341,7 +339,7 @@ export default function ScheduleDayCalendar({
             >
               day
             </Button>
-            <Button 
+            <Button
               variant="ghost" 
               size="sm" 
               className="h-7 px-3 text-xs rounded-none"
