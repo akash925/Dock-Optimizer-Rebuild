@@ -11,7 +11,7 @@ export function createTestApp(customUser?: any) {
   app.use(express.urlencoded({ extended: false, limit: "5mb" }));
 
   // Mock authentication middleware for tests
-  app.use((req: any, res, next) => {
+  app.use((req: any, res: any, next: any) => {
     // Use custom user if provided, otherwise default test user
     req.user = customUser || {
       id: 1,
@@ -38,7 +38,7 @@ export function createTestApp(customUser?: any) {
   //   }
   // });
 
-  app.get('/api/company-assets', async (req: any, res) => {
+  app.get('/api/company-assets', async (req: any, res: any) => {
     try {
       const { mockStorage } = await import('./__mocks__/storage');
       const assets = await mockStorage.getCompanyAssetsByTenantId(req.user?.tenantId);
@@ -48,7 +48,7 @@ export function createTestApp(customUser?: any) {
     }
   });
 
-  app.post('/api/company-assets', async (req: any, res) => {
+  app.post('/api/company-assets', async (req: any, res: any) => {
     try {
       const { mockStorage } = await import('./__mocks__/storage');
       const assetData = { ...req.body, tenantId: req.user?.tenantId };
@@ -59,7 +59,7 @@ export function createTestApp(customUser?: any) {
     }
   });
 
-  app.patch('/api/company-assets/:id/status', async (req: any, res) => {
+  app.patch('/api/company-assets/:id/status', async (req: any, res: any) => {
     try {
       const { mockStorage } = await import('./__mocks__/storage');
       const id = parseInt(req.params.id);
@@ -77,7 +77,7 @@ export function createTestApp(customUser?: any) {
     }
   });
 
-  app.get('/api/company-assets/barcode/search', async (req: any, res) => {
+  app.get('/api/company-assets/barcode/search', async (req: any, res: any) => {
     try {
       const { mockStorage } = await import('./__mocks__/storage');
       const { barcode } = req.query;
@@ -93,7 +93,7 @@ export function createTestApp(customUser?: any) {
     }
   });
 
-  app.post('/api/company-assets/import', async (req: any, res) => {
+  app.post('/api/company-assets/import', async (req: any, res: any) => {
     try {
       const { mockStorage } = await import('./__mocks__/storage');
       const { assets } = req.body;
@@ -114,7 +114,7 @@ export function createTestApp(customUser?: any) {
   });
 
   // Asset photo presign endpoints
-  app.post('/api/company-assets/:id/photo/presign', async (req: any, res) => {
+  app.post('/api/company-assets/:id/photo/presign', async (req: any, res: any) => {
     try {
       const { mockStorage } = await import('./__mocks__/storage');
       const id = parseInt(req.params.id);
@@ -168,7 +168,7 @@ export function createTestApp(customUser?: any) {
     }
   });
 
-  app.put('/api/company-assets/:id/photo', async (req: any, res) => {
+  app.put('/api/company-assets/:id/photo', async (req: any, res: any) => {
     try {
       const { mockStorage } = await import('./__mocks__/storage');
       const id = parseInt(req.params.id);
@@ -204,7 +204,7 @@ export function createTestApp(customUser?: any) {
   });
 
   // BOL routes for testing
-  app.post('/api/schedules/:id/bol', async (req: any, res) => {
+  app.post('/api/schedules/:id/bol', async (req: any, res: any) => {
     try {
       const { mockStorage } = await import('./__mocks__/storage');
       const scheduleId = parseInt(req.params.id);
@@ -222,7 +222,7 @@ export function createTestApp(customUser?: any) {
     }
   });
 
-  app.get('/api/schedules/:id/bol', async (req: any, res) => {
+  app.get('/api/schedules/:id/bol', async (req: any, res: any) => {
     try {
       const { mockStorage } = await import('./__mocks__/storage');
       const scheduleId = parseInt(req.params.id);
@@ -233,7 +233,7 @@ export function createTestApp(customUser?: any) {
     }
   });
 
-  app.delete('/api/bol/:bolId', async (req: any, res) => {
+  app.delete('/api/bol/:bolId', async (req: any, res: any) => {
     try {
       const { mockStorage } = await import('./__mocks__/storage');
       const bolId = parseInt(req.params.bolId);

@@ -183,7 +183,7 @@ export function BarcodeGenerator({
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs value={barcodeType} onValueChange={(v) => setBarcodeType(v as 'barcode' | 'qrcode')}>
+        <Tabs value={barcodeType} onValueChange={(v: any) => setBarcodeType(v as 'barcode' | 'qrcode')}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="barcode" className="flex items-center justify-center">
               <Barcode className="mr-2 h-4 w-4" />
@@ -206,7 +206,7 @@ export function BarcodeGenerator({
                     onChange={handleBarcodeValueChange}
                     placeholder="Enter barcode value"
                   />
-                  <Button 
+                  <Button
                     variant="outline" 
                     size="icon" 
                     onClick={generateRandomBarcode}
@@ -214,7 +214,7 @@ export function BarcodeGenerator({
                   >
                     <RefreshCw className="h-4 w-4" />
                   </Button>
-                  <Button 
+                  <Button
                     variant="outline" 
                     size="icon" 
                     onClick={copyBarcode}
@@ -279,7 +279,7 @@ export function BarcodeGenerator({
         </Tabs>
         
         <div className="flex justify-between mt-4">
-          <Button 
+          <Button
             variant="outline"
             onClick={downloadBarcode}
             disabled={!barcodeValue}

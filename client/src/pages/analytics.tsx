@@ -149,9 +149,11 @@ function useCarrierStats(dateParams: { startDate?: string; endDate?: string }) {
 
   // If we have data, format it for the chart
   if (carrierData && carrierData.length > 0) {
-    const chartData = carrierData.map(carrier => ({
+    const chartData = carrierData.map((carrier: any) => ({
       date: carrier.name,
-      value: Number(carrier.appointmentCount) // Convert string to number
+
+      // Convert string to number
+      value: Number(carrier.appointmentCount)
     }));
 
     return (
@@ -206,9 +208,11 @@ function useCustomerStats(dateParams: { startDate?: string; endDate?: string }) 
 
   // If we have data, format it for the chart
   if (customerData && customerData.length > 0) {
-    const chartData = customerData.map(customer => ({
+    const chartData = customerData.map((customer: any) => ({
       date: customer.name,
-      value: Number(customer.appointmentCount) // Convert string to number
+
+      // Convert string to number
+      value: Number(customer.appointmentCount)
     }));
 
     return (
@@ -266,9 +270,11 @@ function useAttendanceStats(dateParams: { startDate?: string; endDate?: string }
 
   // If we have data, format it for the chart
   if (attendanceData && attendanceData.length > 0) {
-    const chartData = attendanceData.map(item => ({
+    const chartData = attendanceData.map((item: any) => ({
       date: item.attendanceStatus,
-      value: Number(item.count) // Convert string to number
+
+      // Convert string to number
+      value: Number(item.count)
     }));
 
     return (
@@ -326,9 +332,11 @@ function useDockUtilizationStats(dateParams: { startDate?: string; endDate?: str
 
   // If we have data, format it for the chart
   if (utilizationData && utilizationData.length > 0) {
-    const chartData = utilizationData.map(dock => ({
+    const chartData = utilizationData.map((dock: any) => ({
       date: `${dock.dock_name} (${dock.facility_name})`,
-      value: Number(dock.utilization_percentage) // Convert string to number
+
+      // Convert string to number
+      value: Number(dock.utilization_percentage)
     }));
 
     return (
@@ -487,7 +495,7 @@ export default function Analytics() {
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
             <div className="w-full md:w-64">
               <label className="text-sm font-medium mb-1 block">Date Range</label>
-              <Select value={dateRange} onValueChange={(value) => setDateRange(value as any)}>
+              <Select value={dateRange} onValueChange={(value: any) => setDateRange(value as any)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select date range" />
                 </SelectTrigger>
@@ -505,7 +513,7 @@ export default function Analytics() {
               <>
                 <div className="w-full md:w-auto">
                   <label className="text-sm font-medium mb-1 block">Start Date</label>
-                  <Button 
+                  <Button
                     variant="outline" 
                     className="w-full justify-start text-left font-normal"
                     onClick={() => setShowDatePickerDialog(true)}
@@ -516,7 +524,7 @@ export default function Analytics() {
                 </div>
                 <div className="w-full md:w-auto">
                   <label className="text-sm font-medium mb-1 block">End Date</label>
-                  <Button 
+                  <Button
                     variant="outline" 
                     className="w-full justify-start text-left font-normal"
                     onClick={() => setShowDatePickerDialog(true)}
@@ -717,7 +725,7 @@ export default function Analytics() {
                 <Calendar
                   mode="single"
                   selected={startDate}
-                  onSelect={(date) => date && setStartDate(date)}
+                  onSelect={(date: any) => date && setStartDate(date)}
                   initialFocus
                   classNames={{
                     months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
@@ -741,8 +749,8 @@ export default function Analytics() {
                 <Calendar
                   mode="single"
                   selected={endDate}
-                  onSelect={(date) => date && setEndDate(date)}
-                  disabled={(date) => date < startDate}
+                  onSelect={(date: any) => date && setEndDate(date)}
+                  disabled={(date: any) => date < startDate}
                   classNames={{
                     months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
                     month: "space-y-4",

@@ -41,7 +41,7 @@ export async function verifyRegistrationData() {
     );
     
     console.log(`📊 Found ${recentUsers.length} recent users:`);
-    recentUsers.forEach(user => {
+    recentUsers.forEach((user: any) => {
       console.log(`   ID: ${user.id} | ${user.username} | ${user.email} | ${user.firstName} ${user.lastName} | Role: ${user.role} | Created: ${user.createdAt}`);
     });
     
@@ -104,7 +104,7 @@ export async function verifyRegistrationData() {
       );
       
       console.log(`   📊 Found ${allTokens.length} password reset tokens`);
-      allTokens.forEach(token => {
+      allTokens.forEach((token: any) => {
         console.log(`     Token ID: ${token.id} | User: ${token.userId} | Used: ${token.used} | Expires: ${token.expiresAt}`);
       });
       

@@ -146,7 +146,7 @@ export default function Dashboard() {
       const now = new Date();
       
       // Filter schedules for the selected date range
-      const dateRangeSchedules = schedules.filter(s => {
+      const dateRangeSchedules = schedules.filter((s: any) => {
         const scheduleDate = new Date(s.startTime);
         return scheduleDate >= start && scheduleDate <= end;
       });
@@ -154,9 +154,9 @@ export default function Dashboard() {
       // Filter by facility if specific facility is selected
       const filteredSchedules = selectedFacilityId === "all"
         ? dateRangeSchedules
-        : dateRangeSchedules.filter(s => {
+        : dateRangeSchedules.filter((s: any) => {
             // Find the dock for this schedule to get its facility
-            const dock = docks.find(d => d.id === s.dockId);
+            const dock = docks.find((d: any) => d.id === s.dockId);
             return dock?.facilityId === selectedFacilityId;
           });
       
@@ -165,10 +165,9 @@ export default function Dashboard() {
       // Filter docks by facility if a specific facility is selected
       const filteredDocks = selectedFacilityId === "all" 
         ? docks 
-        : docks.filter(d => d.facilityId === selectedFacilityId);
+        : docks.filter((d: any) => d.facilityId === selectedFacilityId);
       
-      const occupiedDocks = filteredDocks.filter(d => 
-        getDockStatus(d.id, schedules) === "occupied"
+      const occupiedDocks = filteredDocks.filter((d: any) => getDockStatus(d.id, schedules) === "occupied"
       ).length;
       
       const dockUtilization = filteredDocks.length > 0 
@@ -176,9 +175,9 @@ export default function Dashboard() {
         : 0;
       
       // Filter completed schedules
-      const completedSchedules = filteredSchedules.filter(s => s.status === "completed");
+      const completedSchedules = filteredSchedules.filter((s: any) => s.status === "completed");
       
-      const totalTurnaround = completedSchedules.reduce((acc, schedule) => {
+      const totalTurnaround = completedSchedules.reduce((acc: any, schedule: any) => {
         const start = new Date(schedule.startTime);
         const end = new Date(schedule.endTime);
         return acc + (end.getTime() - start.getTime()) / (1000 * 60); // in minutes
@@ -188,8 +187,7 @@ export default function Dashboard() {
         ? Math.round(totalTurnaround / completedSchedules.length) 
         : 0;
       
-      const onTimeSchedules = filteredSchedules.filter(s => 
-        new Date(s.startTime) >= now || s.status === "completed"
+      const onTimeSchedules = filteredSchedules.filter((s: any) => new Date(s.startTime) >= now || s.status === "completed"
       ).length;
       
       const onTimeArrivals = filteredSchedules.length > 0 
@@ -238,7 +236,7 @@ export default function Dashboard() {
       }
       
       // Get prev period schedules
-      const prevPeriodSchedules = schedules.filter(s => {
+      const prevPeriodSchedules = schedules.filter((s: any) => {
         const scheduleDate = new Date(s.startTime);
         return scheduleDate >= prevPeriodStart && scheduleDate <= prevPeriodEnd;
       });
@@ -246,8 +244,8 @@ export default function Dashboard() {
       // Filter by facility for previous period
       const filteredPrevSchedules = selectedFacilityId === "all"
         ? prevPeriodSchedules
-        : prevPeriodSchedules.filter(s => {
-            const dock = docks.find(d => d.id === s.dockId);
+        : prevPeriodSchedules.filter((s: any) => {
+            const dock = docks.find((d: any) => d.id === s.dockId);
             return dock?.facilityId === selectedFacilityId;
           });
       
@@ -298,28 +296,26 @@ export default function Dashboard() {
       
       // Calculate dock statuses
       console.log('[Dashboard] Processing', docks.length, 'docks for status calculation');
-      const statuses = docks.map(dock => {
+      const statuses = docks.map((dock: any) => {
         const status = getDockStatus(dock.id, schedules);
         
         // Find current schedule for occupied docks
-        const currentSchedule = schedules.find(s => 
-          s.dockId === dock.id && 
-          new Date(s.startTime) <= now && 
-          new Date(s.endTime) >= now
+        const currentSchedule = schedules.find((s: any) => s.dockId === dock.id && 
+        new Date(s.startTime) <= now && 
+        new Date(s.endTime) >= now
         );
         
         // Find next schedule for available or reserved docks
-        const nextSchedule = schedules.find(s => 
-          s.dockId === dock.id && 
-          new Date(s.startTime) > now
+        const nextSchedule = schedules.find((s: any) => s.dockId === dock.id && 
+        new Date(s.startTime) > now
         );
         
         const currentCarrier = currentSchedule 
-          ? carriers?.find(c => c.id === currentSchedule.carrierId)?.name || "Unknown" 
+          ? carriers?.find((c: any) => c.id === currentSchedule.carrierId)?.name || "Unknown" 
           : undefined;
         
         const nextCarrier = nextSchedule 
-          ? carriers?.find(c => c.id === nextSchedule.carrierId)?.name || "Unknown" 
+          ? carriers?.find((c: any) => c.id === nextSchedule.carrierId)?.name || "Unknown" 
           : undefined;
         
         return {
@@ -350,20 +346,20 @@ export default function Dashboard() {
       // Filter schedules by facility if a specific facility is selected
       const facilityFilteredSchedules = selectedFacilityId === "all"
         ? schedules
-        : schedules.filter(s => {
+        : schedules.filter((s: any) => {
             // Find the dock for this schedule to get its facility
-            const dock = docks.find(d => d.id === s.dockId);
+            const dock = docks.find((d: any) => d.id === s.dockId);
             return dock?.facilityId === selectedFacilityId;
           });
           
       const futureSchedules = facilityFilteredSchedules
-        .filter(s => new Date(s.startTime) > now)
-        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+        .filter((s: any) => new Date(s.startTime) > now)
+        .sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
         .slice(0, 4);
       
-      const arrivals = futureSchedules.map(schedule => {
-        const carrierName = carriers?.find(c => c.id === schedule.carrierId)?.name || "Unknown";
-        const dockName = docks.find(d => d.id === schedule.dockId)?.name || "Unknown";
+      const arrivals = futureSchedules.map((schedule: any) => {
+        const carrierName = carriers?.find((c: any) => c.id === schedule.carrierId)?.name || "Unknown";
+        const dockName = docks.find((d: any) => d.id === schedule.dockId)?.name || "Unknown";
         
         // Simulate status (in a real app this would come from data)
         let status: "on-time" | "delayed" | "possible-delay";
@@ -476,7 +472,7 @@ export default function Dashboard() {
               <Filter className="h-4 w-4 text-gray-400" />
               <Select 
                 value={selectedFacilityId === "all" ? "all" : selectedFacilityId.toString()} 
-                onValueChange={(value) => setSelectedFacilityId(value === "all" ? "all" : parseInt(value))}
+                onValueChange={(value: any) => setSelectedFacilityId(value === "all" ? "all" : parseInt(value))}
               >
                 <SelectTrigger className="h-8 border-gray-200 text-sm font-normal w-[180px]">
                   <SelectValue placeholder="Filter by facility" />
@@ -492,7 +488,6 @@ export default function Dashboard() {
               </Select>
             </div>
           </div>
-          
           <Button variant="link" asChild>
             <Link href="/door-manager" className="text-primary flex items-center text-sm">
               Door Manager
@@ -509,7 +504,7 @@ export default function Dashboard() {
               if (selectedFacilityId === "all") return true;
               
               // Otherwise, find the dock in the full docks array to get its facility ID
-              const fullDock = docks.find(d => d.id === dock.id);
+              const fullDock = docks.find((d: any) => d.id === dock.id);
               return fullDock?.facilityId === selectedFacilityId;
             })
             .slice(0, 8)
@@ -525,7 +520,7 @@ export default function Dashboard() {
           {/* Show message when no docks match the selected facility */}
           {dockStatuses.filter(dock => {
             if (selectedFacilityId === "all") return true;
-            const fullDock = docks.find(d => d.id === dock.id);
+            const fullDock = docks.find((d: any) => d.id === dock.id);
             return fullDock?.facilityId === selectedFacilityId;
           }).length === 0 && (
             <div className="col-span-full text-center py-8 text-gray-500">

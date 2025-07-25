@@ -56,7 +56,7 @@ export default function AssetEditPage() {
       // Invalidate the asset query to refresh the data
       queryClient.invalidateQueries({ queryKey: ['companyAssets', user?.tenantId, assetId] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: 'Upload failed',
         description: error.message || 'Failed to upload photo',
@@ -78,7 +78,7 @@ export default function AssetEditPage() {
       // Invalidate the asset query to refresh the data
       queryClient.invalidateQueries({ queryKey: ['companyAssets', user?.tenantId, assetId] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: 'Error',
         description: error.message || 'Failed to update barcode',
@@ -179,7 +179,6 @@ export default function AssetEditPage() {
                     try {
                       // Get organization's default barcode format
                       const barcodeFormat = localStorage.getItem('defaultBarcodeFormat') || "CODE128";
-                      
                       import('jsbarcode').then(({ default: JsBarcode }) => {
                         JsBarcode(ref, asset.barcode, {
                           format: barcodeFormat,
@@ -201,7 +200,7 @@ export default function AssetEditPage() {
           
           <div className="flex space-x-2">
             {asset.barcode && (
-              <Button 
+              <Button
                 variant="outline" 
                 size="sm"
                 onClick={() => {
@@ -215,7 +214,7 @@ export default function AssetEditPage() {
                 Copy
               </Button>
             )}
-            <Button 
+            <Button
               variant="outline" 
               size="sm"
               onClick={() => setBarcodeDialogOpen(true)}

@@ -124,7 +124,7 @@ export function DockManagementDialog({ isOpen, onClose, facility }: DockManageme
       
       return await res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       console.log("Dock created successfully:", data);
       queryClient.invalidateQueries({ queryKey: ["/api/facilities", facility.id, "docks"] });
       setIsAddDialogOpen(false);
@@ -171,7 +171,7 @@ export function DockManagementDialog({ isOpen, onClose, facility }: DockManageme
       
       return await res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       console.log("Dock updated successfully:", data);
       queryClient.invalidateQueries({ queryKey: ["/api/facilities", facility.id, "docks"] });
       setIsEditDialogOpen(false);
@@ -319,7 +319,7 @@ export function DockManagementDialog({ isOpen, onClose, facility }: DockManageme
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-center space-x-2">
-                          <Button 
+                          <Button
                             variant="outline" 
                             size="icon" 
                             className="h-8 w-8 p-0 bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-600"
@@ -330,7 +330,7 @@ export function DockManagementDialog({ isOpen, onClose, facility }: DockManageme
                           
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button 
+                              <Button
                                 variant="outline" 
                                 size="icon" 
                                 className="h-8 w-8 p-0 bg-red-50 hover:bg-red-100 border-red-200 text-red-600"
@@ -395,7 +395,9 @@ export function DockManagementDialog({ isOpen, onClose, facility }: DockManageme
               <FormField
                 control={createForm.control}
                 name="name"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Door Name</FormLabel>
                     <FormControl>
@@ -409,7 +411,9 @@ export function DockManagementDialog({ isOpen, onClose, facility }: DockManageme
               <FormField
                 control={createForm.control}
                 name="type"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Door Type</FormLabel>
                     <Select
@@ -438,7 +442,9 @@ export function DockManagementDialog({ isOpen, onClose, facility }: DockManageme
                 <FormField
                   control={createForm.control}
                   name="customType"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Custom Type Name</FormLabel>
                       <FormControl>
@@ -458,7 +464,9 @@ export function DockManagementDialog({ isOpen, onClose, facility }: DockManageme
               <FormField
                 control={createForm.control}
                 name="isActive"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                     <FormControl>
                       <input
@@ -520,7 +528,9 @@ export function DockManagementDialog({ isOpen, onClose, facility }: DockManageme
               <FormField
                 control={editForm.control}
                 name="name"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Door Name</FormLabel>
                     <FormControl>
@@ -534,7 +544,9 @@ export function DockManagementDialog({ isOpen, onClose, facility }: DockManageme
               <FormField
                 control={editForm.control}
                 name="type"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Door Type</FormLabel>
                     <Select
@@ -563,7 +575,9 @@ export function DockManagementDialog({ isOpen, onClose, facility }: DockManageme
                 <FormField
                   control={editForm.control}
                   name="customType"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Custom Type Name</FormLabel>
                       <FormControl>
@@ -583,7 +597,9 @@ export function DockManagementDialog({ isOpen, onClose, facility }: DockManageme
               <FormField
                 control={editForm.control}
                 name="isActive"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                     <FormControl>
                       <input

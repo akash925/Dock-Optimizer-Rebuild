@@ -10,5 +10,5 @@ export async function getModulesForOrganization(organizationId: number): Promise
     .from(organizationModules)
     .where(eq(organizationModules.organizationId, organizationId));
 
-  return records.map((r) => r.moduleName);
+  return records.map((r: any) => r.moduleName);
 }

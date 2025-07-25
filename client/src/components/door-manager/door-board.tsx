@@ -296,7 +296,7 @@ export default function DoorBoard({
                 <div className="flex space-x-1">
                   {/* Reserved door - Check-in button */}
                   {door.status === "reserved" && door.currentSchedule && (
-                    <Button 
+                    <Button
                       size="sm" 
                       variant="outline" 
                       className="text-xs text-green-600 border-green-200 hover:bg-green-50"
@@ -314,7 +314,7 @@ export default function DoorBoard({
                   
                   {/* Occupied door - Release button */}
                   {door.status === "occupied" && door.currentSchedule && (
-                    <Button 
+                    <Button
                       size="sm" 
                       variant="outline" 
                       className="text-xs text-red-500 border-red-200 hover:bg-red-50"
@@ -326,7 +326,7 @@ export default function DoorBoard({
                   )}
                   
                   {/* Book/Update button for all non-maintenance doors */}
-                  <Button 
+                  <Button
                     size="sm" 
                     variant="ghost" 
                     className="text-xs"

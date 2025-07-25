@@ -38,7 +38,7 @@ export async function createDefaultAppointmentTypes() {
     
     if (existingAppointmentTypes.length > 0) {
       console.log("ℹ️  Appointment types already exist:");
-      existingAppointmentTypes.forEach(type => {
+      existingAppointmentTypes.forEach((type: any) => {
         console.log(`   📅 ${type.name} (Duration: ${type.duration} min, Facility: ${type.facilityId})`);
       });
       return { success: true, created: 0, message: "Appointment types already exist" };
@@ -50,7 +50,7 @@ export async function createDefaultAppointmentTypes() {
     }
     
     // Find Hanzo organization (ID: 2) or default to first organization
-    const hanzoOrg = existingOrganizations.find(org => org.id === 2) || existingOrganizations[0];
+    const hanzoOrg = existingOrganizations.find((org: any) => org.id === 2) || existingOrganizations[0];
     if (!hanzoOrg) {
       console.log("❌ No organizations found. Cannot create appointment types without organizations.");
       return { success: false, created: 0, message: "No organizations available" };

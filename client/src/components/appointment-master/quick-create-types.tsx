@@ -54,7 +54,7 @@ export default function QuickCreateTypes() {
     setLoading(true);
     
     try {
-      const facility = facilities.find(f => f.id === selectedFacility);
+      const facility = facilities.find((f: any) => f.id === selectedFacility);
       if (!facility) {
         throw new Error("Selected facility not found");
       }
@@ -63,7 +63,7 @@ export default function QuickCreateTypes() {
       
       // Check if this appointment type already exists for this facility
       const existingType = existingTypes.find(
-        type => type.name === template.name && type.facilityId === selectedFacility
+        (type: any) => type.name === template.name && type.facilityId === selectedFacility
       );
       
       if (existingType) {
@@ -123,18 +123,16 @@ export default function QuickCreateTypes() {
             <Label htmlFor="facility">Facility</Label>
             <Select
               value={selectedFacility?.toString() || ""}
-              onValueChange={(value) => setSelectedFacility(parseInt(value))}
+              onValueChange={(value: any) => setSelectedFacility(parseInt(value))}
               disabled={isLoadingFacilities || loading}
             >
               <SelectTrigger id="facility">
                 <SelectValue placeholder="Select a facility" />
               </SelectTrigger>
               <SelectContent>
-                {facilities.map((facility) => (
-                  <SelectItem key={facility.id} value={facility.id.toString()}>
-                    {facility.name}
-                  </SelectItem>
-                ))}
+                {facilities.map((facility: any) => <SelectItem key={facility.id} value={facility.id.toString()}>
+                  {facility.name}
+                </SelectItem>)}
               </SelectContent>
             </Select>
           </div>

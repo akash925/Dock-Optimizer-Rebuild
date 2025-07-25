@@ -73,7 +73,7 @@ export function FilterPopover<T extends string | number>({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button 
+        <Button
           variant="outline" 
           className={cn("flex justify-between items-center min-w-[160px]", className)}
         >

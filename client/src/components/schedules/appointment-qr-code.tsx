@@ -201,7 +201,7 @@ export default function AppointmentQRCode({ schedule, confirmationCode, isExtern
         </div>
       </CardContent>
       <CardFooter className="flex justify-center gap-4">
-        <Button 
+        <Button
           variant={isExternal ? "default" : "outline"}
           onClick={handlePrint}
           disabled={isGenerating}

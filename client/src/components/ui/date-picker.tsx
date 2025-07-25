@@ -98,7 +98,7 @@ export function DatePicker({
           onSelect={handleDateChange}
           disabled={
             disabledDays 
-              ? (date) => (disablePastDates && date < new Date()) || disabledDays(date)
+              ? (date: any) => (disablePastDates && date < new Date()) || disabledDays(date)
               : disablePastDates 
                 ? { before: new Date() } 
                 : undefined

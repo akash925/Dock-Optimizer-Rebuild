@@ -73,7 +73,7 @@ export async function runProductionReadinessCheck() {
     }
     
     // Check for Hanzo organization
-    const hanzoOrg = allOrganizations.find(org => org.id === 2);
+    const hanzoOrg = allOrganizations.find((org: any) => org.id === 2);
     if (hanzoOrg) {
       console.log(`✅ Hanzo organization: EXISTS (${hanzoOrg.name})`);
     } else {
@@ -96,7 +96,7 @@ export async function runProductionReadinessCheck() {
     
     if (appointmentTypesCount.length > 0) {
       console.log("✅ Appointment types: AVAILABLE");
-      console.log(`   Sample types: ${appointmentTypesCount.slice(0, 3).map(t => t.name).join(', ')}`);
+      console.log(`   Sample types: ${appointmentTypesCount.slice(0, 3).map((t: any) => t.name).join(', ')}`);
     } else {
       console.log("❌ Appointment types: NONE FOUND");
       totalIssues++;
@@ -110,7 +110,7 @@ export async function runProductionReadinessCheck() {
     totalChecks++;
     
     const allRoles = await safeQuery(() => db.select().from(roles));
-    const adminRole = allRoles.find(r => r.name.toLowerCase() === 'admin');
+    const adminRole = allRoles.find((r: any) => r.name.toLowerCase() === 'admin');
     
     console.log(`📊 Total roles: ${allRoles.length}`);
     
@@ -176,7 +176,7 @@ export async function runProductionReadinessCheck() {
     
     if (hanzoUsers.length > 0) {
       console.log("✅ API users endpoint: WORKING");
-      hanzoUsers.forEach(user => {
+      hanzoUsers.forEach((user: any) => {
         console.log(`   👤 ${user.username} (${user.email})`);
       });
     } else {

@@ -79,7 +79,9 @@ export default function UserForm({ open, onOpenChange, onSubmit, loading }: User
             <FormField
               control={form.control}
               name="username"
-              render={({ field }) => (
+              render={({
+                field
+              }: any) => (
                 <FormItem>
                   <FormLabel>Username</FormLabel>
                   <FormControl>
@@ -92,7 +94,9 @@ export default function UserForm({ open, onOpenChange, onSubmit, loading }: User
             <FormField
               control={form.control}
               name="email"
-              render={({ field }) => (
+              render={({
+                field
+              }: any) => (
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
@@ -106,7 +110,9 @@ export default function UserForm({ open, onOpenChange, onSubmit, loading }: User
               <FormField
                 control={form.control}
                 name="firstName"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>First Name</FormLabel>
                     <FormControl>
@@ -119,7 +125,9 @@ export default function UserForm({ open, onOpenChange, onSubmit, loading }: User
               <FormField
                 control={form.control}
                 name="lastName"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Last Name</FormLabel>
                     <FormControl>
@@ -133,7 +141,9 @@ export default function UserForm({ open, onOpenChange, onSubmit, loading }: User
             <FormField
               control={form.control}
               name="password"
-              render={({ field }) => (
+              render={({
+                field
+              }: any) => (
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
@@ -146,7 +156,9 @@ export default function UserForm({ open, onOpenChange, onSubmit, loading }: User
             <FormField
               control={form.control}
               name="role"
-              render={({ field }) => (
+              render={({
+                field
+              }: any) => (
                 <FormItem>
                   <FormLabel>Role</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>

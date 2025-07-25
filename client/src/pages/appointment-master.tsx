@@ -164,14 +164,14 @@ function SortableQuestionRow({
       <TableCell className="text-center">
         <Checkbox 
           checked={included} 
-          onCheckedChange={(checked) => onIncludedChange(!!checked)}
+          onCheckedChange={(checked: any) => onIncludedChange(!!checked)}
         />
       </TableCell>
       <TableCell className="text-center">
         <Checkbox 
           disabled={!included}
           checked={included && required}
-          onCheckedChange={(checked) => onRequiredChange(!!checked)}
+          onCheckedChange={(checked: any) => onRequiredChange(!!checked)}
         />
       </TableCell>
     </TableRow>
@@ -325,8 +325,8 @@ export default function AppointmentMaster() {
   });
   
   // For displaying in the table, we'll map the API data to include facility names
-  const appointmentTypesWithFacilityNames = apiAppointmentTypes.map(appointmentType => {
-    const facility = facilities.find(f => f.id === appointmentType.facilityId);
+  const appointmentTypesWithFacilityNames = apiAppointmentTypes.map((appointmentType: any) => {
+    const facility = facilities.find((f: any) => f.id === appointmentType.facilityId);
     return {
       ...appointmentType,
       facilityName: facility?.name || "Unknown Facility",
@@ -419,7 +419,7 @@ export default function AppointmentMaster() {
       setStandardFields(updatedFields);
       
       // Save the new order to the database
-      updatedFields.forEach(field => {
+      updatedFields.forEach((field: any) => {
         updateStandardQuestionMutation.mutate({
           id: field.id,
           data: { orderPosition: field.order }
@@ -480,7 +480,7 @@ export default function AppointmentMaster() {
   // Delete appointment type
   const deleteAppointmentTypeMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/api/appointment-types/${id}`),
-    onSuccess: (id) => {
+    onSuccess: (id: any) => {
       toast({
         title: "Appointment Type Deleted",
         description: "The appointment type has been successfully deleted",
@@ -502,7 +502,7 @@ export default function AppointmentMaster() {
       const cleanedData = JSON.parse(JSON.stringify(appointmentType));
       return api.put(`/api/appointment-types/${cleanedData.id}`, cleanedData);
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast({
         title: "Appointment Type Updated",
         description: "The appointment type has been successfully updated",
@@ -533,7 +533,7 @@ export default function AppointmentMaster() {
   // Create appointment type
   const createAppointmentTypeMutation = useMutation({
     mutationFn: (appointmentType: any) => api.post(`/api/appointment-types`, appointmentType),
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast({
         title: "Appointment Type Created",
         description: "The appointment type has been successfully created",
@@ -554,7 +554,7 @@ export default function AppointmentMaster() {
   const duplicateAppointmentTypeMutation = useMutation({
     mutationFn: async (id: number) => {
       // First, get the original appointment type to duplicate
-      const selectedType = apiAppointmentTypes.find(type => type.id === id);
+      const selectedType = apiAppointmentTypes.find((type: any) => type.id === id);
       if (!selectedType) throw new Error("Appointment type not found");
       
       // Create a duplicate with a new name
@@ -566,7 +566,7 @@ export default function AppointmentMaster() {
       
       return api.post(`/api/appointment-types`, duplicateData);
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast({
         title: "Appointment Type Duplicated",
         description: "The appointment type has been successfully duplicated",
@@ -622,12 +622,10 @@ export default function AppointmentMaster() {
       }
       
       const res = await api[method](url, payload);
-      
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
         throw new Error(errorData?.message || 'Failed to save custom field');
       }
-      
       const newField = await res.json();
       
       // Convert DB format to component format
@@ -701,7 +699,7 @@ export default function AppointmentMaster() {
   // Delete custom field mutation
   const deleteCustomFieldMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/api/custom-questions/${id}`),
-    onSuccess: (id) => {
+    onSuccess: (id: any) => {
       setCustomFields(customFields.filter(field => field.id !== id));
       
       // Invalidate custom questions data for the selected appointment type
@@ -889,7 +887,6 @@ export default function AppointmentMaster() {
       if (!response.ok) {
         throw new Error('Failed to fetch custom questions');
       }
-      
       const questions = await response.json();
       console.log(`[AppointmentMaster] Loaded ${questions.length} custom questions:`, questions);
       
@@ -1027,95 +1024,93 @@ export default function AppointmentMaster() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {appointmentTypesWithFacilityNames.map((appointmentType) => (
-                          <TableRow key={appointmentType.id}>
-                            <TableCell className="font-medium">{appointmentType.name}</TableCell>
-                            <TableCell>{appointmentType.facilityName}</TableCell>
-                            <TableCell>{getAppointmentTypeLabel(appointmentType.type)}</TableCell>
-                            <TableCell>{appointmentType.createdDate}</TableCell>
-                            <TableCell>{appointmentType.lastUpdatedDate}</TableCell>
-                            <TableCell className="text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => {
-                                    const appointmentTypeId = appointmentType.id;
-                                    console.log(`[AppointmentMaster] Selected appointment type: ${appointmentTypeId}`);
-                                    setSelectedAppointmentTypeId(appointmentTypeId);
-                                    
-                                    // Load standard questions from the database - this logs the questions correctly
-                                    loadStandardQuestionsForAppointmentType(appointmentTypeId);
-                                    // Load custom questions for this appointment type
-                                    fetchCustomQuestions(appointmentTypeId);
-                                    console.log(`[AppointmentMaster] Set step to 3 to show questions tab when form opens`);
-                                    // Force the form to open on the questions tab (step 3)
-                                    setAppointmentTypeFormStep(3);
-                                    
-                                    // Set the form data from the selected appointment type
-                                    // Get the duration and set the buffer time if it was previously 0
-                                    const duration = appointmentType.duration || 60;
-                                    const bufferTime = appointmentType.bufferTime || duration; // Use duration if buffer time is 0
+                        {appointmentTypesWithFacilityNames.map((appointmentType: any) => <TableRow key={appointmentType.id}>
+                          <TableCell className="font-medium">{appointmentType.name}</TableCell>
+                          <TableCell>{appointmentType.facilityName}</TableCell>
+                          <TableCell>{getAppointmentTypeLabel(appointmentType.type)}</TableCell>
+                          <TableCell>{appointmentType.createdDate}</TableCell>
+                          <TableCell>{appointmentType.lastUpdatedDate}</TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => {
+                                  const appointmentTypeId = appointmentType.id;
+                                  console.log(`[AppointmentMaster] Selected appointment type: ${appointmentTypeId}`);
+                                  setSelectedAppointmentTypeId(appointmentTypeId);
+                                  
+                                  // Load standard questions from the database - this logs the questions correctly
+                                  loadStandardQuestionsForAppointmentType(appointmentTypeId);
+                                  // Load custom questions for this appointment type
+                                  fetchCustomQuestions(appointmentTypeId);
+                                  console.log(`[AppointmentMaster] Set step to 3 to show questions tab when form opens`);
+                                  // Force the form to open on the questions tab (step 3)
+                                  setAppointmentTypeFormStep(3);
+                                  
+                                  // Set the form data from the selected appointment type
+                                  // Get the duration and set the buffer time if it was previously 0
+                                  const duration = appointmentType.duration || 60;
+                                  const bufferTime = appointmentType.bufferTime || duration; // Use duration if buffer time is 0
 
-                                    setAppointmentTypeForm({
-                                      name: appointmentType.name || "",
-                                      description: appointmentType.description || "",
-                                      facilityId: appointmentType.facilityId || (facilities.length > 0 ? facilities[0].id : 0),
-                                      color: appointmentType.color || "#4CAF50",
-                                      duration: duration,
-                                      type: appointmentType.type || "both",
-                                      maxConcurrent: appointmentType.maxConcurrent || 1,
-                                      bufferTime: bufferTime,
-                                      maxAppointmentsPerDay: appointmentType.maxAppointmentsPerDay === null ? undefined : appointmentType.maxAppointmentsPerDay,
-                                      timezone: appointmentType.timezone || "America/New_York",
-                                      gracePeriod: appointmentType.gracePeriod || 15,
-                                      emailReminderTime: appointmentType.emailReminderTime || 24,
-                                      showRemainingSlots: appointmentType.showRemainingSlots ?? true,
-                                      allowAppointmentsThroughBreaks: appointmentType.allowAppointmentsThroughBreaks || false,
-                                      allowAppointmentsPastBusinessHours: appointmentType.allowAppointmentsPastBusinessHours || false,
-                                      overrideFacilityHours: appointmentType.overrideFacilityHours || false
-                                    });
-                                    
-                                    // Load custom questions for this appointment type
-                                    fetchCustomQuestions(appointmentTypeId);
-                                    
-                                    // Always start at step 1 when editing an appointment type
-                                    setAppointmentTypeFormStep(1);
-                                    console.log("[AppointmentMaster] Starting appointment type edit form at step 1");
-                                    setShowNewAppointmentTypeDialog(true);
-                                    
-                                    // Log that we're editing from step 1
-                                    console.log("[AppointmentMaster] Editing appointment type from step 1");
-                                  }}>
-                                    <Pencil className="h-4 w-4 mr-2" />
-                                    Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => {
-                                    duplicateAppointmentTypeMutation.mutate(appointmentType.id);
-                                  }}>
-                                    <Copy className="h-4 w-4 mr-2" />
-                                    Duplicate
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
-                                    className="text-red-600"
-                                    onClick={() => {
-                                      if(confirm(`Are you sure you want to delete "${appointmentType.name}"?`)) {
-                                        deleteAppointmentTypeMutation.mutate(appointmentType.id);
-                                      }
-                                    }}
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                                  setAppointmentTypeForm({
+                                    name: appointmentType.name || "",
+                                    description: appointmentType.description || "",
+                                    facilityId: appointmentType.facilityId || (facilities.length > 0 ? facilities[0].id : 0),
+                                    color: appointmentType.color || "#4CAF50",
+                                    duration: duration,
+                                    type: appointmentType.type || "both",
+                                    maxConcurrent: appointmentType.maxConcurrent || 1,
+                                    bufferTime: bufferTime,
+                                    maxAppointmentsPerDay: appointmentType.maxAppointmentsPerDay === null ? undefined : appointmentType.maxAppointmentsPerDay,
+                                    timezone: appointmentType.timezone || "America/New_York",
+                                    gracePeriod: appointmentType.gracePeriod || 15,
+                                    emailReminderTime: appointmentType.emailReminderTime || 24,
+                                    showRemainingSlots: appointmentType.showRemainingSlots ?? true,
+                                    allowAppointmentsThroughBreaks: appointmentType.allowAppointmentsThroughBreaks || false,
+                                    allowAppointmentsPastBusinessHours: appointmentType.allowAppointmentsPastBusinessHours || false,
+                                    overrideFacilityHours: appointmentType.overrideFacilityHours || false
+                                  });
+                                  
+                                  // Load custom questions for this appointment type
+                                  fetchCustomQuestions(appointmentTypeId);
+                                  
+                                  // Always start at step 1 when editing an appointment type
+                                  setAppointmentTypeFormStep(1);
+                                  console.log("[AppointmentMaster] Starting appointment type edit form at step 1");
+                                  setShowNewAppointmentTypeDialog(true);
+                                  
+                                  // Log that we're editing from step 1
+                                  console.log("[AppointmentMaster] Editing appointment type from step 1");
+                                }}>
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => {
+                                  duplicateAppointmentTypeMutation.mutate(appointmentType.id);
+                                }}>
+                                  <Copy className="h-4 w-4 mr-2" />
+                                  Duplicate
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  className="text-red-600"
+                                  onClick={() => {
+                                    if(confirm(`Are you sure you want to delete "${appointmentType.name}"?`)) {
+                                      deleteAppointmentTypeMutation.mutate(appointmentType.id);
+                                    }
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>)}
                       </TableBody>
                     </Table>
                   )}
@@ -1146,7 +1141,7 @@ export default function AppointmentMaster() {
                         <Switch 
                           id="email-confirmations" 
                           checked={systemSettings.emailConfirmations}
-                          onCheckedChange={(checked) => setSystemSettings({
+                          onCheckedChange={(checked: any) => setSystemSettings({
                             ...systemSettings, 
                             emailConfirmations: checked
                           })}
@@ -1165,7 +1160,7 @@ export default function AppointmentMaster() {
                         <Switch 
                           id="email-reminders" 
                           checked={systemSettings.emailReminders}
-                          onCheckedChange={(checked) => setSystemSettings({
+                          onCheckedChange={(checked: any) => setSystemSettings({
                             ...systemSettings, 
                             emailReminders: checked
                           })}
@@ -1190,7 +1185,7 @@ export default function AppointmentMaster() {
                       <Label htmlFor="default-view">Default Calendar View</Label>
                       <Select 
                         value={systemSettings.defaultCalendarView}
-                        onValueChange={(value) => setSystemSettings({
+                        onValueChange={(value: any) => setSystemSettings({
                           ...systemSettings, 
                           defaultCalendarView: value
                         })}
@@ -1210,7 +1205,7 @@ export default function AppointmentMaster() {
                       <Label htmlFor="week-starts">Week Starts On</Label>
                       <Select 
                         value={systemSettings.weekStartsOn}
-                        onValueChange={(value) => setSystemSettings({
+                        onValueChange={(value: any) => setSystemSettings({
                           ...systemSettings, 
                           weekStartsOn: value
                         })}
@@ -1236,7 +1231,7 @@ export default function AppointmentMaster() {
                       <Label htmlFor="max-days-advance">Maximum Days in Advance</Label>
                       <Select 
                         value={systemSettings.maxDaysInAdvance}
-                        onValueChange={(value) => setSystemSettings({
+                        onValueChange={(value: any) => setSystemSettings({
                           ...systemSettings, 
                           maxDaysInAdvance: value
                         })}
@@ -1258,7 +1253,7 @@ export default function AppointmentMaster() {
                       <Label htmlFor="min-notice">Minimum Notice Period</Label>
                       <Select 
                         value={systemSettings.minNoticeHours}
-                        onValueChange={(value) => setSystemSettings({
+                        onValueChange={(value: any) => setSystemSettings({
                           ...systemSettings, 
                           minNoticeHours: value
                         })}
@@ -1371,17 +1366,15 @@ export default function AppointmentMaster() {
                     <Label htmlFor="appointment-facility">Facility</Label>
                     <Select
                       value={appointmentTypeForm.facilityId.toString()}
-                      onValueChange={(value) => setAppointmentTypeForm({...appointmentTypeForm, facilityId: parseInt(value)})}
+                      onValueChange={(value: any) => setAppointmentTypeForm({...appointmentTypeForm, facilityId: parseInt(value)})}
                     >
                       <SelectTrigger id="appointment-facility">
                         <SelectValue placeholder="Select facility" />
                       </SelectTrigger>
                       <SelectContent>
-                        {facilities.map((facility) => (
-                          <SelectItem key={facility.id} value={facility.id.toString()}>
-                            {facility.name}
-                          </SelectItem>
-                        ))}
+                        {facilities.map((facility: any) => <SelectItem key={facility.id} value={facility.id.toString()}>
+                          {facility.name}
+                        </SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1434,7 +1427,7 @@ export default function AppointmentMaster() {
                   <Label htmlFor="appointment-type">Appointment Operations</Label>
                   <RadioGroup 
                     value={appointmentTypeForm.type} 
-                    onValueChange={(value) => setAppointmentTypeForm({
+                    onValueChange={(value: any) => setAppointmentTypeForm({
                       ...appointmentTypeForm, 
                       type: value as "inbound" | "outbound" | "both"
                     })}
@@ -1526,7 +1519,7 @@ export default function AppointmentMaster() {
                     <Switch 
                       id="appointment-show-slots"
                       checked={appointmentTypeForm.showRemainingSlots}
-                      onCheckedChange={(checked) => setAppointmentTypeForm({
+                      onCheckedChange={(checked: any) => setAppointmentTypeForm({
                         ...appointmentTypeForm, 
                         showRemainingSlots: checked
                       })}
@@ -1545,7 +1538,7 @@ export default function AppointmentMaster() {
                     <Switch 
                       id="appointment-allow-through-breaks"
                       checked={appointmentTypeForm.allowAppointmentsThroughBreaks}
-                      onCheckedChange={(checked) => setAppointmentTypeForm({
+                      onCheckedChange={(checked: any) => setAppointmentTypeForm({
                         ...appointmentTypeForm, 
                         allowAppointmentsThroughBreaks: checked
                       })}
@@ -1564,7 +1557,7 @@ export default function AppointmentMaster() {
                     <Switch 
                       id="appointment-allow-outside-hours"
                       checked={appointmentTypeForm.allowAppointmentsPastBusinessHours}
-                      onCheckedChange={(checked) => setAppointmentTypeForm({
+                      onCheckedChange={(checked: any) => setAppointmentTypeForm({
                         ...appointmentTypeForm, 
                         allowAppointmentsPastBusinessHours: checked
                       })}
@@ -1583,7 +1576,7 @@ export default function AppointmentMaster() {
                     <Switch 
                       id="appointment-override-facility-hours"
                       checked={appointmentTypeForm.overrideFacilityHours}
-                      onCheckedChange={(checked) => setAppointmentTypeForm({
+                      onCheckedChange={(checked: any) => setAppointmentTypeForm({
                         ...appointmentTypeForm, 
                         overrideFacilityHours: checked
                       })}
@@ -1607,7 +1600,7 @@ export default function AppointmentMaster() {
                     <Label htmlFor="appointment-timezone">Timezone</Label>
                     <Select
                       value={appointmentTypeForm.timezone}
-                      onValueChange={(value) => setAppointmentTypeForm({...appointmentTypeForm, timezone: value})}
+                      onValueChange={(value: any) => setAppointmentTypeForm({...appointmentTypeForm, timezone: value})}
                     >
                       <SelectTrigger id="appointment-timezone">
                         <SelectValue placeholder="Select timezone" />
@@ -1645,7 +1638,7 @@ export default function AppointmentMaster() {
                       <Info className="h-5 w-5 text-muted-foreground mr-2" />
                       <h3 className="font-medium">Appointment Form Questions Area</h3>
                     </div>
-                    <Button 
+                    <Button
                       variant="outline" 
                       size="sm" 
                       onClick={() => {
@@ -1801,7 +1794,7 @@ export default function AppointmentMaster() {
                 <Label htmlFor="field-type">Answer Type <span className="text-red-500">*</span></Label>
                 <Select
                   value={questionForm.type || "text"}
-                  onValueChange={(value) => handleQuestionFormChange("type", value)}
+                  onValueChange={(value: any) => handleQuestionFormChange("type", value)}
                 >
                   <SelectTrigger id="field-type">
                     <SelectValue placeholder="Select answer type" />
@@ -1823,7 +1816,7 @@ export default function AppointmentMaster() {
                   <Checkbox 
                     id="field-required"
                     checked={questionForm.required || false}
-                    onCheckedChange={(checked) => handleQuestionFormChange("required", checked)}
+                    onCheckedChange={(checked: any) => handleQuestionFormChange("required", checked)}
                   />
                   <Label htmlFor="field-required" className="font-medium">
                     Is Required
@@ -1849,7 +1842,7 @@ export default function AppointmentMaster() {
                 <Label htmlFor="field-apply-to">Apply to Appointment Type</Label>
                 <Select
                   value={questionForm.appointmentType || "both"}
-                  onValueChange={(value) => handleQuestionFormChange("appointmentType", value)}
+                  onValueChange={(value: any) => handleQuestionFormChange("appointmentType", value)}
                 >
                   <SelectTrigger id="field-apply-to">
                     <SelectValue placeholder="Select application" />

@@ -141,7 +141,7 @@ export default function PerformanceMetrics({
               <Filter className="h-4 w-4 text-gray-400" />
               <Select 
                 value={facilityId === "all" ? "all" : facilityId.toString()} 
-                onValueChange={(value) => {
+                onValueChange={(value: any) => {
                   if (onFacilityChange) {
                     onFacilityChange(value === "all" ? "all" : parseInt(value));
                   }

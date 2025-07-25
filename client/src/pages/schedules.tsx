@@ -88,7 +88,7 @@ export default function Schedules() {
   });
   
   // Transform raw schedules to extend them with additional properties
-  const schedules: Schedule[] = (rawSchedules || []).map(schedule => {
+  const schedules: Schedule[] = (rawSchedules || []).map((schedule: any) => {
     try {
       return {
         ...schedule,
@@ -269,17 +269,17 @@ export default function Schedules() {
         return schedule.facilityName;
       }
       if (schedule.facilityId) {
-        const facility = facilities.find(f => f.id === schedule.facilityId);
+        const facility = facilities.find((f: any) => f.id === schedule.facilityId);
         if (facility) return facility.name;
       }
     }
     
     // Fallback to using dock information
     if (!dockId) return "Unknown Facility"; // Changed from "No dock assigned"
-    const dock = docks.find(d => d.id === dockId);
+    const dock = docks.find((d: any) => d.id === dockId);
     if (!dock) return "Unknown Facility";
     
-    const facility = facilities.find(f => f.id === dock.facilityId);
+    const facility = facilities.find((f: any) => f.id === dock.facilityId);
     return facility?.name || "Unknown Facility";
   };
   
@@ -295,8 +295,8 @@ export default function Schedules() {
       // Enhance the schedule with derived properties
       const enhancedSchedule = {
         ...schedule,
-        dockName: schedule.dockId ? docks.find(d => d.id === schedule.dockId)?.name : undefined,
-        appointmentTypeName: schedule.appointmentTypeId ? appointmentTypes.find(t => t.id === schedule.appointmentTypeId)?.name : undefined
+        dockName: schedule.dockId ? docks.find((d: any) => d.id === schedule.dockId)?.name : undefined,
+        appointmentTypeName: schedule.appointmentTypeId ? appointmentTypes.find((t: any) => t.id === schedule.appointmentTypeId)?.name : undefined
       };
       setSelectedSchedule(enhancedSchedule);
       setIsDetailsDialogOpen(true);
@@ -348,7 +348,7 @@ export default function Schedules() {
     
     // Set appointment type in the schedule creation form
     // The appointment form will use this ID to fetch the appointment type details
-    const appointmentType = appointmentTypes.find(type => type.id === appointmentTypeId);
+    const appointmentType = appointmentTypes.find((type: any) => type.id === appointmentTypeId);
     
     // Log for debugging
     if (appointmentType) {
@@ -365,25 +365,31 @@ export default function Schedules() {
     {
       accessorKey: "carrierId",
       header: "Carrier",
-      cell: ({ row }) => {
+      cell: ({
+        row
+      }: any) => {
         const carrierId = row.getValue("carrierId") as number;
-        const carrier = carriers.find(c => c.id === carrierId);
+        const carrier = carriers.find((c: any) => c.id === carrierId);
         return carrier?.name || "Unknown";
       },
     },
     {
       accessorKey: "dockId",
       header: "Dock",
-      cell: ({ row }) => {
+      cell: ({
+        row
+      }: any) => {
         const dockId = row.getValue("dockId") as number;
-        const dock = docks.find(d => d.id === dockId);
+        const dock = docks.find((d: any) => d.id === dockId);
         return dock?.name || "Unknown";
       },
     },
     {
       accessorKey: "startTime",
       header: "Start Time",
-      cell: ({ row }) => {
+      cell: ({
+        row
+      }: any) => {
         const startTime = row.getValue("startTime") as string;
         return formatTime(startTime);
       },
@@ -391,7 +397,9 @@ export default function Schedules() {
     {
       accessorKey: "endTime",
       header: "End Time",
-      cell: ({ row }) => {
+      cell: ({
+        row
+      }: any) => {
         const endTime = row.getValue("endTime") as string;
         return formatTime(endTime);
       },
@@ -399,7 +407,9 @@ export default function Schedules() {
     {
       accessorKey: "type",
       header: "Type",
-      cell: ({ row }) => {
+      cell: ({
+        row
+      }: any) => {
         const type = row.getValue("type") as string;
         return (
           <Badge variant={type === "inbound" ? "default" : "secondary"}>
@@ -411,7 +421,9 @@ export default function Schedules() {
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }) => {
+      cell: ({
+        row
+      }: any) => {
         const status = row.getValue("status") as string;
         let variant: "default" | "secondary" | "destructive" | "outline" = "default";
         
@@ -439,9 +451,11 @@ export default function Schedules() {
     },
     {
       id: "actions",
-      cell: ({ row }) => {
+      cell: ({
+        row
+      }: any) => {
         return (
-          <Button 
+          <Button
             variant="ghost" 
             onClick={() => handleScheduleClick(row.original.id)}
             className="p-0 h-8 px-2"
@@ -490,7 +504,7 @@ export default function Schedules() {
       let dockFacilityMatch = false;
       if (schedule.dockId) {
         // Get dock and check if its facility is in selected facilities
-        const dock = docks.find(d => d.id === schedule.dockId);
+        const dock = docks.find((d: any) => d.id === schedule.dockId);
         if (dock && dock.facilityId) {
           dockFacilityMatch = filterFacilityId.includes(dock.facilityId);
         }
@@ -506,7 +520,7 @@ export default function Schedules() {
     let searchMatches = true;
     if (searchQuery.trim() !== "") {
       const query = searchQuery.toLowerCase();
-      const carrier = carriers.find(c => c.id === schedule.carrierId);
+      const carrier = carriers.find((c: any) => c.id === schedule.carrierId);
       
       searchMatches = 
         (schedule.truckNumber?.toLowerCase().includes(query) || false) ||
@@ -608,7 +622,7 @@ export default function Schedules() {
               <Button variant="outline">
                 {filterFacilityId.includes("all") ? "All Facilities" : 
                   filterFacilityId.length === 1 ? 
-                    facilities.find(f => f.id === filterFacilityId[0])?.name || "Facility" : 
+                    facilities.find((f: any) => f.id === filterFacilityId[0])?.name || "Facility" : 
                     `${filterFacilityId.length} Facilities`}
               </Button>
             </DropdownMenuTrigger>
@@ -620,35 +634,33 @@ export default function Schedules() {
                 All Facilities
                 {filterFacilityId.includes("all") && <Check className="h-4 w-4 ml-2" />}
               </DropdownMenuItem>
-              {facilities.map(facility => (
-                <DropdownMenuItem 
-                  key={facility.id} 
-                  onClick={() => {
-                    // If all was selected and user is now selecting a specific facility
-                    if (filterFacilityId.includes("all")) {
-                      setFilterFacilityId([facility.id]);
-                    } 
-                    // If this facility is already selected, toggle it off
-                    else if (filterFacilityId.includes(facility.id)) {
-                      const newFilterFacilityId = filterFacilityId.filter(id => id !== facility.id);
-                      // If nothing is selected after toggling, select "all"
-                      if (newFilterFacilityId.length === 0) {
-                        setFilterFacilityId(["all"]);
-                      } else {
-                        setFilterFacilityId(newFilterFacilityId);
-                      }
-                    } 
-                    // Add this facility to the selection
-                    else {
-                      setFilterFacilityId([...filterFacilityId, facility.id]);
+              {facilities.map((facility: any) => <DropdownMenuItem 
+                key={facility.id} 
+                onClick={() => {
+                  // If all was selected and user is now selecting a specific facility
+                  if (filterFacilityId.includes("all")) {
+                    setFilterFacilityId([facility.id]);
+                  } 
+                  // If this facility is already selected, toggle it off
+                  else if (filterFacilityId.includes(facility.id)) {
+                    const newFilterFacilityId = filterFacilityId.filter(id => id !== facility.id);
+                    // If nothing is selected after toggling, select "all"
+                    if (newFilterFacilityId.length === 0) {
+                      setFilterFacilityId(["all"]);
+                    } else {
+                      setFilterFacilityId(newFilterFacilityId);
                     }
-                  }}
-                  className="flex items-center justify-between"
-                >
-                  {facility.name}
-                  {filterFacilityId.includes(facility.id) && <Check className="h-4 w-4 ml-2" />}
-                </DropdownMenuItem>
-              ))}
+                  } 
+                  // Add this facility to the selection
+                  else {
+                    setFilterFacilityId([...filterFacilityId, facility.id]);
+                  }
+                }}
+                className="flex items-center justify-between"
+              >
+                {facility.name}
+                {filterFacilityId.includes(facility.id) && <Check className="h-4 w-4 ml-2" />}
+              </DropdownMenuItem>)}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -658,7 +670,7 @@ export default function Schedules() {
               <Button variant="outline">
                 {filterDockId.includes("all") ? "All Docks" : 
                   filterDockId.length === 1 ? 
-                    docks.find(d => d.id === filterDockId[0])?.name || "Dock" : 
+                    docks.find((d: any) => d.id === filterDockId[0])?.name || "Dock" : 
                     `${filterDockId.length} Docks`}
               </Button>
             </DropdownMenuTrigger>
@@ -671,40 +683,37 @@ export default function Schedules() {
                 {filterDockId.includes("all") && <Check className="h-4 w-4 ml-2" />}
               </DropdownMenuItem>
               {docks
-                .filter(dock => 
-                  filterFacilityId.includes("all") || 
-                  filterFacilityId.some(facilityId => 
-                    typeof facilityId === 'number' && dock.facilityId === facilityId)
+                .filter((dock: any) => filterFacilityId.includes("all") || 
+              filterFacilityId.some(facilityId => 
+                typeof facilityId === 'number' && dock.facilityId === facilityId)
                 )
-                .map(dock => (
-                  <DropdownMenuItem 
-                    key={dock.id} 
-                    onClick={() => {
-                      // If all was selected and user is now selecting a specific dock
-                      if (filterDockId.includes("all")) {
-                        setFilterDockId([dock.id]);
-                      } 
-                      // If this dock is already selected, toggle it off
-                      else if (filterDockId.includes(dock.id)) {
-                        const newFilterDockId = filterDockId.filter(id => id !== dock.id);
-                        // If nothing is selected after toggling, select "all"
-                        if (newFilterDockId.length === 0) {
-                          setFilterDockId(["all"]);
-                        } else {
-                          setFilterDockId(newFilterDockId);
-                        }
-                      } 
-                      // Add this dock to the selection
-                      else {
-                        setFilterDockId([...filterDockId, dock.id]);
-                      }
-                    }}
-                    className="flex items-center justify-between"
-                  >
-                    {dock.name}
-                    {filterDockId.includes(dock.id) && <Check className="h-4 w-4 ml-2" />}
-                  </DropdownMenuItem>
-              ))}
+                .map((dock: any) => <DropdownMenuItem 
+                key={dock.id} 
+                onClick={() => {
+                  // If all was selected and user is now selecting a specific dock
+                  if (filterDockId.includes("all")) {
+                    setFilterDockId([dock.id]);
+                  } 
+                  // If this dock is already selected, toggle it off
+                  else if (filterDockId.includes(dock.id)) {
+                    const newFilterDockId = filterDockId.filter(id => id !== dock.id);
+                    // If nothing is selected after toggling, select "all"
+                    if (newFilterDockId.length === 0) {
+                      setFilterDockId(["all"]);
+                    } else {
+                      setFilterDockId(newFilterDockId);
+                    }
+                  } 
+                  // Add this dock to the selection
+                  else {
+                    setFilterDockId([...filterDockId, dock.id]);
+                  }
+                }}
+                className="flex items-center justify-between"
+              >
+                {dock.name}
+                {filterDockId.includes(dock.id) && <Check className="h-4 w-4 ml-2" />}
+              </DropdownMenuItem>)}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -875,9 +884,8 @@ export default function Schedules() {
           <ScheduleWeekCalendar
             schedules={filteredSchedules}
             docks={!filterFacilityId.includes("all") 
-              ? docks.filter(dock => 
-                  filterFacilityId.some(facilityId => 
-                    typeof facilityId === 'number' && dock.facilityId === facilityId))
+              ? docks.filter((dock: any) => filterFacilityId.some(facilityId => 
+              typeof facilityId === 'number' && dock.facilityId === facilityId))
               : docks}
             carriers={carriers}
             date={selectedDate}
@@ -894,9 +902,8 @@ export default function Schedules() {
           <ScheduleDayCalendar
             schedules={filteredSchedules}
             docks={!filterFacilityId.includes("all") 
-              ? docks.filter(dock => 
-                  filterFacilityId.some(facilityId => 
-                    typeof facilityId === 'number' && dock.facilityId === facilityId))
+              ? docks.filter((dock: any) => filterFacilityId.some(facilityId => 
+              typeof facilityId === 'number' && dock.facilityId === facilityId))
               : docks}
             facilities={facilities}
             date={selectedDate}
@@ -912,9 +919,8 @@ export default function Schedules() {
           <ScheduleMonthCalendar
             schedules={filteredSchedules}
             docks={!filterFacilityId.includes("all") 
-              ? docks.filter(dock => 
-                  filterFacilityId.some(facilityId => 
-                    typeof facilityId === 'number' && dock.facilityId === facilityId))
+              ? docks.filter((dock: any) => filterFacilityId.some(facilityId => 
+              typeof facilityId === 'number' && dock.facilityId === facilityId))
               : docks}
             date={selectedDate}
             timezone={timezone}
@@ -929,9 +935,8 @@ export default function Schedules() {
           <ScheduleCalendar 
             schedules={filteredSchedules}
             docks={!filterFacilityId.includes("all") 
-              ? docks.filter(dock => 
-                  filterFacilityId.some(facilityId => 
-                    typeof facilityId === 'number' && dock.facilityId === facilityId))
+              ? docks.filter((dock: any) => filterFacilityId.some(facilityId => 
+              typeof facilityId === 'number' && dock.facilityId === facilityId))
               : docks}
             date={selectedDate}
             timezone={timezone}

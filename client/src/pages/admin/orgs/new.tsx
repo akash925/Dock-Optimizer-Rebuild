@@ -92,7 +92,7 @@ export default function CreateOrganizationPage() {
       const response = await apiRequest('POST', '/api/admin/orgs', orgData);
       return await response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast({
         title: 'Organization created',
         description: `${data.name} has been created successfully`,
@@ -151,7 +151,9 @@ export default function CreateOrganizationPage() {
                   <FormField
                     control={form.control}
                     name="name"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Organization Name*</FormLabel>
                         <FormControl>
@@ -165,7 +167,9 @@ export default function CreateOrganizationPage() {
                   <FormField
                     control={form.control}
                     name="subdomain"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Subdomain*</FormLabel>
                         <FormControl>
@@ -187,7 +191,9 @@ export default function CreateOrganizationPage() {
                   <FormField
                     control={form.control}
                     name="contactName"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Primary Contact</FormLabel>
                         <FormControl>
@@ -204,7 +210,9 @@ export default function CreateOrganizationPage() {
                   <FormField
                     control={form.control}
                     name="status"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Status</FormLabel>
                         <Select 
@@ -233,7 +241,9 @@ export default function CreateOrganizationPage() {
                   <FormField
                     control={form.control}
                     name="contactEmail"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Contact Email</FormLabel>
                         <FormControl>
@@ -255,7 +265,9 @@ export default function CreateOrganizationPage() {
                   <FormField
                     control={form.control}
                     name="contactPhone"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Contact Phone</FormLabel>
                         <FormControl>
@@ -275,7 +287,9 @@ export default function CreateOrganizationPage() {
                   <FormField
                     control={form.control}
                     name="address"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Address</FormLabel>
                         <FormControl>
@@ -294,7 +308,9 @@ export default function CreateOrganizationPage() {
                     <FormField
                       control={form.control}
                       name="city"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem>
                           <FormLabel>City</FormLabel>
                           <FormControl>
@@ -312,7 +328,9 @@ export default function CreateOrganizationPage() {
                     <FormField
                       control={form.control}
                       name="state"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem>
                           <FormLabel>State</FormLabel>
                           <FormControl>
@@ -334,7 +352,9 @@ export default function CreateOrganizationPage() {
                     <FormField
                       control={form.control}
                       name="country"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem>
                           <FormLabel>Country</FormLabel>
                           <FormControl>
@@ -352,7 +372,9 @@ export default function CreateOrganizationPage() {
                     <FormField
                       control={form.control}
                       name="zipCode"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem>
                           <FormLabel>Zip/Postal Code</FormLabel>
                           <FormControl>
@@ -371,7 +393,9 @@ export default function CreateOrganizationPage() {
                   <FormField
                     control={form.control}
                     name="planLevel"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Plan Level</FormLabel>
                         <Select 
@@ -400,7 +424,7 @@ export default function CreateOrganizationPage() {
                 </div>
                 
                 <div className="flex justify-end gap-4">
-                  <Button 
+                  <Button
                     variant="outline" 
                     type="button" 
                     onClick={() => navigate('/admin/orgs')}

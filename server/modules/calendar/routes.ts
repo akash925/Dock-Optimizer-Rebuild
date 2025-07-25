@@ -281,7 +281,7 @@ router.post('/booking-pages/book/:slug', async (req: Request, res: Response) => 
 });
 
 // POST /api/schedules/external 
-router.post('/schedules/external', async (req: any, res) => {
+router.post('/schedules/external', async (req: any, res: any) => {
   try {
     const storage = await getStorage();
     

@@ -202,7 +202,7 @@ export default function DriverCheckIn() {
         <AlertTriangle className="w-12 h-12 text-red-500 mb-4" />
         <h2 className="text-xl font-semibold text-gray-800">Appointment Not Found</h2>
         <p className="text-gray-600 mt-2 text-center max-w-md">{error}</p>
-        <Button 
+        <Button
           variant="outline" 
           className="mt-6"
           onClick={() => navigate('/')}

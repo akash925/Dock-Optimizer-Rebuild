@@ -183,7 +183,7 @@ const ChartTooltipContent = React.forwardRef<
       >
         {!nestLabel ? tooltipLabel : null}
         <div className="grid gap-1.5">
-          {payload.map((item, index) => {
+          {payload.map((item: any, index: any) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`
             const itemConfig = getPayloadConfigFromPayload(config, item, key)
             const indicatorColor = color || item.payload.fill || item.color
@@ -249,7 +249,7 @@ const ChartTooltipContent = React.forwardRef<
           })}
         </div>
       </div>
-    )
+    );
   }
 )
 ChartTooltipContent.displayName = "ChartTooltip"
@@ -283,7 +283,7 @@ const ChartLegendContent = React.forwardRef<
           className
         )}
       >
-        {payload.map((item) => {
+        {payload.map((item: any) => {
           const key = `${nameKey || item.dataKey || "value"}`
           const itemConfig = getPayloadConfigFromPayload(config, item, key)
 
@@ -309,7 +309,7 @@ const ChartLegendContent = React.forwardRef<
           )
         })}
       </div>
-    )
+    );
   }
 )
 ChartLegendContent.displayName = "ChartLegend"

@@ -54,7 +54,7 @@ export default function BookingPages() {
       queryClient.invalidateQueries({ queryKey: ['/api/booking-pages'] });
       setIsDeleteDialogOpen(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error deleting booking page:", error);
       toast({
         title: "Error",
@@ -78,7 +78,7 @@ export default function BookingPages() {
         variant: "default",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error updating booking page status:", error);
       toast({
         title: "Error",
@@ -160,7 +160,7 @@ export default function BookingPages() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {bookingPages && bookingPages.filter(page => page.isActive).length > 0 ? (
+              {bookingPages && bookingPages.filter((page: any) => page.isActive).length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -173,62 +173,60 @@ export default function BookingPages() {
                   </TableHeader>
                   <TableBody>
                     {bookingPages
-                      .filter(page => page.isActive)
-                      .map((page) => (
-                        <TableRow key={page.id}>
-                          <TableCell className="font-medium">{page.name}</TableCell>
-                          <TableCell>{page.slug}</TableCell>
-                          <TableCell>{page.title}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Switch
-                                checked={page.isActive}
-                                onCheckedChange={() => handleToggleActive(page)}
-                                id={`active-switch-${page.id}`}
-                              />
-                              <Label htmlFor={`active-switch-${page.id}`} className="ml-2">
-                                {page.isActive ? (
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                    <Check className="h-3 w-3 mr-1" /> Active
-                                  </Badge>
-                                ) : (
-                                  <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
-                                    <X className="h-3 w-3 mr-1" /> Inactive
-                                  </Badge>
-                                )}
-                              </Label>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => window.open(getExternalUrl(page.slug), '_blank')}
-                                title="View booking page"
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => handleEditClick(page)}
-                                title="Edit booking page"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => handleDeleteClick(page)}
-                                title="Delete booking page"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      .filter((page: any) => page.isActive)
+                      .map((page: any) => <TableRow key={page.id}>
+                      <TableCell className="font-medium">{page.name}</TableCell>
+                      <TableCell>{page.slug}</TableCell>
+                      <TableCell>{page.title}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <Switch
+                            checked={page.isActive}
+                            onCheckedChange={() => handleToggleActive(page)}
+                            id={`active-switch-${page.id}`}
+                          />
+                          <Label htmlFor={`active-switch-${page.id}`} className="ml-2">
+                            {page.isActive ? (
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                <Check className="h-3 w-3 mr-1" /> Active
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                                <X className="h-3 w-3 mr-1" /> Inactive
+                              </Badge>
+                            )}
+                          </Label>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => window.open(getExternalUrl(page.slug), '_blank')}
+                            title="View booking page"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleEditClick(page)}
+                            title="Edit booking page"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleDeleteClick(page)}
+                            title="Delete booking page"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>)}
                   </TableBody>
                 </Table>
               ) : (
@@ -261,61 +259,59 @@ export default function BookingPages() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {bookingPages.map((page) => (
-                      <TableRow key={page.id}>
-                        <TableCell className="font-medium">{page.name}</TableCell>
-                        <TableCell>{page.slug}</TableCell>
-                        <TableCell>{page.title}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <Switch
-                              checked={page.isActive}
-                              onCheckedChange={() => handleToggleActive(page)}
-                              id={`all-active-switch-${page.id}`}
-                            />
-                            <Label htmlFor={`all-active-switch-${page.id}`} className="ml-2">
-                              {page.isActive ? (
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                  <Check className="h-3 w-3 mr-1" /> Active
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
-                                  <X className="h-3 w-3 mr-1" /> Inactive
-                                </Badge>
-                              )}
-                            </Label>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => window.open(getExternalUrl(page.slug), '_blank')}
-                              title="View booking page"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleEditClick(page)}
-                              title="Edit booking page"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleDeleteClick(page)}
-                              title="Delete booking page"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {bookingPages.map((page: any) => <TableRow key={page.id}>
+                      <TableCell className="font-medium">{page.name}</TableCell>
+                      <TableCell>{page.slug}</TableCell>
+                      <TableCell>{page.title}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <Switch
+                            checked={page.isActive}
+                            onCheckedChange={() => handleToggleActive(page)}
+                            id={`all-active-switch-${page.id}`}
+                          />
+                          <Label htmlFor={`all-active-switch-${page.id}`} className="ml-2">
+                            {page.isActive ? (
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                <Check className="h-3 w-3 mr-1" /> Active
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                                <X className="h-3 w-3 mr-1" /> Inactive
+                              </Badge>
+                            )}
+                          </Label>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => window.open(getExternalUrl(page.slug), '_blank')}
+                            title="View booking page"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleEditClick(page)}
+                            title="Edit booking page"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleDeleteClick(page)}
+                            title="Delete booking page"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>)}
                   </TableBody>
                 </Table>
               ) : (
@@ -382,7 +378,7 @@ export default function BookingPages() {
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               variant="destructive" 
               onClick={() => currentBookingPage && deleteMutation.mutate(currentBookingPage.id)}
               disabled={deleteMutation.isPending}

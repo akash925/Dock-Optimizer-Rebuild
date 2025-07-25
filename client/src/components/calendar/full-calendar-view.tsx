@@ -792,7 +792,7 @@ export default function FullCalendarView({
               defaultTimedEventDuration="00:30:00"
               
               // Improved loading state management
-              loading={(isLoading) => {
+              loading={(isLoading: any) => {
                 if (import.meta.env.MODE === 'development') {
                   console.log('[FullCalendar] Loading state changed:', isLoading);
                 }
@@ -800,7 +800,7 @@ export default function FullCalendarView({
               }}
               
               // Enhanced view handling
-              viewDidMount={(viewInfo) => {
+              viewDidMount={(viewInfo: any) => {
                 if (import.meta.env.MODE === 'development') {
                   console.log('[FullCalendar] View mounted:', viewInfo.view.type);
                 }
@@ -809,7 +809,7 @@ export default function FullCalendarView({
               }}
               
               // ENHANCED: Custom event rendering for better Customer/Facility display
-              eventContent={(eventInfo) => {
+              eventContent={(eventInfo: any) => {
                 const { event } = eventInfo;
                 const props = event.extendedProps;
                 const startTime = format(new Date(event.startStr), 'h:mm a');

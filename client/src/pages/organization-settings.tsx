@@ -353,7 +353,7 @@ export default function OrganizationSettingsPage() {
       );
 
       // Check for existing holidays to avoid duplicates
-      const existingDates = holidays?.map(h => h.date) || [];
+      const existingDates = holidays?.map((h: any) => h.date) || [];
       const newHolidays = holidaysToAdd.filter(h => !existingDates.includes(h.date));
 
       // Add each new holiday
@@ -368,7 +368,7 @@ export default function OrganizationSettingsPage() {
 
       return { added: newHolidays.length, skipped: holidaysToAdd.length - newHolidays.length };
     },
-    onSuccess: (result) => {
+    onSuccess: (result: any) => {
       toast({
         title: "Federal Holidays Synced",
         description: `Added ${result.added} new holidays. ${result.skipped} holidays were already configured.`
@@ -399,7 +399,7 @@ export default function OrganizationSettingsPage() {
   };
 
   const handleUpdateHours = (dayOfWeek: number, field: string, value: any) => {
-    const currentHour = defaultHours?.find(h => h.dayOfWeek === dayOfWeek);
+    const currentHour = defaultHours?.find((h: any) => h.dayOfWeek === dayOfWeek);
     if (!currentHour) return;
 
     const updateData: any = { dayOfWeek };
@@ -445,7 +445,10 @@ export default function OrganizationSettingsPage() {
   };
 
   const handleInputChange = (key: keyof OrganizationSettings, value: any) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    setSettings((prev: any) => ({
+      ...prev,
+      [key]: value
+    }));
     setIsDirty(true);
   };
 
@@ -709,7 +712,7 @@ export default function OrganizationSettingsPage() {
               </div>
               <Switch
                 checked={settings.emailNotifications !== false}
-                onCheckedChange={(checked) => handleInputChange('emailNotifications', checked)}
+                onCheckedChange={(checked: any) => handleInputChange('emailNotifications', checked)}
               />
             </div>
           </CardContent>
@@ -729,7 +732,7 @@ export default function OrganizationSettingsPage() {
           <CardContent>
             <div className="space-y-4">
               {DAYS_OF_WEEK.map((day) => {
-                const dayHours = defaultHours?.find(h => h.dayOfWeek === day.value);
+                const dayHours = defaultHours?.find((h: any) => h.dayOfWeek === day.value);
                 const isOpen = dayHours?.isOpen || false;
                 
                 return (
@@ -740,7 +743,7 @@ export default function OrganizationSettingsPage() {
                     <div className="flex items-center space-x-2">
                       <Switch
                         checked={isOpen}
-                        onCheckedChange={(checked) => handleUpdateHours(day.value, 'isOpen', checked)}
+                        onCheckedChange={(checked: any) => handleUpdateHours(day.value, 'isOpen', checked)}
                         disabled={updateHoursMutation.isPending}
                       />
                       <Label className="text-sm">Open</Label>
@@ -822,7 +825,7 @@ export default function OrganizationSettingsPage() {
                     <div className="max-h-96 overflow-y-auto">
                       <div className="space-y-3">
                         {federalHolidays.map((holiday) => {
-                          const isAlreadyAdded = holidays?.some(h => h.date === holiday.date);
+                          const isAlreadyAdded = holidays?.some((h: any) => h.date === holiday.date);
                           return (
                             <div key={`${holiday.key}-${holiday.date}`} className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-50">
                               <Checkbox
@@ -914,7 +917,7 @@ export default function OrganizationSettingsPage() {
                       <div className="flex items-center space-x-2">
                         <Switch
                           checked={newHoliday.isRecurring}
-                          onCheckedChange={(checked) => setNewHoliday(prev => ({ ...prev, isRecurring: checked }))}
+                          onCheckedChange={(checked: any) => setNewHoliday(prev => ({ ...prev, isRecurring: checked }))}
                         />
                         <Label>Recurring yearly</Label>
                       </div>
@@ -964,37 +967,35 @@ export default function OrganizationSettingsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {holidays.map((holiday) => (
-                    <TableRow key={holiday.id}>
-                      <TableCell className="font-medium">{holiday.name}</TableCell>
-                      <TableCell>{new Date(holiday.date).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <Badge variant={holiday.isRecurring ? 'default' : 'secondary'}>
-                          {holiday.isRecurring ? 'Recurring' : 'One-time'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{holiday.description || '-'}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditHoliday(holiday)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteHolidayMutation.mutate(holiday.id)}
-                            disabled={deleteHolidayMutation.isPending}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {holidays.map((holiday: any) => <TableRow key={holiday.id}>
+                    <TableCell className="font-medium">{holiday.name}</TableCell>
+                    <TableCell>{new Date(holiday.date).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <Badge variant={holiday.isRecurring ? 'default' : 'secondary'}>
+                        {holiday.isRecurring ? 'Recurring' : 'One-time'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{holiday.description || '-'}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditHoliday(holiday)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteHolidayMutation.mutate(holiday.id)}
+                          disabled={deleteHolidayMutation.isPending}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>)}
                 </TableBody>
               </Table>
             ) : (
@@ -1020,28 +1021,25 @@ export default function OrganizationSettingsPage() {
           <CardContent>
             {modules && modules.length > 0 ? (
               <div className="space-y-4">
-                {modules.map((module) => (
-                  <div key={module.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h4 className="font-medium">{module.moduleName}</h4>
-                      {module.description && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {module.description}
-                        </p>
-                      )}
-                    </div>
-                    <Switch
-                      checked={module.enabled}
-                      onCheckedChange={(checked) => 
-                        toggleModuleMutation.mutate({ 
-                          moduleName: module.moduleName, 
-                          enabled: checked 
-                        })
-                      }
-                      disabled={toggleModuleMutation.isPending}
-                    />
+                {modules.map((module: any) => <div key={module.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div>
+                    <h4 className="font-medium">{module.moduleName}</h4>
+                    {module.description && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {module.description}
+                      </p>
+                    )}
                   </div>
-                ))}
+                  <Switch
+                    checked={module.enabled}
+                    onCheckedChange={(checked: any) => toggleModuleMutation.mutate({ 
+                      moduleName: module.moduleName, 
+                      enabled: checked 
+                    })
+                    }
+                    disabled={toggleModuleMutation.isPending}
+                  />
+                </div>)}
               </div>
             ) : (
               <div className="text-center py-8">

@@ -231,7 +231,7 @@ const facilityEditSchema = z.object({
     z.null()
   ]),
 }).refine(
-  (data) => {
+  (data: any) => {
     // For each day that is open, ensure start time is before end time
     if (data.mondayOpen && data.mondayStart >= data.mondayEnd) {
       return false;
@@ -262,7 +262,7 @@ const facilityEditSchema = z.object({
     path: ["mondayEnd"], // This is a placeholder, the actual error field will vary
   }
 ).refine(
-  (data) => {
+  (data: any) => {
     // For each day with a break, ensure break start is after day start and before day end
     // Only validate if both break start and end are provided
     if (data.mondayOpen && data.mondayBreakStart && data.mondayBreakEnd && data.mondayBreakStart.trim() !== "" && data.mondayBreakEnd.trim() !== "") {
@@ -561,7 +561,7 @@ export default function FacilitySettingsPage() {
       
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       // Log success for debugging
       console.log("Facility updated successfully:", data);
       
@@ -609,7 +609,7 @@ export default function FacilitySettingsPage() {
   return (
     <div className="container py-8">
       <div className="flex items-center mb-6">
-        <Button 
+        <Button
           variant="ghost" 
           className="mr-4"
           onClick={() => setLocation("/facilities")}
@@ -639,7 +639,9 @@ export default function FacilitySettingsPage() {
                     <FormField
                       control={form.control}
                       name="name"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem>
                           <FormLabel>Facility Name</FormLabel>
                           <FormControl>
@@ -653,7 +655,9 @@ export default function FacilitySettingsPage() {
                     <FormField
                       control={form.control}
                       name="timezone"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem>
                           <FormLabel>Timezone</FormLabel>
                           <Select 
@@ -680,7 +684,9 @@ export default function FacilitySettingsPage() {
                     <FormField
                       control={form.control}
                       name="address1"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem>
                           <FormLabel>Address Line 1</FormLabel>
                           <FormControl>
@@ -694,7 +700,9 @@ export default function FacilitySettingsPage() {
                     <FormField
                       control={form.control}
                       name="address2"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem>
                           <FormLabel>Address Line 2</FormLabel>
                           <FormControl>
@@ -708,7 +716,9 @@ export default function FacilitySettingsPage() {
                     <FormField
                       control={form.control}
                       name="city"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem>
                           <FormLabel>City</FormLabel>
                           <FormControl>
@@ -722,7 +732,9 @@ export default function FacilitySettingsPage() {
                     <FormField
                       control={form.control}
                       name="state"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem>
                           <FormLabel>State/Province</FormLabel>
                           <FormControl>
@@ -736,7 +748,9 @@ export default function FacilitySettingsPage() {
                     <FormField
                       control={form.control}
                       name="pincode"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem>
                           <FormLabel>Postal Code</FormLabel>
                           <FormControl>
@@ -750,7 +764,9 @@ export default function FacilitySettingsPage() {
                     <FormField
                       control={form.control}
                       name="country"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem>
                           <FormLabel>Country</FormLabel>
                           <FormControl>
@@ -817,7 +833,9 @@ export default function FacilitySettingsPage() {
                         <FormField
                           control={form.control}
                           name="mondayOpen"
-                          render={({ field }) => (
+                          render={({
+                            field
+                          }: any) => (
                             <FormItem className="flex items-center space-x-2 space-y-0">
                               <FormLabel>Open</FormLabel>
                               <FormControl>
@@ -857,7 +875,7 @@ export default function FacilitySettingsPage() {
                         </Button>
                         
                         <Select
-                          onValueChange={(value) => {
+                          onValueChange={(value: any) => {
                             if (value === "all-weekdays") {
                               copyDayToOthers(form, "monday", ["tuesday", "wednesday", "thursday", "friday"]);
                               toast({
@@ -902,7 +920,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="mondayStart"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Opening Time</FormLabel>
                                 <FormControl>
@@ -915,7 +935,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="mondayEnd"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Closing Time</FormLabel>
                                 <FormControl>
@@ -931,7 +953,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="mondayBreakStart"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Break Start</FormLabel>
                                 <FormControl>
@@ -944,7 +968,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="mondayBreakEnd"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Break End</FormLabel>
                                 <FormControl>
@@ -969,7 +995,9 @@ export default function FacilitySettingsPage() {
                       <FormField
                         control={form.control}
                         name="tuesdayOpen"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem className="flex items-center space-x-2 space-y-0">
                             <FormLabel>Open</FormLabel>
                             <FormControl>
@@ -989,7 +1017,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="tuesdayStart"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Opening Time</FormLabel>
                                 <FormControl>
@@ -1002,7 +1032,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="tuesdayEnd"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Closing Time</FormLabel>
                                 <FormControl>
@@ -1018,7 +1050,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="tuesdayBreakStart"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Break Start</FormLabel>
                                 <FormControl>
@@ -1031,7 +1065,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="tuesdayBreakEnd"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Break End</FormLabel>
                                 <FormControl>
@@ -1056,7 +1092,9 @@ export default function FacilitySettingsPage() {
                       <FormField
                         control={form.control}
                         name="wednesdayOpen"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem className="flex items-center space-x-2 space-y-0">
                             <FormLabel>Open</FormLabel>
                             <FormControl>
@@ -1076,7 +1114,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="wednesdayStart"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Opening Time</FormLabel>
                                 <FormControl>
@@ -1089,7 +1129,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="wednesdayEnd"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Closing Time</FormLabel>
                                 <FormControl>
@@ -1105,7 +1147,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="wednesdayBreakStart"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Break Start</FormLabel>
                                 <FormControl>
@@ -1118,7 +1162,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="wednesdayBreakEnd"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Break End</FormLabel>
                                 <FormControl>
@@ -1143,7 +1189,9 @@ export default function FacilitySettingsPage() {
                       <FormField
                         control={form.control}
                         name="thursdayOpen"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem className="flex items-center space-x-2 space-y-0">
                             <FormLabel>Open</FormLabel>
                             <FormControl>
@@ -1163,7 +1211,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="thursdayStart"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Opening Time</FormLabel>
                                 <FormControl>
@@ -1176,7 +1226,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="thursdayEnd"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Closing Time</FormLabel>
                                 <FormControl>
@@ -1192,7 +1244,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="thursdayBreakStart"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Break Start</FormLabel>
                                 <FormControl>
@@ -1205,7 +1259,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="thursdayBreakEnd"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Break End</FormLabel>
                                 <FormControl>
@@ -1230,7 +1286,9 @@ export default function FacilitySettingsPage() {
                       <FormField
                         control={form.control}
                         name="fridayOpen"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem className="flex items-center space-x-2 space-y-0">
                             <FormLabel>Open</FormLabel>
                             <FormControl>
@@ -1250,7 +1308,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="fridayStart"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Opening Time</FormLabel>
                                 <FormControl>
@@ -1263,7 +1323,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="fridayEnd"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Closing Time</FormLabel>
                                 <FormControl>
@@ -1279,7 +1341,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="fridayBreakStart"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Break Start</FormLabel>
                                 <FormControl>
@@ -1292,7 +1356,9 @@ export default function FacilitySettingsPage() {
                           <FormField
                             control={form.control}
                             name="fridayBreakEnd"
-                            render={({ field }) => (
+                            render={({
+                              field
+                            }: any) => (
                               <FormItem className="flex-1">
                                 <FormLabel>Break End</FormLabel>
                                 <FormControl>
@@ -1317,7 +1383,9 @@ export default function FacilitySettingsPage() {
                       <FormField
                         control={form.control}
                         name="saturdayOpen"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem className="flex items-center space-x-2 space-y-0">
                             <FormLabel>Open</FormLabel>
                             <FormControl>
@@ -1337,7 +1405,9 @@ export default function FacilitySettingsPage() {
                         <FormField
                           control={form.control}
                           name="saturdayStart"
-                          render={({ field }) => (
+                          render={({
+                            field
+                          }: any) => (
                             <FormItem className="flex-1">
                               <FormLabel>Opening Time</FormLabel>
                               <FormControl>
@@ -1354,7 +1424,9 @@ export default function FacilitySettingsPage() {
                         <FormField
                           control={form.control}
                           name="saturdayEnd"
-                          render={({ field }) => (
+                          render={({
+                            field
+                          }: any) => (
                             <FormItem className="flex-1">
                               <FormLabel>Closing Time</FormLabel>
                               <FormControl>
@@ -1374,7 +1446,9 @@ export default function FacilitySettingsPage() {
                         <FormField
                           control={form.control}
                           name="saturdayBreakStart"
-                          render={({ field }) => (
+                          render={({
+                            field
+                          }: any) => (
                             <FormItem className="flex-1">
                               <FormLabel>Break Start</FormLabel>
                               <FormControl>
@@ -1391,7 +1465,9 @@ export default function FacilitySettingsPage() {
                         <FormField
                           control={form.control}
                           name="saturdayBreakEnd"
-                          render={({ field }) => (
+                          render={({
+                            field
+                          }: any) => (
                             <FormItem className="flex-1">
                               <FormLabel>Break End</FormLabel>
                               <FormControl>
@@ -1419,7 +1495,9 @@ export default function FacilitySettingsPage() {
                       <FormField
                         control={form.control}
                         name="sundayOpen"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem className="flex items-center space-x-2 space-y-0">
                             <FormLabel>Open</FormLabel>
                             <FormControl>
@@ -1439,7 +1517,9 @@ export default function FacilitySettingsPage() {
                         <FormField
                           control={form.control}
                           name="sundayStart"
-                          render={({ field }) => (
+                          render={({
+                            field
+                          }: any) => (
                             <FormItem className="flex-1">
                               <FormLabel>Opening Time</FormLabel>
                               <FormControl>
@@ -1456,7 +1536,9 @@ export default function FacilitySettingsPage() {
                         <FormField
                           control={form.control}
                           name="sundayEnd"
-                          render={({ field }) => (
+                          render={({
+                            field
+                          }: any) => (
                             <FormItem className="flex-1">
                               <FormLabel>Closing Time</FormLabel>
                               <FormControl>
@@ -1476,7 +1558,9 @@ export default function FacilitySettingsPage() {
                         <FormField
                           control={form.control}
                           name="sundayBreakStart"
-                          render={({ field }) => (
+                          render={({
+                            field
+                          }: any) => (
                             <FormItem className="flex-1">
                               <FormLabel>Break Start</FormLabel>
                               <FormControl>
@@ -1493,7 +1577,9 @@ export default function FacilitySettingsPage() {
                         <FormField
                           control={form.control}
                           name="sundayBreakEnd"
-                          render={({ field }) => (
+                          render={({
+                            field
+                          }: any) => (
                             <FormItem className="flex-1">
                               <FormLabel>Break End</FormLabel>
                               <FormControl>

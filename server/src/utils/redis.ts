@@ -58,7 +58,7 @@ function initializeRedis(): void {
   try {
     redis = new IORedis(url, {
       lazyConnect: true,
-      retryStrategy: (times) => {
+      retryStrategy: (times: any) => {
         if (times > 3) return null;
         return Math.min(times * 150, 5000);
       },
@@ -67,7 +67,7 @@ function initializeRedis(): void {
       tls: url.startsWith('rediss://') ? {} : undefined,
     });
 
-    redis.on('error', (err) => {
+    redis.on('error', (err: any) => {
       if (String(err.message).includes('WRONGPASS')) {
         console.error('[Redis] ❌ Invalid credentials – check REDIS_URL');
         process.exit(1);

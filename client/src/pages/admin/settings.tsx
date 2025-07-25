@@ -96,7 +96,9 @@ function EditRoleDialog({ role, onSave }: { role: Role, onSave: (values: RoleFor
             <FormField
               control={form.control}
               name="name"
-              render={({ field }) => (
+              render={({
+                field
+              }: any) => (
                 <FormItem>
                   <FormLabel>Role Name</FormLabel>
                   <FormControl>
@@ -109,7 +111,9 @@ function EditRoleDialog({ role, onSave }: { role: Role, onSave: (values: RoleFor
             <FormField
               control={form.control}
               name="description"
-              render={({ field }) => (
+              render={({
+                field
+              }: any) => (
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
@@ -244,20 +248,18 @@ export default function AdminSettingsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {roles && roles.map((role) => (
-                    <div key={role.id} className="flex items-center justify-between p-3 border rounded-md">
-                      <div>
-                        <div className="font-medium">{role.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {role.description || "No description"}
-                        </div>
+                  {roles && roles.map((role: any) => <div key={role.id} className="flex items-center justify-between p-3 border rounded-md">
+                    <div>
+                      <div className="font-medium">{role.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {role.description || "No description"}
                       </div>
-                      <EditRoleDialog 
-                        role={role} 
-                        onSave={(values) => handleRoleUpdate(role, values)} 
-                      />
                     </div>
-                  ))}
+                    <EditRoleDialog 
+                      role={role} 
+                      onSave={(values) => handleRoleUpdate(role, values)} 
+                    />
+                  </div>)}
                   {(!roles || roles.length === 0) && (
                     <div className="text-center py-4 text-muted-foreground">
                       No roles found
@@ -278,31 +280,29 @@ export default function AdminSettingsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {featureFlags && featureFlags.map((flag) => (
-                    <div key={flag.name} className="flex items-center justify-between p-3 border rounded-md">
-                      <div className="flex-1">
-                        <div className="flex items-center">
-                          <span className="font-medium mr-2">{flag.name}</span>
-                          <Badge variant={flag.enabled ? "default" : "secondary"} className={flag.enabled ? "bg-green-500 hover:bg-green-600" : ""}>
-                            {flag.enabled ? "Enabled" : "Disabled"}
-                          </Badge>
-                        </div>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {flag.description}
-                        </div>
-                      </div>
+                  {featureFlags && featureFlags.map((flag: any) => <div key={flag.name} className="flex items-center justify-between p-3 border rounded-md">
+                    <div className="flex-1">
                       <div className="flex items-center">
-                        <span className="text-sm mr-2">
-                          {flag.enabled ? "On" : "Off"}
-                        </span>
-                        <Switch
-                          checked={flag.enabled}
-                          onCheckedChange={(checked) => handleFeatureFlagToggle(flag, checked)}
-                          disabled={updateFeatureFlagMutation.isPending}
-                        />
+                        <span className="font-medium mr-2">{flag.name}</span>
+                        <Badge variant={flag.enabled ? "default" : "secondary"} className={flag.enabled ? "bg-green-500 hover:bg-green-600" : ""}>
+                          {flag.enabled ? "Enabled" : "Disabled"}
+                        </Badge>
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        {flag.description}
                       </div>
                     </div>
-                  ))}
+                    <div className="flex items-center">
+                      <span className="text-sm mr-2">
+                        {flag.enabled ? "On" : "Off"}
+                      </span>
+                      <Switch
+                        checked={flag.enabled}
+                        onCheckedChange={(checked: any) => handleFeatureFlagToggle(flag, checked)}
+                        disabled={updateFeatureFlagMutation.isPending}
+                      />
+                    </div>
+                  </div>)}
                   {(!featureFlags || featureFlags.length === 0) && (
                     <div className="text-center py-4 text-muted-foreground">
                       No feature flags found

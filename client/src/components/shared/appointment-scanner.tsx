@@ -93,7 +93,7 @@ export function AppointmentScanner({
         setLoading(false);
         
         // Start decoding from video device
-        const result = await reader.decodeFromVideoDevice(selectedCamera, video, (result, error) => {
+        const result = await reader.decodeFromVideoDevice(selectedCamera, video, (result: any, error: any) => {
           if (result) {
             console.log('Detected QR/barcode:', result.getText());
             handleBarcodeDetected(result.getText());
@@ -281,100 +281,98 @@ export function AppointmentScanner({
     };
   }, [open, scanning, selectedCamera]);
   
-  return (
-    <>
-      <Button 
-        variant={variant}
-        size={size}
-        onClick={handleOpenScanner}
-        aria-label="Scan QR Code"
-        title="Scan Appointment QR Code"
-      >
-        <Scan className="h-5 w-5 mr-2" />
-        {buttonText}
-      </Button>
-      
-      <Dialog open={open} onOpenChange={(isOpen) => {
-        if (!isOpen) handleClose();
-        setOpen(isOpen);
-      }}>
-        <DialogContent className="sm:max-w-md w-[95vw] max-w-[95vw] sm:w-auto">
-          <DialogHeader>
-            <DialogTitle>Scan Appointment QR Code</DialogTitle>
-            <DialogDescription>
-              Scan a QR code to quickly look up appointment details
-            </DialogDescription>
-          </DialogHeader>
-          
-          {scanning && (
-            <div className="flex flex-col space-y-4">
-              {!permissionDenied && (
-                <>
-                  <div 
-                    ref={videoRef} 
-                    className="bg-black rounded-lg w-full h-[50vh] sm:h-[400px] overflow-hidden relative flex items-center justify-center"
-                  >
-                    {loading ? (
-                      <div className="text-white text-center">
-                        <Camera className="h-8 w-8 mx-auto mb-2 animate-pulse" />
-                        <p>Starting camera...</p>
-                      </div>
-                    ) : null}
-                  </div>
-                  
-                  {cameras.length > 1 && (
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-500 mb-1">Select Camera:</p>
-                      <Select value={selectedCamera} onValueChange={handleCameraChange}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select a camera" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {cameras.map((camera) => (
-                            <SelectItem key={camera.deviceId} value={camera.deviceId}>
-                              {camera.label || `Camera ${cameras.indexOf(camera) + 1}`}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+  return <>
+    <Button
+      variant={variant}
+      size={size}
+      onClick={handleOpenScanner}
+      aria-label="Scan QR Code"
+      title="Scan Appointment QR Code"
+    >
+      <Scan className="h-5 w-5 mr-2" />
+      {buttonText}
+    </Button>
+    
+    <Dialog open={open} onOpenChange={(isOpen: any) => {
+      if (!isOpen) handleClose();
+      setOpen(isOpen);
+    }}>
+      <DialogContent className="sm:max-w-md w-[95vw] max-w-[95vw] sm:w-auto">
+        <DialogHeader>
+          <DialogTitle>Scan Appointment QR Code</DialogTitle>
+          <DialogDescription>
+            Scan a QR code to quickly look up appointment details
+          </DialogDescription>
+        </DialogHeader>
+        
+        {scanning && (
+          <div className="flex flex-col space-y-4">
+            {!permissionDenied && (
+              <>
+                <div 
+                  ref={videoRef} 
+                  className="bg-black rounded-lg w-full h-[50vh] sm:h-[400px] overflow-hidden relative flex items-center justify-center"
+                >
+                  {loading ? (
+                    <div className="text-white text-center">
+                      <Camera className="h-8 w-8 mx-auto mb-2 animate-pulse" />
+                      <p>Starting camera...</p>
                     </div>
-                  )}
-                  
-                  <div className="text-center text-sm text-gray-500 bg-gray-50 p-3 rounded-md">
-                    Position the QR code in the center of the camera view
-                  </div>
-                </>
-              )}
-              
-              {permissionDenied && (
-                <div className="flex flex-col items-center justify-center p-6 space-y-4 text-center">
-                  <div className="bg-red-50 text-red-600 p-4 rounded-lg">
-                    <p className="font-semibold">Camera access denied</p>
-                    <p className="text-sm mt-1">Please allow camera access to scan appointment codes</p>
-                  </div>
-                  <Button onClick={handleRetry} className="flex items-center gap-2">
-                    <RotateCcw className="h-4 w-4" />
-                    Try Again
-                  </Button>
+                  ) : null}
                 </div>
-              )}
-            </div>
-          )}
-          
-          {searching && (
-            <div className="flex flex-col items-center justify-center p-6 space-y-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-center">Searching for appointment...</p>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={handleClose}>
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
+                
+                {cameras.length > 1 && (
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500 mb-1">Select Camera:</p>
+                    <Select value={selectedCamera} onValueChange={handleCameraChange}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a camera" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cameras.map((camera) => (
+                          <SelectItem key={camera.deviceId} value={camera.deviceId}>
+                            {camera.label || `Camera ${cameras.indexOf(camera) + 1}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                
+                <div className="text-center text-sm text-gray-500 bg-gray-50 p-3 rounded-md">
+                  Position the QR code in the center of the camera view
+                </div>
+              </>
+            )}
+            
+            {permissionDenied && (
+              <div className="flex flex-col items-center justify-center p-6 space-y-4 text-center">
+                <div className="bg-red-50 text-red-600 p-4 rounded-lg">
+                  <p className="font-semibold">Camera access denied</p>
+                  <p className="text-sm mt-1">Please allow camera access to scan appointment codes</p>
+                </div>
+                <Button onClick={handleRetry} className="flex items-center gap-2">
+                  <RotateCcw className="h-4 w-4" />
+                  Try Again
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {searching && (
+          <div className="flex flex-col items-center justify-center p-6 space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-center">Searching for appointment...</p>
+          </div>
+        )}
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose}>
+            Cancel
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </>;
 }

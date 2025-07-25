@@ -61,7 +61,7 @@ export default function ExternalBookingModal({
       const res = await apiRequest('POST', '/api/schedules/external', data);
       return await res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast({
         title: `Appointment ${editMode === 'edit' ? 'Updated' : 'Created'}`,
         description: `The appointment has been successfully ${editMode === 'edit' ? 'updated' : 'created'}.${data?.confirmationCode ? ` Confirmation code: ${data.confirmationCode}` : ''}`,
@@ -188,7 +188,7 @@ export default function ExternalBookingModal({
   };
   
   return (
-    <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open: any) => !open && onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>

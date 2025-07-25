@@ -33,19 +33,19 @@ const upload = multer({
 
 // Validation schemas
 const uploadBolSchema = z.object({
-  scheduleId: z.string().transform(val => parseInt(val, 10)).refine(val => !isNaN(val), {
+  scheduleId: z.string().transform((val: any) => parseInt(val, 10)).refine((val: any) => !isNaN(val), {
     message: "Schedule ID must be a valid number"
   }),
 });
 
 const deleteBolSchema = z.object({
-  bolId: z.string().transform(val => parseInt(val, 10)).refine(val => !isNaN(val), {
+  bolId: z.string().transform((val: any) => parseInt(val, 10)).refine((val: any) => !isNaN(val), {
     message: "BOL ID must be a valid number"
   }),
 });
 
 const listBolsSchema = z.object({
-  scheduleId: z.string().transform(val => parseInt(val, 10)).refine(val => !isNaN(val), {
+  scheduleId: z.string().transform((val: any) => parseInt(val, 10)).refine((val: any) => !isNaN(val), {
     message: "Schedule ID must be a valid number"
   }),
 });

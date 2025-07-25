@@ -76,7 +76,7 @@ export class FeatureFlagService {
           )
         );
 
-      return flags.map(flag => flag.module as AvailableModule);
+      return flags.map((flag: any) => flag.module as AvailableModule);
     } catch (error) {
       console.error(`Error getting enabled modules for tenant ${tenantId}:`, error);
       this.checkTableError(error);

@@ -178,7 +178,7 @@ export function BookingWizardContent({
   // Initialize from props
   useEffect(() => {
     if (initialFacilityId && facilities.length > 0) {
-      const facility = facilities.find(f => f.id === initialFacilityId);
+      const facility = facilities.find((f: any) => f.id === initialFacilityId);
       if (facility) {
         setSelectedFacility(facility);
         updateBookingData({ facilityId: initialFacilityId });
@@ -188,7 +188,7 @@ export function BookingWizardContent({
 
   useEffect(() => {
     if (initialAppointmentTypeId && appointmentTypes.length > 0) {
-      const appointmentType = appointmentTypes.find(at => at.id === initialAppointmentTypeId);
+      const appointmentType = appointmentTypes.find((at: any) => at.id === initialAppointmentTypeId);
       if (appointmentType) {
         updateBookingData({ appointmentTypeId: initialAppointmentTypeId });
       }
@@ -198,7 +198,7 @@ export function BookingWizardContent({
   // Handle facility selection
   const handleFacilityChange = (facilityId: string) => {
     const id = parseInt(facilityId, 10);
-    const facility = facilities.find(f => f.id === id);
+    const facility = facilities.find((f: any) => f.id === id);
     setSelectedFacility(facility || null);
     updateBookingData({ facilityId: id });
     // Reset appointment type when facility changes
@@ -349,12 +349,14 @@ export function BookingWizardContent({
             <FormField
               control={form.control}
               name="facilityId"
-              render={({ field }) => (
+              render={({
+                field
+              }: any) => (
                 <FormItem>
                   <FormLabel>Location*</FormLabel>
                   <Select
                     disabled={isLoadingFacilities}
-                    onValueChange={(value) => {
+                    onValueChange={(value: any) => {
                       field.onChange(parseInt(value, 10));
                       handleFacilityChange(value);
                     }}
@@ -366,11 +368,9 @@ export function BookingWizardContent({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {facilities.map((facility) => (
-                        <SelectItem key={facility.id} value={facility.id.toString()}>
-                          {facility.name}
-                        </SelectItem>
-                      ))}
+                      {facilities.map((facility: any) => <SelectItem key={facility.id} value={facility.id.toString()}>
+                        {facility.name}
+                      </SelectItem>)}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -381,12 +381,14 @@ export function BookingWizardContent({
             <FormField
               control={form.control}
               name="appointmentTypeId"
-              render={({ field }) => (
+              render={({
+                field
+              }: any) => (
                 <FormItem>
                   <FormLabel>Dock Appointment Type*</FormLabel>
                   <Select
                     disabled={!selectedFacility || isLoadingAppointmentTypes}
-                    onValueChange={(value) => {
+                    onValueChange={(value: any) => {
                       field.onChange(parseInt(value, 10));
                       updateBookingData({ appointmentTypeId: parseInt(value, 10) });
                     }}
@@ -398,11 +400,9 @@ export function BookingWizardContent({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {appointmentTypes.map((type) => (
-                        <SelectItem key={type.id} value={type.id.toString()}>
-                          {type.name}
-                        </SelectItem>
-                      ))}
+                      {appointmentTypes.map((type: any) => <SelectItem key={type.id} value={type.id.toString()}>
+                        {type.name}
+                      </SelectItem>)}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -413,7 +413,9 @@ export function BookingWizardContent({
             <FormField
               control={form.control}
               name="pickupOrDropoff"
-              render={({ field }) => (
+              render={({
+                field
+              }: any) => (
                 <FormItem className="space-y-3">
                   <FormLabel>Is this a pickup or dropoff?*</FormLabel>
                   <FormControl>
@@ -449,7 +451,7 @@ export function BookingWizardContent({
                 <Calendar
                   mode="single"
                   selected={selectedDate}
-                  onSelect={(date) => {
+                  onSelect={(date: any) => {
                     setSelectedDate(date);
                     if (date) {
                       // When date is selected, we'll update the booking data
@@ -467,7 +469,7 @@ export function BookingWizardContent({
                     }
                   }}
                   className="rounded-md border"
-                  disabled={(date) => {
+                  disabled={(date: any) => {
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
                     return date < today;
@@ -564,7 +566,9 @@ export function BookingWizardContent({
               <FormField
                 control={form.control}
                 name="companyName"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Company Name*</FormLabel>
                     <FormControl>
@@ -578,7 +582,9 @@ export function BookingWizardContent({
               <FormField
                 control={form.control}
                 name="contactName"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Contact Name*</FormLabel>
                     <FormControl>
@@ -592,7 +598,9 @@ export function BookingWizardContent({
               <FormField
                 control={form.control}
                 name="email"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Driver/Dispatcher Email*</FormLabel>
                     <FormControl>
@@ -609,7 +617,9 @@ export function BookingWizardContent({
               <FormField
                 control={form.control}
                 name="phone"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Phone*</FormLabel>
                     <FormControl>
@@ -628,7 +638,9 @@ export function BookingWizardContent({
               <FormField
                 control={form.control}
                 name="carrierName"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Carrier Name*</FormLabel>
                     <FormControl>
@@ -642,7 +654,9 @@ export function BookingWizardContent({
               <FormField
                 control={form.control}
                 name="driverName"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Driver Name*</FormLabel>
                     <FormControl>
@@ -656,7 +670,9 @@ export function BookingWizardContent({
               <FormField
                 control={form.control}
                 name="driverPhone"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Driver Phone*</FormLabel>
                     <FormControl>
@@ -670,7 +686,9 @@ export function BookingWizardContent({
               <FormField
                 control={form.control}
                 name="truckNumber"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Truck Number*</FormLabel>
                     <FormControl>
@@ -684,7 +702,9 @@ export function BookingWizardContent({
               <FormField
                 control={form.control}
                 name="trailerNumber"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Trailer Number</FormLabel>
                     <FormControl>
@@ -698,7 +718,9 @@ export function BookingWizardContent({
               <FormField
                 control={form.control}
                 name="notes"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Additional Notes</FormLabel>
                     <FormControl>
@@ -711,7 +733,7 @@ export function BookingWizardContent({
             </div>
             
             {/* Standard questions from the appointment type - only show if there are included questions */}
-            {bookingData.appointmentTypeId && standardQuestions && standardQuestions.filter(q => q.included).length > 0 && (
+            {bookingData.appointmentTypeId && standardQuestions && standardQuestions.filter((q: any) => q.included).length > 0 && (
               <>
                 <Separator className="my-4" />
                 <h3 className="text-lg font-medium mb-4">Additional Information</h3>

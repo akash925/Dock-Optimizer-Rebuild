@@ -328,16 +328,16 @@ export async function fetchRelevantAppointmentsForDay(
     
     // Filter out appointments with null appointmentTypeId and map to correct type
     const appointments = rawAppointments
-      .filter(apt => apt.appointmentTypeId !== null)
-      .map(apt => ({
-        id: apt.id,
-        startTime: apt.startTime,
-        endTime: apt.endTime,
-        appointmentTypeId: apt.appointmentTypeId as number
-      }));
+      .filter((apt: any) => apt.appointmentTypeId !== null)
+      .map((apt: any) => ({
+      id: apt.id,
+      startTime: apt.startTime,
+      endTime: apt.endTime,
+      appointmentTypeId: apt.appointmentTypeId as number
+    }));
     
     console.log(`[fetchRelevantAppointmentsForDay] Found ${appointments.length} appointments for facility ${facilityId}`);
-    appointments.forEach((apt) => {
+    appointments.forEach((apt: any) => {
       console.log(`  - Appointment ${apt.id}: ${apt.startTime.toISOString()} (type: ${apt.appointmentTypeId})`);
     });
     

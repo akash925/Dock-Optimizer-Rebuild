@@ -128,7 +128,7 @@ const appointmentSchema = z.object({
   endTime: z.date(),
   type: z.enum(["inbound", "outbound"]),
   notes: z.string().optional(),
-}).refine(data => data.endTime > data.startTime, {
+}).refine((data: any) => data.endTime > data.startTime, {
   message: "End time must be after start time",
   path: ["endTime"]
 });
@@ -487,7 +487,7 @@ export default function BasicDoorManager() {
                     </span>
                     
                     {door.status !== "maintenance" && (
-                      <Button 
+                      <Button
                         size="sm" 
                         variant="ghost" 
                         className="text-xs"
@@ -529,7 +529,9 @@ export default function BasicDoorManager() {
               <FormField
                 control={form.control}
                 name="dockId"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Door</FormLabel>
                     <select 
@@ -551,7 +553,9 @@ export default function BasicDoorManager() {
               <FormField
                 control={form.control}
                 name="carrierId"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Carrier</FormLabel>
                     <select 
@@ -573,7 +577,9 @@ export default function BasicDoorManager() {
               <FormField
                 control={form.control}
                 name="truckNumber"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Truck Number</FormLabel>
                     <FormControl>
@@ -588,7 +594,9 @@ export default function BasicDoorManager() {
                 <FormField
                   control={form.control}
                   name="startTime"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Start Date</FormLabel>
                       <FormControl>
@@ -608,7 +616,9 @@ export default function BasicDoorManager() {
                 <FormField
                   control={form.control}
                   name="endTime"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>End Date</FormLabel>
                       <FormControl>
@@ -629,7 +639,9 @@ export default function BasicDoorManager() {
               <FormField
                 control={form.control}
                 name="type"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Type</FormLabel>
                     <select 
@@ -648,7 +660,9 @@ export default function BasicDoorManager() {
               <FormField
                 control={form.control}
                 name="notes"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Notes (Optional)</FormLabel>
                     <FormControl>

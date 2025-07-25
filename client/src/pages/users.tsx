@@ -44,14 +44,18 @@ export default function Users() {
     {
       accessorKey: "id",
       header: "ID",
-      cell: ({ row }) => (
+      cell: ({
+        row
+      }: any) => (
         <span className="text-xs text-neutral-500">#{row.getValue("id")}</span>
       ),
     },
     {
       accessorKey: "username",
       header: "User",
-      cell: ({ row }) => {
+      cell: ({
+        row
+      }: any) => {
         const user = row.original;
         return (
           <div className="flex items-center space-x-3">
@@ -77,7 +81,9 @@ export default function Users() {
     {
       accessorKey: "role",
       header: "Role",
-      cell: ({ row }) => {
+      cell: ({
+        row
+      }: any) => {
         const role = row.getValue("role") as Role;
         return (
           <Badge variant={getRoleBadgeVariant(role)}>
@@ -89,16 +95,20 @@ export default function Users() {
     {
       accessorKey: "createdAt",
       header: "Created At",
-      cell: ({ row }) => {
+      cell: ({
+        row
+      }: any) => {
         const createdAt = row.getValue("createdAt") as string;
         return new Date(createdAt).toLocaleDateString();
       },
     },
     {
       id: "actions",
-      cell: ({ row }) => {
+      cell: ({
+        row
+      }: any) => {
         return (
-          <Button 
+          <Button
             variant="ghost" 
             onClick={() => setSelectedUser(row.original as User)}
             className="p-0 h-8 px-2"
@@ -190,7 +200,7 @@ export default function Users() {
         </Dialog>
       )}
       
-      <UserForm 
+      <UserForm
         isOpen={isAddUserOpen}
         onClose={() => setIsAddUserOpen(false)}
       />

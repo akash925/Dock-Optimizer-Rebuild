@@ -39,7 +39,7 @@ export async function runTargetedProductionFixes() {
     console.log(`📊 Found: ${allUsers.length} users, ${allOrganizations.length} organizations, ${allRoles.length} roles`);
     
     // Ensure admin role exists
-    let adminRole = allRoles.find(r => r.name.toLowerCase() === 'admin');
+    let adminRole = allRoles.find((r: any) => r.name.toLowerCase() === 'admin');
     if (!adminRole) {
       console.log("🔧 Creating admin role...");
       const [newRole] = await safeQuery(() => 
@@ -54,7 +54,7 @@ export async function runTargetedProductionFixes() {
     }
     
     // Ensure Hanzo organization exists (ID: 2)
-    let hanzoOrg = allOrganizations.find(org => org.id === 2);
+    let hanzoOrg = allOrganizations.find((org: any) => org.id === 2);
     if (!hanzoOrg) {
       console.log("🔧 Creating Hanzo Logistics organization (ID: 2)...");
       
@@ -82,7 +82,7 @@ export async function runTargetedProductionFixes() {
         console.log("ℹ️  Hanzo organization may already exist or ID conflict - continuing...");
         // Try to find it again
         const orgs = await safeQuery(() => db.select().from(tenants));
-        hanzoOrg = orgs.find(org => org.name?.toLowerCase().includes('hanzo')) || orgs.find(org => org.id === 2);
+        hanzoOrg = orgs.find((org: any) => org.name?.toLowerCase().includes('hanzo')) || orgs.find((org: any) => org.id === 2);
       }
     }
     
@@ -183,7 +183,7 @@ export async function runTargetedProductionFixes() {
     
     if (usersWithoutOrgs.length > 0) {
       console.log(`⚠️  WARNING: ${usersWithoutOrgs.length} users without organization mappings:`);
-      usersWithoutOrgs.forEach(user => {
+      usersWithoutOrgs.forEach((user: any) => {
         console.log(`   👤 ${user.username} (${user.email}) - Tenant: ${user.tenantId}`);
       });
     } else {
@@ -208,7 +208,7 @@ export async function runTargetedProductionFixes() {
       );
       
       console.log(`\n🏢 ${org.name} (ID: ${org.id}): ${orgUsers.length} users`);
-      orgUsers.forEach(user => {
+      orgUsers.forEach((user: any) => {
         console.log(`   👤 ${user.username} (${user.email}) - Role: ${user.roleName}`);
       });
     }

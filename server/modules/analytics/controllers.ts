@@ -189,7 +189,7 @@ export async function getCarrierStats(req: Request, res: Response) {
     
     console.log(`[Analytics] getCarrierStats: Found ${tenantFacilities.length} facilities for tenant ${tenantId}`);
     
-    const facilityIds = tenantFacilities.map(f => f.id);
+    const facilityIds = tenantFacilities.map((f: any) => f.id);
     if (!facilityIds.length) {
       console.log(`[Analytics] getCarrierStats: No facilities found for tenant ${tenantId}, returning empty array`);
       return res.json([]);
@@ -422,7 +422,7 @@ export async function getDockUtilizationStats(req: Request, res: Response) {
     
     console.log(`[Analytics] getDockUtilizationStats: Found ${tenantFacilities.length} facilities for tenant ${tenantId}`);
     
-    const facilityIds = tenantFacilities.map(f => f.id);
+    const facilityIds = tenantFacilities.map((f: any) => f.id);
     if (!facilityIds.length) {
       console.log(`[Analytics] getDockUtilizationStats: No facilities found for tenant ${tenantId}, returning empty array`);
       return res.json([]);

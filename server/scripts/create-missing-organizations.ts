@@ -15,12 +15,12 @@ export async function createMissingOrganizations() {
     // Get existing organizations
     const existingOrgs = await safeQuery(() => db.select().from(tenants));
     console.log(`📊 Found ${existingOrgs.length} existing organizations:`);
-    existingOrgs.forEach(org => {
+    existingOrgs.forEach((org: any) => {
       console.log(`   🏢 ID ${org.id}: ${org.name}`);
     });
     
     // Check for missing organization ID 2 (Hanzo)
-    const hanzoOrg = existingOrgs.find(org => org.id === 2);
+    const hanzoOrg = existingOrgs.find((org: any) => org.id === 2);
     
     if (!hanzoOrg) {
       console.log("\n🔧 Creating missing Hanzo organization (ID: 2)...");
@@ -119,7 +119,7 @@ export async function createMissingOrganizations() {
       );
       
       console.log(`\n🏢 ${org.name} (ID: ${org.id}): ${orgUsers.length} users`);
-      orgUsers.forEach(user => {
+      orgUsers.forEach((user: any) => {
         console.log(`   👤 ${user.username} (${user.email}) - Role: ${user.roleName}`);
       });
     }

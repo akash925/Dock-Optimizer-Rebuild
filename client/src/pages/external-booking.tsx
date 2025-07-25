@@ -392,7 +392,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
         throw error;
       }
     },
-    onSuccess: async (data) => {
+    onSuccess: async (data: any) => {
       // Store confirmation code and go to success step
       console.log("Booking created successfully:", data);
       
@@ -992,7 +992,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
               <Label htmlFor="facility">Facility</Label>
               <Select
                 value={bookingData.facilityId?.toString() || ''}
-                onValueChange={(value) => {
+                onValueChange={(value: any) => {
                   setBookingData({
                     ...bookingData,
                     facilityId: Number(value),
@@ -1017,7 +1017,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
               <Label htmlFor="appointmentType">Service Type</Label>
               <Select
                 value={bookingData.appointmentTypeId?.toString() || ''}
-                onValueChange={(value) => {
+                onValueChange={(value: any) => {
                   setBookingData({
                     ...bookingData,
                     appointmentTypeId: Number(value)
@@ -1144,12 +1144,12 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
             <Form {...form}>
               <form 
                 className="space-y-6" 
-                onSubmit={form.handleSubmit((data) => {
+                onSubmit={form.handleSubmit((data: any) => {
                   console.log("Form submitted with data:", data);
                   
                   // Get selected facility and appointment type details for display
-                  const selectedFacility = facilities?.find(f => f.id === Number(bookingData.facilityId));
-                  const selectedAppointmentType = appointmentTypes?.find(at => at.id === Number(bookingData.appointmentTypeId));
+                  const selectedFacility = facilities?.find((f: any) => f.id === Number(bookingData.facilityId));
+                  const selectedAppointmentType = appointmentTypes?.find((at: any) => at.id === Number(bookingData.appointmentTypeId));
                   
                   // Store comprehensive booking details for confirmation display
                   setBookingDetails({
@@ -1265,7 +1265,9 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                     <FormField
                       control={form.control}
                       name="customFields.customerName"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem className="space-y-1.5">
                           <FormLabel>
                             Customer Name <span className="text-destructive ml-1">*</span>
@@ -1282,7 +1284,9 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                     <FormField
                       control={form.control}
                       name="customFields.email"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem className="space-y-1.5">
                           <FormLabel>
                             Email Address <span className="text-destructive ml-1">*</span>
@@ -1530,7 +1534,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
             
             {/* Resend Email Button */}
             <div className="flex justify-center">
-              <Button 
+              <Button
                 variant="outline" 
                 size="sm"
                 onClick={async () => {
@@ -1742,7 +1746,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
               </h3>
               
               {/* Edit Button */}
-              <Button 
+              <Button
                 variant="outline" 
                 size="sm" 
                 onClick={() => {
@@ -1992,7 +1996,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
             </Button>
             
             {/* Add print button for printing confirmation */}
-            <Button 
+            <Button
               variant="outline"
               onClick={() => window.print()}
             >

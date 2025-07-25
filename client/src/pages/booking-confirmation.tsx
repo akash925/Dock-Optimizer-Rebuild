@@ -108,14 +108,17 @@ export default function BookingConfirmation(props?: BookingConfirmationProps) {
         setSchedule(scheduleData);
         
         // Try to get organization information if we have facility or tenant ID
-        let organizationName = null;
+        let organizationName: any = null;
         if (scheduleData.tenantId) {
           try {
             const orgResponse = await fetch(`/api/organizations/${scheduleData.tenantId}`);
             if (orgResponse.ok) {
               const orgData = await orgResponse.json();
               organizationName = orgData.name;
-              setSchedule(prev => ({...prev, organizationName}));
+              setSchedule((prev: any) => ({
+                ...prev,
+                organizationName
+              }));
             }
           } catch (err) {
             console.error("Error fetching organization info:", err);
@@ -696,7 +699,7 @@ ${schedule?.organizationName || 'Dock Optimizer'}`}
             
             {/* Action buttons */}
             <div className="flex flex-col sm:flex-row w-full gap-3">
-              <Button 
+              <Button
                 variant="outline" 
                 className="flex-1 flex items-center justify-center" 
                 onClick={handlePrint}
@@ -704,7 +707,7 @@ ${schedule?.organizationName || 'Dock Optimizer'}`}
                 <Printer className="mr-2 h-4 w-4" />
                 Print
               </Button>
-              <Button 
+              <Button
                 variant="outline" 
                 className="flex-1 flex items-center justify-center" 
                 onClick={handleNewBooking}

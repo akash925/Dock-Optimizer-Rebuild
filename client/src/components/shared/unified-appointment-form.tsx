@@ -92,8 +92,8 @@ const appointmentFormSchema = z.object({
   // Step 2 - BOL & Date
   bolNumber: z.string().optional(),
   poNumber: z.string().optional(),
-  weight: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
-  palletCount: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
+  weight: z.union([z.string(), z.number()]).optional().transform((val: any) => val ? Number(val) : undefined),
+  palletCount: z.union([z.string(), z.number()]).optional().transform((val: any) => val ? Number(val) : undefined),
   notes: z.string().optional(),
   dockId: z.number().optional(),
   appointmentDate: z.string().min(1, "Date is required"),
@@ -374,8 +374,8 @@ export default function UnifiedAppointmentForm({
       
       // 🔥 CRITICAL FIX: Create timezone-aware dates that preserve the intended local time
       // Parse date components manually to avoid timezone shifts
-      const [year, month, day] = appointmentDate.split('-').map(num => parseInt(num, 10));
-      const [hours, minutes] = appointmentTime.split(':').map(num => parseInt(num, 10));
+      const [year, month, day] = appointmentDate.split('-').map((num: any) => parseInt(num, 10));
+      const [hours, minutes] = appointmentTime.split(':').map((num: any) => parseInt(num, 10));
       
       // Create the date object in UTC but representing the facility's local time
       // This ensures the time stays exactly as the user selected it
@@ -411,7 +411,7 @@ export default function UnifiedAppointmentForm({
       // Extract standard questions data
       const standardQuestionsData: Record<string, any> = {};
       if (standardQuestions && standardQuestions.length > 0) {
-        standardQuestions.forEach(question => {
+        standardQuestions.forEach((question: any) => {
           if (question.included) {
             // Use the fieldKey as the property name and get its value from the form data
             const fieldKey = question.fieldKey;
@@ -569,7 +569,7 @@ export default function UnifiedAppointmentForm({
                     <Label htmlFor="facility-select">Location*</Label>
                     <Select
                       value={selectedFacilityId?.toString() || ""}
-                      onValueChange={(value) => {
+                      onValueChange={(value: any) => {
                         const facilityId = parseInt(value);
                         window.location.href = `/schedules/new?facilityId=${facilityId}`;
                       }}
@@ -593,7 +593,7 @@ export default function UnifiedAppointmentForm({
                     <Label htmlFor="appointment-type-select">Dock Appointment Type*</Label>
                     <Select
                       value={appointmentTypeId?.toString() || ""}
-                      onValueChange={(value) => {
+                      onValueChange={(value: any) => {
                         const typeId = parseInt(value);
                         window.location.href = `/schedules/new?appointmentTypeId=${typeId}`;
                       }}
@@ -615,7 +615,9 @@ export default function UnifiedAppointmentForm({
                 <FormField
                   control={truckInfoForm.control}
                   name="carrierId"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Carrier*</FormLabel>
                       <CarrierSelector 
@@ -636,7 +638,9 @@ export default function UnifiedAppointmentForm({
                 <FormField
                   control={truckInfoForm.control}
                   name="carrierName"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Custom Carrier Name</FormLabel>
                       <FormControl>
@@ -661,7 +665,9 @@ export default function UnifiedAppointmentForm({
                 <FormField
                   control={truckInfoForm.control}
                   name="mcNumber"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>MC Number</FormLabel>
                       <FormControl>
@@ -680,7 +686,9 @@ export default function UnifiedAppointmentForm({
               <FormField
                 control={truckInfoForm.control}
                 name="customerName"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Customer Name*</FormLabel>
                     <FormControl>
@@ -695,7 +703,9 @@ export default function UnifiedAppointmentForm({
               <FormField
                 control={truckInfoForm.control}
                 name="type"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Type*</FormLabel>
                     <Select 
@@ -721,11 +731,13 @@ export default function UnifiedAppointmentForm({
               <FormField
                 control={truckInfoForm.control}
                 name="appointmentMode"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Appointment Mode*</FormLabel>
                     <Select 
-                      onValueChange={(val) => {
+                      onValueChange={(val: any) => {
                         field.onChange(val);
                         setAppointmentMode(val as "trailer" | "container");
                       }}
@@ -751,7 +763,9 @@ export default function UnifiedAppointmentForm({
                 <FormField
                   control={truckInfoForm.control}
                   name="truckNumber"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Truck Number*</FormLabel>
                       <FormControl>
@@ -765,7 +779,9 @@ export default function UnifiedAppointmentForm({
                 <FormField
                   control={truckInfoForm.control}
                   name="trailerNumber"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Trailer Number</FormLabel>
                       <FormControl>
@@ -782,7 +798,9 @@ export default function UnifiedAppointmentForm({
                 <FormField
                   control={truckInfoForm.control}
                   name="driverName"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Driver Name*</FormLabel>
                       <FormControl>
@@ -796,7 +814,9 @@ export default function UnifiedAppointmentForm({
                 <FormField
                   control={truckInfoForm.control}
                   name="driverPhone"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Driver Phone*</FormLabel>
                       <FormControl>
@@ -810,7 +830,9 @@ export default function UnifiedAppointmentForm({
                 <FormField
                   control={truckInfoForm.control}
                   name="driverEmail"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Driver Email <span className="text-xs text-muted-foreground">(for confirmations)</span></FormLabel>
                       <FormControl>
@@ -826,7 +848,7 @@ export default function UnifiedAppointmentForm({
               </div>
               
               {/* Standard Questions - Step 1 */}
-              {appointmentTypeId && standardQuestions && standardQuestions.filter(q => q.included).length > 0 && (
+              {appointmentTypeId && standardQuestions && standardQuestions.filter((q: any) => q.included).length > 0 && (
                 <div className="space-y-4 mt-4 border-t pt-4">
                   <h3 className="text-lg font-medium">Additional Information</h3>
                   <StandardQuestionsFormFields
@@ -876,7 +898,9 @@ export default function UnifiedAppointmentForm({
                   <FormField
                     control={truckInfoForm.control}
                     name="bolNumber"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>BOL Number</FormLabel>
                         <FormControl>
@@ -890,7 +914,9 @@ export default function UnifiedAppointmentForm({
                   <FormField
                     control={truckInfoForm.control}
                     name="poNumber"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>PO Number</FormLabel>
                         <FormControl>
@@ -906,7 +932,9 @@ export default function UnifiedAppointmentForm({
                   <FormField
                     control={truckInfoForm.control}
                     name="palletCount"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Pallet Count</FormLabel>
                         <FormControl>
@@ -925,7 +953,9 @@ export default function UnifiedAppointmentForm({
                   <FormField
                     control={truckInfoForm.control}
                     name="weight"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Weight (lbs)</FormLabel>
                         <FormControl>
@@ -948,11 +978,13 @@ export default function UnifiedAppointmentForm({
                 <FormField
                   control={truckInfoForm.control}
                   name="dockId"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Dock Door*</FormLabel>
                       <Select 
-                        onValueChange={(value) => field.onChange(parseInt(value))} 
+                        onValueChange={(value: any) => field.onChange(parseInt(value))} 
                         defaultValue={field.value?.toString()}
                       >
                         <FormControl>
@@ -984,7 +1016,9 @@ export default function UnifiedAppointmentForm({
                 <FormField
                   control={truckInfoForm.control}
                   name="appointmentDate"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Date*</FormLabel>
                       <Popover>
@@ -1029,7 +1063,9 @@ export default function UnifiedAppointmentForm({
                 <FormField
                   control={truckInfoForm.control}
                   name="appointmentTime"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Time*</FormLabel>
                       <div className="relative">
@@ -1114,7 +1150,7 @@ export default function UnifiedAppointmentForm({
               </div>
               
               {/* Standard Questions - Step 2 */}
-              {appointmentTypeId && standardQuestions && standardQuestions.filter(q => q.included).length > 0 && (
+              {appointmentTypeId && standardQuestions && standardQuestions.filter((q: any) => q.included).length > 0 && (
                 <div className="space-y-4 mt-4 border-t pt-4">
                   <h3 className="text-lg font-medium">Additional Information</h3>
                   <StandardQuestionsFormFields
@@ -1129,7 +1165,9 @@ export default function UnifiedAppointmentForm({
               <FormField
                 control={truckInfoForm.control}
                 name="notes"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Notes (Optional)</FormLabel>
                     <FormControl>

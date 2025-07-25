@@ -586,7 +586,7 @@ export default function BolUpload({
               <div className="mt-2">
                 <p className="text-sm">Document was saved but data extraction failed. You can still access the file.</p>
                 <div className="mt-2 flex items-center space-x-2">
-                  <Button 
+                  <Button
                     variant="outline" 
                     size="sm" 
                     asChild
@@ -597,7 +597,7 @@ export default function BolUpload({
                       Download
                     </a>
                   </Button>
-                  <Button 
+                  <Button
                     variant="outline" 
                     size="sm" 
                     className="text-xs"
@@ -636,7 +636,7 @@ export default function BolUpload({
                 </Badge>
               )}
             </div>
-            <Button 
+            <Button
               variant="outline" 
               size="sm" 
               asChild

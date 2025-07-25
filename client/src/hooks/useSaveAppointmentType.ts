@@ -45,7 +45,7 @@ export function useSaveAppointmentType() {
       const result = await response.json();
       return result;
     },
-    onSuccess: (result, variables) => {
+    onSuccess: (result: any, variables: any) => {
       const typeId = variables.id || result.id;
       
       // Invalidate specific booking form schema query as specified

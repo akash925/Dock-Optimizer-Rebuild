@@ -236,124 +236,122 @@ export default function PerformanceMetrics({ facilityFilter = "All Facilities", 
     ));
   };
 
-  return (
-    <>
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <CardTitle className="text-lg">Performance Metrics</CardTitle>
-              <Badge variant="outline" className="text-xs">
-                {facilityFilter} • {dateRange}
-              </Badge>
-            </div>
-            <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Configure Performance Metrics</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-6">
-                  {configMetrics.map((metric) => (
-                    <div key={metric.id} className="border rounded-lg p-4 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <Label className="font-medium">{metric.name}</Label>
-                        <Switch
-                          checked={metric.enabled}
-                          onCheckedChange={(enabled) => updateMetric(metric.id, { enabled })}
+  return <>
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <CardTitle className="text-lg">Performance Metrics</CardTitle>
+            <Badge variant="outline" className="text-xs">
+              {facilityFilter} • {dateRange}
+            </Badge>
+          </div>
+          <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Configure Performance Metrics</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6">
+                {configMetrics.map((metric) => (
+                  <div key={metric.id} className="border rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="font-medium">{metric.name}</Label>
+                      <Switch
+                        checked={metric.enabled}
+                        onCheckedChange={(enabled: any) => updateMetric(metric.id, { enabled })}
+                      />
+                    </div>
+                    <p className="text-sm text-muted-foreground">{metric.description}</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor={`target-${metric.id}`} className="text-sm">Target {metric.unit}</Label>
+                        <Input
+                          id={`target-${metric.id}`}
+                          type="number"
+                          value={metric.target}
+                          onChange={(e) => updateMetric(metric.id, { target: Number(e.target.value) })}
                         />
                       </div>
-                      <p className="text-sm text-muted-foreground">{metric.description}</p>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor={`target-${metric.id}`} className="text-sm">Target {metric.unit}</Label>
-                          <Input
-                            id={`target-${metric.id}`}
-                            type="number"
-                            value={metric.target}
-                            onChange={(e) => updateMetric(metric.id, { target: Number(e.target.value) })}
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-sm">Color Theme</Label>
-                          <Select
-                            value={metric.color}
-                            onValueChange={(color: any) => updateMetric(metric.id, { color })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="green">Green</SelectItem>
-                              <SelectItem value="red">Red</SelectItem>
-                              <SelectItem value="blue">Blue</SelectItem>
-                              <SelectItem value="yellow">Yellow</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                      <div>
+                        <Label className="text-sm">Color Theme</Label>
+                        <Select
+                          value={metric.color}
+                          onValueChange={(color: any) => updateMetric(metric.id, { color })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="green">Green</SelectItem>
+                            <SelectItem value="red">Red</SelectItem>
+                            <SelectItem value="blue">Blue</SelectItem>
+                            <SelectItem value="yellow">Yellow</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {configMetrics.filter(m => m.enabled).map((metric) => {
-            const progressValue = metric.id === 'turnaround-time' 
-              ? Math.max(0, 100 - ((metric.value - metric.target) / metric.target) * 100)
-              : (metric.value / metric.target) * 100;
+                  </div>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {configMetrics.filter(m => m.enabled).map((metric) => {
+          const progressValue = metric.id === 'turnaround-time' 
+            ? Math.max(0, 100 - ((metric.value - metric.target) / metric.target) * 100)
+            : (metric.value / metric.target) * 100;
 
-            return (
-              <div key={metric.id} className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <h4 className="font-medium text-sm">{metric.name}</h4>
-                      <div className={`flex items-center space-x-1 text-xs ${getTrendColor(metric)}`}>
-                        {getTrendIcon(metric.trend)}
-                        <span>{metric.trendValue}{metric.unit}</span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Target: {metric.target}{metric.unit}</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold">{metric.value}{metric.unit}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {metric.id === 'turnaround-time' ? 
-                        `${metric.value > metric.target ? '+' : ''}${metric.value - metric.target} min` :
-                        `${Math.round(progressValue)}% of target`
-                      }
+          return (
+            <div key={metric.id} className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <h4 className="font-medium text-sm">{metric.name}</h4>
+                    <div className={`flex items-center space-x-1 text-xs ${getTrendColor(metric)}`}>
+                      {getTrendIcon(metric.trend)}
+                      <span>{metric.trendValue}{metric.unit}</span>
                     </div>
                   </div>
+                  <p className="text-xs text-muted-foreground">Target: {metric.target}{metric.unit}</p>
                 </div>
-                <div className="space-y-2">
-                  <Progress 
-                    value={Math.min(100, progressValue)} 
-                    className="h-2"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>0{metric.unit}</span>
-                    <span>{metric.target}{metric.unit}</span>
+                <div className="text-right">
+                  <div className="text-2xl font-bold">{metric.value}{metric.unit}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {metric.id === 'turnaround-time' ? 
+                      `${metric.value > metric.target ? '+' : ''}${metric.value - metric.target} min` :
+                      `${Math.round(progressValue)}% of target`
+                    }
                   </div>
                 </div>
               </div>
-            );
-          })}
-          
-          <div className="pt-4 border-t">
-            <Button variant="ghost" size="sm" className="w-full text-green-600 hover:text-green-700">
-              <BarChart className="h-4 w-4 mr-2" />
-              View Detailed Analytics
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </>
-  );
+              <div className="space-y-2">
+                <Progress 
+                  value={Math.min(100, progressValue)} 
+                  className="h-2"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>0{metric.unit}</span>
+                  <span>{metric.target}{metric.unit}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        
+        <div className="pt-4 border-t">
+          <Button variant="ghost" size="sm" className="w-full text-green-600 hover:text-green-700">
+            <BarChart className="h-4 w-4 mr-2" />
+            View Detailed Analytics
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  </>;
 }

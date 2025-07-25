@@ -79,7 +79,7 @@ app.use(tenantMiddleware);
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Concise per‑request log
-app.use((req, res, next) => {
+app.use((req: any, res: any, next: any) => {
   const start = Date.now();
   let body: unknown;
   const origJson = res.json;

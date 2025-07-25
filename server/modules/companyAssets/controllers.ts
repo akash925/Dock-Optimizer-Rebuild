@@ -41,24 +41,19 @@ export const listAssets = async (req: Request, res: Response) => {
  */
 export const getAssetById = async (req: Request, res: Response) => {
   try {
-    // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
     const id = Number(req.params.id);
     if (isNaN(id)) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Invalid asset ID' });
     }
     
     const asset = await companyAssetsService.getById(id);
     if (!asset) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(404).json({ error: 'Asset not found' });
     }
     
-    // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
     return res.json(asset);
   } catch (error) {
     console.error('Error fetching asset:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({ error: 'Failed to fetch asset' });
   }
 };
@@ -71,7 +66,6 @@ export const uploadAsset = async (req: RequestWithFile, res: Response) => {
   try {
     // Check if file was uploaded
     if (!req.file) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'No file uploaded' });
     }
     
@@ -83,36 +77,28 @@ export const uploadAsset = async (req: RequestWithFile, res: Response) => {
       filename: originalname,
       fileType: mimetype,
       fileSize: size,
-      // @ts-expect-error TS(2339): Property 'body' does not exist on type 'RequestWit... Remove this comment to see the full error message
       description: req.body.description || null,
-      // @ts-expect-error TS(2339): Property 'body' does not exist on type 'RequestWit... Remove this comment to see the full error message
       tags: req.body.tags ? JSON.parse(req.body.tags) : null,
       url: '', // Will be set by the service
-      // @ts-expect-error TS(2339): Property 'user' does not exist on type 'RequestWit... Remove this comment to see the full error message
       uploadedBy: req.user?.id || 0, // Default to 0 if no user (shouldn't happen with auth middleware)
     };
     
     // Validate the asset data
     try {
-      // @ts-expect-error TS(2693): 'insertAssetSchema' only refers to a type, but is ... Remove this comment to see the full error message
       insertAssetSchema.parse(assetData);
     } catch (validationError) {
       if (validationError instanceof ZodError) {
         const readableError = fromZodError(validationError);
-        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ error: readableError.message });
       }
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Invalid asset data' });
     }
     
     // Create the asset
     const asset = await companyAssetsService.create(assetData, buffer);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(201).json(asset);
   } catch (error) {
     console.error('Error creating asset:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({ error: 'Failed to create asset' });
   }
 };
@@ -123,57 +109,44 @@ export const uploadAsset = async (req: RequestWithFile, res: Response) => {
  */
 export const updateAsset = async (req: Request, res: Response) => {
   try {
-    // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
     const id = Number(req.params.id);
     if (isNaN(id)) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Invalid asset ID' });
     }
     
     // Get the current asset to check ownership
     const existingAsset = await companyAssetsService.getById(id);
     if (!existingAsset) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(404).json({ error: 'Asset not found' });
     }
     
     // Check if the user owns this asset or is an admin
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     const userId = req.user?.id;
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     const userRole = req.user?.role;
     if (existingAsset.uploadedBy !== userId && userRole !== 'admin') {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(403).json({ error: 'You do not have permission to update this asset' });
     }
     
     // Update the asset
     const updateData: Partial<typeof existingAsset> = {};
     
-    // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
     if (req.body.description !== undefined) {
-      // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
       updateData.description = req.body.description;
     }
     
-    // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
     if (req.body.tags !== undefined) {
-      // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
       updateData.tags = JSON.parse(req.body.tags);
     }
     
     // Update last accessed timestamp if viewing the file
-    // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
     if (req.body.accessed === 'true') {
       updateData.lastAccessedAt = new Date();
     }
     
     const updatedAsset = await companyAssetsService.update(id, updateData);
-    // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
     return res.json(updatedAsset);
   } catch (error) {
     console.error('Error updating asset:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({ error: 'Failed to update asset' });
   }
 };
@@ -184,42 +157,33 @@ export const updateAsset = async (req: Request, res: Response) => {
  */
 export const deleteAsset = async (req: Request, res: Response) => {
   try {
-    // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
     const id = Number(req.params.id);
     if (isNaN(id)) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Invalid asset ID' });
     }
     
     // Get the current asset to check ownership
     const existingAsset = await companyAssetsService.getById(id);
     if (!existingAsset) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(404).json({ error: 'Asset not found' });
     }
     
     // Check if the user owns this asset or is an admin
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     const userId = req.user?.id;
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     const userRole = req.user?.role;
     if (existingAsset.uploadedBy !== userId && userRole !== 'admin') {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(403).json({ error: 'You do not have permission to delete this asset' });
     }
     
     // Delete the asset
     const success = await companyAssetsService.remove(id);
     if (!success) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(500).json({ error: 'Failed to delete asset' });
     }
     
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(204).end();
   } catch (error) {
     console.error('Error deleting asset:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({ error: 'Failed to delete asset' });
   }
 };
@@ -238,16 +202,13 @@ export const createAsset = uploadAsset;
 export const listCompanyAssets = async (req: Request, res: Response) => {
   try {
     // Get user's tenant ID for filtering
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     const tenantId = req.user?.tenantId;
     if (!tenantId) {
       console.error('ERROR: User tenant not found for company assets request');
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'User tenant not found' });
     }
 
     // Extract filter parameters from query
-    // @ts-expect-error TS(2339): Property 'query' does not exist on type 'Request<c... Remove this comment to see the full error message
     const { q, category, status, location, tags } = req.query;
     
     // Build filter object
@@ -295,11 +256,9 @@ export const listCompanyAssets = async (req: Request, res: Response) => {
     // Serialize assets to ensure CDN URLs are properly formatted
     const serializedAssets = serializeCompanyAssets(companyAssets);
     
-    // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
     return res.json(serializedAssets);
   } catch (error) {
     console.error('Error fetching company assets:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({ error: 'Failed to fetch company assets' });
   }
 };
@@ -309,27 +268,22 @@ export const listCompanyAssets = async (req: Request, res: Response) => {
  */
 export const getCompanyAssetById = async (req: Request, res: Response) => {
   try {
-    // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
     const id = Number(req.params.id);
     if (isNaN(id)) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Invalid company asset ID' });
     }
     
     const asset = await companyAssetsService.getCompanyAssetById(id);
     if (!asset) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(404).json({ error: 'Company asset not found' });
     }
     
     // Serialize asset to ensure CDN URL is properly formatted
     const serializedAsset = serializeCompanyAsset(asset);
     
-    // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
     return res.json(serializedAsset);
   } catch (error) {
     console.error('Error fetching company asset:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({ error: 'Failed to fetch company asset' });
   }
 };
@@ -343,12 +297,10 @@ export const createCompanyAsset = async (req: Request, res: Response) => {
     const { 
       name, manufacturer, owner, category, description, barcode, 
       tags, status, location, department
-    // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
     } = req.body;
     
     // Check for required fields - only name is required
     if (!name) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ 
         error: 'Missing required field. Asset Name is required.' 
       });
@@ -359,7 +311,6 @@ export const createCompanyAsset = async (req: Request, res: Response) => {
     if (Object.values(AssetCategory).includes(category as AssetCategory)) {
       assetCategory = category as AssetCategory;
     } else {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ 
         error: `Invalid category. Must be one of: ${Object.values(AssetCategory).join(', ')}` 
       });
@@ -389,9 +340,7 @@ export const createCompanyAsset = async (req: Request, res: Response) => {
     }
     
     // Ensure user is authenticated and has tenantId
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     if (!req.user || !(req.user as any)?.tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(401).json({ error: 'User must be authenticated with valid organization' });
     }
 
@@ -408,7 +357,6 @@ export const createCompanyAsset = async (req: Request, res: Response) => {
       department: department || null,
       tags: processedTags,
       photoUrl: null, // Will be set by the service if photo is uploaded
-      // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
       tenantId: (req.user as any).tenantId // User is guaranteed to have tenantId now
     };
     
@@ -418,10 +366,8 @@ export const createCompanyAsset = async (req: Request, res: Response) => {
     } catch (validationError) {
       if (validationError instanceof ZodError) {
         const readableError = fromZodError(validationError);
-        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ error: readableError.message });
       }
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Invalid company asset data' });
     }
     
@@ -431,11 +377,9 @@ export const createCompanyAsset = async (req: Request, res: Response) => {
     // Serialize asset to ensure CDN URL is properly formatted
     const serializedAsset = serializeCompanyAsset(asset);
     
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(201).json(serializedAsset);
   } catch (error) {
     console.error('Error creating company asset:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({ error: 'Failed to create company asset' });
   }
 };
@@ -445,33 +389,26 @@ export const createCompanyAsset = async (req: Request, res: Response) => {
  */
 export const updateCompanyAsset = async (req: Request, res: Response) => {
   try {
-    // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
     const id = Number(req.params.id);
     if (isNaN(id)) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Invalid company asset ID' });
     }
     
     // Ensure user is authenticated and has tenantId
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     if (!req.user || !(req.user as any)?.tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(401).json({ error: 'User must be authenticated with valid organization' });
     }
 
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     const tenantId = (req.user as any).tenantId;
     
     // Get the current asset to check if it exists and belongs to user's tenant
     const existingAsset = await companyAssetsService.getCompanyAssetById(id);
     if (!existingAsset) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(404).json({ error: 'Company asset not found' });
     }
     
     // TENANT SAFETY: Ensure asset belongs to the user's tenant
     if (existingAsset.tenantId !== tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
     }
     
@@ -479,7 +416,6 @@ export const updateCompanyAsset = async (req: Request, res: Response) => {
     const { 
       name, manufacturer, owner, category, description, barcode, 
       status, location, department, tags
-    // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
     } = req.body;
     
     // Build update object with only the fields that were provided
@@ -526,7 +462,6 @@ export const updateCompanyAsset = async (req: Request, res: Response) => {
       if (Object.values(AssetCategory).includes(category as AssetCategory)) {
         updateData.category = category as AssetCategory;
       } else {
-        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ 
           error: `Invalid category. Must be one of: ${Object.values(AssetCategory).join(', ')}` 
         });
@@ -537,18 +472,15 @@ export const updateCompanyAsset = async (req: Request, res: Response) => {
     const updatedAsset = await companyAssetsService.updateCompanyAsset(id, updateData);
     
     if (!updatedAsset) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(500).json({ error: 'Failed to update company asset' });
     }
     
     // Serialize asset to ensure CDN URL is properly formatted
     const serializedAsset = serializeCompanyAsset(updatedAsset);
     
-    // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
     return res.json(serializedAsset);
   } catch (error) {
     console.error('Error updating company asset:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({ error: 'Failed to update company asset' });
   }
 };
@@ -558,48 +490,38 @@ export const updateCompanyAsset = async (req: Request, res: Response) => {
  */
 export const deleteCompanyAsset = async (req: Request, res: Response) => {
   try {
-    // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
     const id = Number(req.params.id);
     if (isNaN(id)) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Invalid company asset ID' });
     }
     
     // Ensure user is authenticated and has tenantId
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     if (!req.user || !(req.user as any)?.tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(401).json({ error: 'User must be authenticated with valid organization' });
     }
 
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     const tenantId = (req.user as any).tenantId;
     
     // Get the current asset to check if it exists and belongs to user's tenant
     const existingAsset = await companyAssetsService.getCompanyAssetById(id);
     if (!existingAsset) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(404).json({ error: 'Company asset not found' });
     }
     
     // TENANT SAFETY: Ensure asset belongs to the user's tenant
     if (existingAsset.tenantId !== tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
     }
     
     // Delete the asset
     const success = await companyAssetsService.deleteCompanyAsset(id);
     if (!success) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(500).json({ error: 'Failed to delete company asset' });
     }
     
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(204).end();
   } catch (error) {
     console.error('Error deleting company asset:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({ error: 'Failed to delete company asset' });
   }
 };
@@ -610,34 +532,26 @@ export const deleteCompanyAsset = async (req: Request, res: Response) => {
  */
 export const getPresignAssetPhoto = async (req: Request, res: Response) => {
   try {
-    // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
     const id = Number(req.params.id);
     if (isNaN(id)) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Invalid company asset ID' });
     }
 
     // Ensure user is authenticated and has tenantId
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     if (!req.user || !(req.user as any)?.tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(401).json({ error: 'User must be authenticated with valid organization' });
     }
 
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     const tenantId = (req.user as any).tenantId;
-    // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
     const { fileName, fileType, fileSize } = req.body;
 
     if (!fileName || !fileType) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'fileName and fileType are required' });
     }
 
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(fileType)) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ 
         error: `File type ${fileType} not allowed. Allowed types: ${allowedTypes.join(', ')}` 
       });
@@ -646,7 +560,6 @@ export const getPresignAssetPhoto = async (req: Request, res: Response) => {
     // Validate file size (10MB limit)
     const maxSize = 10 * 1024 * 1024;
     if (fileSize && fileSize > maxSize) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ 
         error: `File size ${fileSize} exceeds maximum allowed size of ${maxSize} bytes` 
       });
@@ -655,13 +568,11 @@ export const getPresignAssetPhoto = async (req: Request, res: Response) => {
     // Check if the asset exists and belongs to the user's tenant
     const existingAsset = await companyAssetsService.getCompanyAssetById(id);
     if (!existingAsset) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(404).json({ error: 'Company asset not found' });
     }
 
     // TENANT SAFETY: Ensure asset belongs to the user's tenant
     if (existingAsset.tenantId !== tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
     }
 
@@ -669,7 +580,6 @@ export const getPresignAssetPhoto = async (req: Request, res: Response) => {
     if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.AWS_S3_BUCKET) {
       console.warn('AWS environment variables not configured, falling back to local storage');
       // Return a mock presigned URL structure for local upload
-      // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
       return res.json({
         url: `/api/company-assets/${id}/photo/local`,
         fields: {
@@ -720,11 +630,9 @@ export const getPresignAssetPhoto = async (req: Request, res: Response) => {
     // DON'T update the asset with the key yet - wait for successful upload
     // This prevents orphaned keys in the database
 
-    // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
     return res.json({ url, fields, key });
   } catch (error) {
     console.error('Error generating presigned URL:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({ error: 'Failed to generate upload URL' });
   }
 };
@@ -735,23 +643,17 @@ export const getPresignAssetPhoto = async (req: Request, res: Response) => {
  */
 export const updatePhotoKey = async (req: Request, res: Response) => {
   try {
-    // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
     const id = Number(req.params.id);
     if (isNaN(id)) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Invalid company asset ID' });
     }
 
     // Ensure user is authenticated and has tenantId
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     if (!req.user || !(req.user as any)?.tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(401).json({ error: 'User must be authenticated with valid organization' });
     }
 
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     const tenantId = (req.user as any).tenantId;
-    // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
     const { key, photoUrl } = req.body;
 
     // Accept either key or photoUrl, resolve to S3 key
@@ -760,26 +662,22 @@ export const updatePhotoKey = async (req: Request, res: Response) => {
       (photoUrl ? photoUrl.replace(/^https?:\/\/[^/]+\//, '') : null);
 
     if (!resolvedKey) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'S3 key is required' });
     }
 
     // Validate the key format and tenant isolation
     if (!resolvedKey.startsWith(`photos/${tenantId}/`)) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Invalid S3 key format or tenant mismatch' });
     }
 
     // Check if the asset exists and belongs to the user's tenant
     const existingAsset = await companyAssetsService.getCompanyAssetById(id);
     if (!existingAsset) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(404).json({ error: 'Company asset not found' });
     }
 
     // TENANT SAFETY: Ensure asset belongs to the user's tenant
     if (existingAsset.tenantId !== tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
     }
 
@@ -789,7 +687,6 @@ export const updatePhotoKey = async (req: Request, res: Response) => {
     const updatedAsset = await companyAssetsService.updateCompanyAsset(id, { photoUrl: resolvedKey });
 
     if (!updatedAsset) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(500).json({ error: 'Failed to update asset photo' });
     }
 
@@ -798,7 +695,6 @@ export const updatePhotoKey = async (req: Request, res: Response) => {
 
     console.log(`[Asset Photo] Successfully updated photo for asset ${id}`);
 
-    // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
     return res.json({ 
       success: true,
       photoUrl: serializedAsset.photoUrl,
@@ -806,7 +702,6 @@ export const updatePhotoKey = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error updating photo key:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({ error: 'Failed to update photo' });
   }
 };
@@ -817,46 +712,36 @@ export const updatePhotoKey = async (req: Request, res: Response) => {
  */
 export const uploadCompressedPhoto = async (req: Request, res: Response) => {
   try {
-    // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
     const id = Number(req.params.id);
     if (isNaN(id)) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Invalid company asset ID' });
     }
 
     // Ensure user is authenticated and has tenantId
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     if (!req.user || !(req.user as any)?.tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(401).json({ error: 'User must be authenticated with valid organization' });
     }
 
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     const tenantId = (req.user as any).tenantId;
-    // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
     const { compressedImage, imageMetadata } = req.body;
 
     if (!compressedImage) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Compressed image data is required' });
     }
 
     // Validate base64 format
     if (!compressedImage.startsWith('data:image/')) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Invalid image format. Expected base64 data URL' });
     }
 
     // Check if the asset exists and belongs to the user's tenant
     const existingAsset = await companyAssetsService.getCompanyAssetById(id);
     if (!existingAsset) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(404).json({ error: 'Company asset not found' });
     }
 
     // TENANT SAFETY: Ensure asset belongs to the user's tenant
     if (existingAsset.tenantId !== tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
     }
 
@@ -872,13 +757,11 @@ export const uploadCompressedPhoto = async (req: Request, res: Response) => {
     });
 
     if (!updatedAsset) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(500).json({ error: 'Failed to update asset with compressed image' });
     }
 
     console.log(`[Compressed Photo] Successfully uploaded compressed image for asset ${id}`);
 
-    // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
     return res.json({ 
       success: true,
       photoUrl: `/api/company-assets/${id}/image`,
@@ -887,7 +770,6 @@ export const uploadCompressedPhoto = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error uploading compressed image:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({ error: 'Failed to upload compressed image' });
   }
 };
@@ -897,46 +779,37 @@ export const uploadCompressedPhoto = async (req: Request, res: Response) => {
  */
 export const getCompressedImage = async (req: Request, res: Response) => {
   try {
-    // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
     const id = Number(req.params.id);
     if (isNaN(id)) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Invalid company asset ID' });
     }
 
     // Ensure user is authenticated and has tenantId
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     if (!req.user || !(req.user as any)?.tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(401).json({ error: 'User must be authenticated with valid organization' });
     }
 
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     const tenantId = (req.user as any).tenantId;
 
     // Get the asset with compressed image
     const asset = await companyAssetsService.getCompanyAssetById(id);
     if (!asset) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(404).json({ error: 'Company asset not found' });
     }
 
     // TENANT SAFETY: Ensure asset belongs to the user's tenant
     if (asset.tenantId !== tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
     }
 
     // Check if asset has compressed image
     if (!asset.compressedImage) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(404).json({ error: 'No compressed image found for this asset' });
     }
 
     // Parse the base64 data URL
     const matches = asset.compressedImage.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/);
     if (!matches) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(500).json({ error: 'Invalid image data format' });
     }
 
@@ -944,21 +817,15 @@ export const getCompressedImage = async (req: Request, res: Response) => {
     const imageBuffer = Buffer.from(base64Data, 'base64');
 
     // Set proper headers
-    // @ts-expect-error TS(2339): Property 'setHeader' does not exist on type 'Respo... Remove this comment to see the full error message
     res.setHeader('Content-Type', `image/${mimeType}`);
-    // @ts-expect-error TS(2339): Property 'setHeader' does not exist on type 'Respo... Remove this comment to see the full error message
     res.setHeader('Content-Length', imageBuffer.length);
-    // @ts-expect-error TS(2339): Property 'setHeader' does not exist on type 'Respo... Remove this comment to see the full error message
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
-    // @ts-expect-error TS(2339): Property 'setHeader' does not exist on type 'Respo... Remove this comment to see the full error message
     res.setHeader('ETag', `"${id}-${asset.updatedAt || asset.createdAt}"`);
 
     // Send the image
-    // @ts-expect-error TS(2339): Property 'send' does not exist on type 'Response<a... Remove this comment to see the full error message
     res.send(imageBuffer);
   } catch (error) {
     console.error('Error serving compressed image:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({ error: 'Failed to serve compressed image' });
   }
 };
@@ -969,33 +836,26 @@ export const getCompressedImage = async (req: Request, res: Response) => {
  */
 export const deleteAssetPhoto = async (req: Request, res: Response) => {
   try {
-    // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
     const id = Number(req.params.id);
     if (isNaN(id)) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Invalid company asset ID' });
     }
 
     // Ensure user is authenticated and has tenantId
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     if (!req.user || !(req.user as any)?.tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(401).json({ error: 'User must be authenticated with valid organization' });
     }
 
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     const tenantId = (req.user as any).tenantId;
 
     // Check if the asset exists and belongs to the user's tenant
     const existingAsset = await companyAssetsService.getCompanyAssetById(id);
     if (!existingAsset) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(404).json({ error: 'Company asset not found' });
     }
 
     // TENANT SAFETY: Ensure asset belongs to the user's tenant
     if (existingAsset.tenantId !== tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
     }
 
@@ -1009,20 +869,17 @@ export const deleteAssetPhoto = async (req: Request, res: Response) => {
     });
 
     if (!updatedAsset) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(500).json({ error: 'Failed to delete asset photo' });
     }
 
     console.log(`[Asset Photo] Successfully deleted photo for asset ${id}`);
 
-    // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
     return res.json({ 
       success: true,
       message: 'Asset photo deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting asset photo:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({ error: 'Failed to delete asset photo' });
   }
 };
@@ -1032,58 +889,46 @@ export const deleteAssetPhoto = async (req: Request, res: Response) => {
  */
 export const updateCompanyAssetStatus = async (req: Request, res: Response) => {
   try {
-    // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
     const id = Number(req.params.id);
     if (isNaN(id)) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Invalid company asset ID' });
     }
 
-    // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
     const { status } = req.body;
     if (!status) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Status is required' });
     }
 
     // Ensure user is authenticated and has tenantId
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     if (!req.user || !(req.user as any)?.tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(401).json({ error: 'User must be authenticated with valid organization' });
     }
 
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     const tenantId = (req.user as any).tenantId;
     
     // Get the current asset to check if it exists and belongs to user's tenant
     const existingAsset = await companyAssetsService.getCompanyAssetById(id);
     if (!existingAsset) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(404).json({ error: 'Company asset not found' });
     }
 
     // TENANT SAFETY: Ensure asset belongs to the user's tenant
     if (existingAsset.tenantId !== tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
     }
 
     // Update the asset status
     const updatedAsset = await companyAssetsService.updateCompanyAssetStatus(id, status);
     if (!updatedAsset) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(404).json({ error: 'Failed to update asset status' });
     }
 
     // Serialize asset to ensure CDN URL is properly formatted
     const serializedAsset = serializeCompanyAsset(updatedAsset);
     
-    // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
     return res.json(serializedAsset);
   } catch (error) {
     console.error('Error updating company asset status:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({ error: 'Failed to update asset status' });
   }
 };
@@ -1093,44 +938,35 @@ export const updateCompanyAssetStatus = async (req: Request, res: Response) => {
  */
 export const searchCompanyAssetByBarcode = async (req: Request, res: Response) => {
   try {
-    // @ts-expect-error TS(2339): Property 'query' does not exist on type 'Request<c... Remove this comment to see the full error message
     const { barcode } = req.query;
     if (!barcode || typeof barcode !== 'string') {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Barcode query parameter is required' });
     }
 
     // Ensure user is authenticated and has tenantId
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     if (!req.user || !(req.user as any)?.tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(401).json({ error: 'User must be authenticated with valid organization' });
     }
 
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     const tenantId = (req.user as any).tenantId;
 
     // Find the asset by barcode
     const asset = await companyAssetsService.findCompanyAssetByBarcode(barcode);
     if (!asset) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(404).json({ error: 'Asset not found with the provided barcode' });
     }
 
     // TENANT SAFETY: Ensure asset belongs to the user's tenant
     if (asset.tenantId !== tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
     }
 
     // Serialize asset to ensure CDN URL is properly formatted
     const serializedAsset = serializeCompanyAsset(asset);
     
-    // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
     return res.json(serializedAsset);
   } catch (error) {
     console.error('Error searching for asset by barcode:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({ error: 'Failed to search for asset' });
   }
 };
@@ -1140,21 +976,16 @@ export const searchCompanyAssetByBarcode = async (req: Request, res: Response) =
  */
 export const importCompanyAssets = async (req: Request, res: Response) => {
   try {
-    // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
     const { assets } = req.body;
     if (!assets || !Array.isArray(assets)) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Assets array is required in the request body' });
     }
 
     // Ensure user is authenticated and has tenantId
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     if (!req.user || !(req.user as any)?.tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(401).json({ error: 'User must be authenticated with valid organization' });
     }
 
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     const tenantId = (req.user as any).tenantId;
     const results = {
       total: assets.length,
@@ -1190,11 +1021,9 @@ export const importCompanyAssets = async (req: Request, res: Response) => {
       }
     }
 
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(201).json(results);
   } catch (error) {
     console.error('Error importing company assets:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({ error: 'Failed to import assets' });
   }
 };
@@ -1209,33 +1038,26 @@ export const uploadAssetPhotoLocal = async (req: Request, res: Response) => {
     const path = await import('path');
     const fs = await import('fs');
     
-    // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
     const id = Number(req.params.id);
     if (isNaN(id)) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(400).json({ error: 'Invalid company asset ID' });
     }
 
     // Ensure user is authenticated and has tenantId
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     if (!req.user || !(req.user as any)?.tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(401).json({ error: 'User must be authenticated with valid organization' });
     }
 
-    // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
     const tenantId = (req.user as any).tenantId;
 
     // Check if the asset exists and belongs to the user's tenant
     const existingAsset = await companyAssetsService.getCompanyAssetById(id);
     if (!existingAsset) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(404).json({ error: 'Company asset not found' });
     }
 
     // TENANT SAFETY: Ensure asset belongs to the user's tenant
     if (existingAsset.tenantId !== tenantId) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
     }
 
@@ -1257,17 +1079,13 @@ export const uploadAssetPhotoLocal = async (req: Request, res: Response) => {
     }).single('file');
 
     // Handle the upload
-    // @ts-expect-error TS(2349): This expression is not callable.
     upload(req, res, async (err: any) => {
       if (err) {
         console.error('Multer error:', err);
-        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ error: err.message });
       }
 
-      // @ts-expect-error TS(2339): Property 'file' does not exist on type 'Request<co... Remove this comment to see the full error message
       if (!req.file) {
-        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
@@ -1279,13 +1097,11 @@ export const uploadAssetPhotoLocal = async (req: Request, res: Response) => {
         }
 
         // Generate unique filename
-        // @ts-expect-error TS(2339): Property 'file' does not exist on type 'Request<co... Remove this comment to see the full error message
         const fileExtension = path.extname(req.file.originalname) || '.jpg';
         const fileName = `${id}-${Date.now()}${fileExtension}`;
         const filePath = path.join(uploadsDir, fileName);
 
         // Save file to local storage
-        // @ts-expect-error TS(2339): Property 'file' does not exist on type 'Request<co... Remove this comment to see the full error message
         fs.writeFileSync(filePath, req.file.buffer);
 
         // Generate URL for the uploaded file
@@ -1295,7 +1111,6 @@ export const uploadAssetPhotoLocal = async (req: Request, res: Response) => {
         const updatedAsset = await companyAssetsService.updateCompanyAsset(id, { photoUrl });
 
         if (!updatedAsset) {
-          // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
           return res.status(500).json({ error: 'Failed to update asset photo' });
         }
 
@@ -1303,7 +1118,6 @@ export const uploadAssetPhotoLocal = async (req: Request, res: Response) => {
         const serializedAsset = serializeCompanyAsset(updatedAsset);
 
         console.log(`[Asset Photo] Local upload successful for asset ${id}: ${photoUrl}`);
-        // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
         return res.json({ 
           success: true,
           photoUrl: serializedAsset.photoUrl,
@@ -1311,13 +1125,11 @@ export const uploadAssetPhotoLocal = async (req: Request, res: Response) => {
         });
       } catch (uploadError) {
         console.error('Error during local upload:', uploadError);
-        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(500).json({ error: 'Failed to upload photo' });
       }
     });
   } catch (error) {
     console.error('Error setting up local upload:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({ error: 'Failed to setup local upload' });
   }
 };
@@ -1344,7 +1156,6 @@ export const testS3Connectivity = async (req: Request, res: Response) => {
     });
 
     if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.AWS_S3_BUCKET) {
-      // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
       return res.json({
         success: false,
         error: 'AWS environment variables not configured',
@@ -1363,7 +1174,6 @@ export const testS3Connectivity = async (req: Request, res: Response) => {
     });
 
     // Test bucket access with a simple head bucket operation
-    // @ts-expect-error TS(2792): Cannot find module '@aws-sdk/client-s3'. Did you m... Remove this comment to see the full error message
     const { HeadBucketCommand } = await import('@aws-sdk/client-s3');
     
     try {
@@ -1371,7 +1181,6 @@ export const testS3Connectivity = async (req: Request, res: Response) => {
         Bucket: process.env.AWS_S3_BUCKET!,
       }));
 
-      // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
       return res.json({
         success: true,
         message: 'S3 connectivity test passed',
@@ -1384,7 +1193,6 @@ export const testS3Connectivity = async (req: Request, res: Response) => {
     } catch (s3Error: any) {
       console.error('[S3 Test] S3 connectivity error:', s3Error);
       
-      // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
       return res.json({
         success: false,
         error: 'S3 connectivity failed',
@@ -1399,7 +1207,6 @@ export const testS3Connectivity = async (req: Request, res: Response) => {
     }
   } catch (error) {
     console.error('[S3 Test] Error testing S3 connectivity:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({
       success: false,
       error: 'Failed to test S3 connectivity',

@@ -351,187 +351,185 @@ export default function AnalyticsHeatMap({ dateRange }: AnalyticsHeatMapProps) {
     });
   }, [appointments]);
   
-  return (
-    <>
-      <Card className="w-full mb-6">
-        <CardHeader className="pb-0">
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle className="text-2xl flex items-center">
-                <Calendar className="mr-2 h-6 w-6" /> Appointment Heatmap
-              </CardTitle>
-              <CardDescription>
-                View appointment distribution and on-time performance
-              </CardDescription>
-            </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={toggleFullscreen}
-              className="h-8 w-8 p-0"
-            >
-              <Maximize2 className="h-5 w-5" />
-            </Button>
+  return <>
+    <Card className="w-full mb-6">
+      <CardHeader className="pb-0">
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle className="text-2xl flex items-center">
+              <Calendar className="mr-2 h-6 w-6" /> Appointment Heatmap
+            </CardTitle>
+            <CardDescription>
+              View appointment distribution and on-time performance
+            </CardDescription>
           </div>
-        </CardHeader>
-        
-        <CardContent className="pt-6">
-          <div className="mb-6">
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "appointments" | "ontime")}>
-              <TabsList className="grid w-full max-w-md grid-cols-2 mb-4">
-                <TabsTrigger value="appointments" className="text-sm">
-                  Appointment Count
-                </TabsTrigger>
-                <TabsTrigger value="ontime" className="text-sm">
-                  On-Time Percentage
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-            
-            {/* Filters */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div>
-                <Label htmlFor="location-filter">Facility</Label>
-                <Select 
-                  value={filter.location} 
-                  onValueChange={(value) => setFilter({...filter, location: value})}
-                >
-                  <SelectTrigger id="location-filter">
-                    <SelectValue placeholder="All Facilities" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Facilities</SelectItem>
-                    {facilities.map((facility: any) => (
-                      <SelectItem key={facility.id} value={facility.id.toString()}>{facility.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="appointment-filter">Appointment Type</Label>
-                <Select 
-                  value={filter.appointment} 
-                  onValueChange={(value) => setFilter({...filter, appointment: value})}
-                >
-                  <SelectTrigger id="appointment-filter">
-                    <SelectValue placeholder="All Types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    {appointmentTypes.map((type: any) => (
-                      <SelectItem key={type.id} value={type.id.toString()}>{type.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="customer-filter">Customer</Label>
-                <Select 
-                  value={filter.customer} 
-                  onValueChange={(value) => setFilter({...filter, customer: value})}
-                >
-                  <SelectTrigger id="customer-filter">
-                    <SelectValue placeholder="All Customers" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Customers</SelectItem>
-                    {companies.map((company: any) => (
-                      <SelectItem key={company.id} value={company.id.toString()}>{company.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="carrier-filter">Carrier</Label>
-                <Select 
-                  value={filter.carrier} 
-                  onValueChange={(value) => setFilter({...filter, carrier: value})}
-                >
-                  <SelectTrigger id="carrier-filter">
-                    <SelectValue placeholder="All Carriers" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Carriers</SelectItem>
-                    {carriers.map((carrier: any) => (
-                      <SelectItem key={carrier.id} value={carrier.id.toString()}>{carrier.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          <Button
+            variant="ghost" 
+            size="sm" 
+            onClick={toggleFullscreen}
+            className="h-8 w-8 p-0"
+          >
+            <Maximize2 className="h-5 w-5" />
+          </Button>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="pt-6">
+        <div className="mb-6">
+          <Tabs value={activeTab} onValueChange={(value: any) => setActiveTab(value as "appointments" | "ontime")}>
+            <TabsList className="grid w-full max-w-md grid-cols-2 mb-4">
+              <TabsTrigger value="appointments" className="text-sm">
+                Appointment Count
+              </TabsTrigger>
+              <TabsTrigger value="ontime" className="text-sm">
+                On-Time Percentage
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
+          {/* Filters */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div>
+              <Label htmlFor="location-filter">Facility</Label>
+              <Select 
+                value={filter.location} 
+                onValueChange={(value: any) => setFilter({...filter, location: value})}
+              >
+                <SelectTrigger id="location-filter">
+                  <SelectValue placeholder="All Facilities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Facilities</SelectItem>
+                  {facilities.map((facility: any) => (
+                    <SelectItem key={facility.id} value={facility.id.toString()}>{facility.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
-            <div className="mb-4 flex justify-end">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setFilter({
-                  location: "all",
-                  appointment: "all",
-                  customer: "all",
-                  carrier: "all"
-                })}
+            <div>
+              <Label htmlFor="appointment-filter">Appointment Type</Label>
+              <Select 
+                value={filter.appointment} 
+                onValueChange={(value: any) => setFilter({...filter, appointment: value})}
               >
-                <Filter className="h-4 w-4 mr-2" />
-                Reset Filters
-              </Button>
+                <SelectTrigger id="appointment-filter">
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {appointmentTypes.map((type: any) => (
+                    <SelectItem key={type.id} value={type.id.toString()}>{type.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="customer-filter">Customer</Label>
+              <Select 
+                value={filter.customer} 
+                onValueChange={(value: any) => setFilter({...filter, customer: value})}
+              >
+                <SelectTrigger id="customer-filter">
+                  <SelectValue placeholder="All Customers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Customers</SelectItem>
+                  {companies.map((company: any) => (
+                    <SelectItem key={company.id} value={company.id.toString()}>{company.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="carrier-filter">Carrier</Label>
+              <Select 
+                value={filter.carrier} 
+                onValueChange={(value: any) => setFilter({...filter, carrier: value})}
+              >
+                <SelectTrigger id="carrier-filter">
+                  <SelectValue placeholder="All Carriers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Carriers</SelectItem>
+                  {carriers.map((carrier: any) => (
+                    <SelectItem key={carrier.id} value={carrier.id.toString()}>{carrier.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           
+          <div className="mb-4 flex justify-end">
+            <Button
+              variant="outline" 
+              size="sm"
+              onClick={() => setFilter({
+                location: "all",
+                appointment: "all",
+                customer: "all",
+                carrier: "all"
+              })}
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Reset Filters
+            </Button>
+          </div>
+        </div>
+        
+        <HeatMapView 
+          data={heatmapData} 
+          mode={activeTab} 
+          filter={filter} 
+        />
+      </CardContent>
+    </Card>
+    
+    {/* Fullscreen Dialog */}
+    <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+      <DialogContent className="max-w-screen-xl w-[95vw] max-h-[90vh] flex flex-col">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-2xl font-bold flex items-center">
+              <Calendar className="mr-2 h-6 w-6" /> Appointment Heatmap
+            </h2>
+            <p className="text-muted-foreground">
+              View appointment distribution and on-time performance
+            </p>
+          </div>
+          <Button
+            variant="ghost" 
+            size="sm" 
+            onClick={toggleFullscreen}
+            className="h-8 w-8 p-0"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
+        
+        <div className="flex space-x-4 mb-4">
+          <Tabs value={activeTab} onValueChange={(value: any) => setActiveTab(value as "appointments" | "ontime")}>
+            <TabsList className="grid grid-cols-2 mb-2">
+              <TabsTrigger value="appointments">
+                Appointment Count
+              </TabsTrigger>
+              <TabsTrigger value="ontime">
+                On-Time Percentage
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+        
+        <div className="overflow-auto flex-grow">
           <HeatMapView 
             data={heatmapData} 
             mode={activeTab} 
             filter={filter} 
           />
-        </CardContent>
-      </Card>
-      
-      {/* Fullscreen Dialog */}
-      <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-        <DialogContent className="max-w-screen-xl w-[95vw] max-h-[90vh] flex flex-col">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h2 className="text-2xl font-bold flex items-center">
-                <Calendar className="mr-2 h-6 w-6" /> Appointment Heatmap
-              </h2>
-              <p className="text-muted-foreground">
-                View appointment distribution and on-time performance
-              </p>
-            </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={toggleFullscreen}
-              className="h-8 w-8 p-0"
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-          
-          <div className="flex space-x-4 mb-4">
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "appointments" | "ontime")}>
-              <TabsList className="grid grid-cols-2 mb-2">
-                <TabsTrigger value="appointments">
-                  Appointment Count
-                </TabsTrigger>
-                <TabsTrigger value="ontime">
-                  On-Time Percentage
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-          
-          <div className="overflow-auto flex-grow">
-            <HeatMapView 
-              data={heatmapData} 
-              mode={activeTab} 
-              filter={filter} 
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
+        </div>
+      </DialogContent>
+    </Dialog>
+  </>;
 }

@@ -136,7 +136,7 @@ export const uploadBol = async (req: AuthenticatedRequest, res: Response) => {
       } 
     });
 
-    bb.on('file', async (name, file, info) => {
+    bb.on('file', async (name: any, file: any, info: any) => {
       try {
         const { filename, mimeType } = info;
         
@@ -184,7 +184,7 @@ export const uploadBol = async (req: AuthenticatedRequest, res: Response) => {
       }
     });
 
-    bb.on('field', (name, value) => {
+    bb.on('field', (name: any, value: any) => {
       // Handle form fields if needed
       console.log(`[BOL Upload] Form field: ${name} = ${value}`);
     });
@@ -204,7 +204,7 @@ export const uploadBol = async (req: AuthenticatedRequest, res: Response) => {
       }
     });
 
-    bb.on('error', (error) => {
+    bb.on('error', (error: any) => {
       console.error('[BOL Upload] Busboy error:', error);
       res.status(500).json({ error: 'Upload processing error' });
     });

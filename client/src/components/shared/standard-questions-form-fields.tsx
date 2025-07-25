@@ -91,7 +91,9 @@ export function StandardQuestionsFormFields({
           <FormField
             control={form.control}
             name={fieldName}
-            render={({ field }) => (
+            render={({
+              field
+            }: any) => (
               <FormItem>
                 <FormLabel>
                   {question.label}
@@ -115,7 +117,9 @@ export function StandardQuestionsFormFields({
           <FormField
             control={form.control}
             name={fieldName}
-            render={({ field }) => (
+            render={({
+              field
+            }: any) => (
               <FormItem>
                 <FormLabel>
                   {question.label}
@@ -140,7 +144,9 @@ export function StandardQuestionsFormFields({
           <FormField
             control={form.control}
             name={fieldName}
-            render={({ field }) => (
+            render={({
+              field
+            }: any) => (
               <FormItem>
                 <FormLabel>
                   {question.label}
@@ -165,7 +171,9 @@ export function StandardQuestionsFormFields({
           <FormField
             control={form.control}
             name={fieldName}
-            render={({ field }) => (
+            render={({
+              field
+            }: any) => (
               <FormItem>
                 <FormLabel>
                   {question.label}
@@ -190,7 +198,9 @@ export function StandardQuestionsFormFields({
           <FormField
             control={form.control}
             name={fieldName}
-            render={({ field }) => (
+            render={({
+              field
+            }: any) => (
               <FormItem>
                 <FormLabel>
                   {question.label}
@@ -215,7 +225,9 @@ export function StandardQuestionsFormFields({
           <FormField
             control={form.control}
             name={fieldName}
-            render={({ field }) => (
+            render={({
+              field
+            }: any) => (
               <FormItem>
                 <FormLabel>
                   {question.label}
@@ -246,7 +258,9 @@ export function StandardQuestionsFormFields({
           <FormField
             control={form.control}
             name={fieldName}
-            render={({ field }) => (
+            render={({
+              field
+            }: any) => (
               <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                 <FormControl>
                   <Checkbox
@@ -271,7 +285,9 @@ export function StandardQuestionsFormFields({
           <FormField
             control={form.control}
             name={fieldName}
-            render={({ field }) => (
+            render={({
+              field
+            }: any) => (
               <FormItem>
                 <FormLabel>
                   {question.label}

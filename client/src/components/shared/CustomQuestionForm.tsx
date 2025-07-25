@@ -96,8 +96,7 @@ export function CustomQuestionForm({
       if (data.options && showOptionsField) {
         try {
           // Handle options as a comma-separated string
-          const optionsArray = data.options.split(',').map(opt => opt.trim()).filter(opt => opt);
-          // @ts-ignore - We're manually handling this property
+          const optionsArray = data.options.split(',').map((opt: any) => opt.trim()).filter((opt: any) => opt);
           data.options = JSON.stringify(optionsArray);
         } catch (error) {
           console.error('Error processing options:', error);
@@ -121,7 +120,6 @@ export function CustomQuestionForm({
       
       // If not showing options field, ensure options is set to empty
       if (!showOptionsField) {
-        // @ts-ignore - We're manually handling this property
         data.options = '';
       }
       
@@ -144,7 +142,7 @@ export function CustomQuestionForm({
   };
   
   return (
-    <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={open} onOpenChange={(open: any) => !open && onClose()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit Question' : 'Add Custom Question'}</DialogTitle>
@@ -155,7 +153,9 @@ export function CustomQuestionForm({
             <FormField
               control={form.control}
               name="label"
-              render={({ field }) => (
+              render={({
+                field
+              }: any) => (
                 <FormItem>
                   <FormLabel>Question Label</FormLabel>
                   <FormControl>
@@ -172,7 +172,9 @@ export function CustomQuestionForm({
             <FormField
               control={form.control}
               name="fieldKey"
-              render={({ field }) => (
+              render={({
+                field
+              }: any) => (
                 <FormItem>
                   <FormLabel>Field Key</FormLabel>
                   <FormControl>
@@ -189,7 +191,9 @@ export function CustomQuestionForm({
             <FormField
               control={form.control}
               name="fieldType"
-              render={({ field }) => (
+              render={({
+                field
+              }: any) => (
                 <FormItem>
                   <FormLabel>Field Type</FormLabel>
                   <Select 
@@ -225,7 +229,9 @@ export function CustomQuestionForm({
               <FormField
                 control={form.control}
                 name="options"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Options</FormLabel>
                     <FormControl>
@@ -246,7 +252,9 @@ export function CustomQuestionForm({
             <FormField
               control={form.control}
               name="orderPosition"
-              render={({ field }) => (
+              render={({
+                field
+              }: any) => (
                 <FormItem>
                   <FormLabel>Display Order</FormLabel>
                   <FormControl>
@@ -269,7 +277,9 @@ export function CustomQuestionForm({
               <FormField
                 control={form.control}
                 name="required"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                     <div className="space-y-0.5">
                       <FormLabel>Required</FormLabel>
@@ -290,7 +300,9 @@ export function CustomQuestionForm({
               <FormField
                 control={form.control}
                 name="included"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                     <div className="space-y-0.5">
                       <FormLabel>Included</FormLabel>

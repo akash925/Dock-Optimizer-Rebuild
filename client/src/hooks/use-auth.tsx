@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     enabled: !skipAuth,
     retry: false,
     refetchOnWindowFocus: !skipAuth,
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error fetching user:", error);
       toast({
         title: "Error fetching user",

@@ -256,7 +256,7 @@ export function DateTimeSelection({
 
       {/* Navigation */}
       <div className="flex justify-between pt-6">
-        <Button 
+        <Button
           variant="outline" 
           onClick={onBack}
           size="lg"

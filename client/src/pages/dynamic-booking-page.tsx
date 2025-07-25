@@ -270,8 +270,7 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
             
             // Handle different formats of bookingPage.facilities
             if (Array.isArray(bookingPage.facilities)) {
-              bookingPageFacilityIds = bookingPage.facilities.map(id => 
-                typeof id === 'string' ? parseInt(id, 10) : id
+              bookingPageFacilityIds = bookingPage.facilities.map((id: any) => typeof id === 'string' ? parseInt(id, 10) : id
               );
             } else if (typeof bookingPage.facilities === 'string') {
               try {
@@ -290,12 +289,11 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
             console.log("Booking page facility IDs:", bookingPageFacilityIds);
             
             // Filter facilities to only those specified in the booking page
-            const filteredFacilities = facilities.filter(facility => 
-              bookingPageFacilityIds.includes(facility.id)
+            const filteredFacilities = facilities.filter((facility: any) => bookingPageFacilityIds.includes(facility.id)
             );
             
             // Add filtered facilities to the map
-            filteredFacilities.forEach(facility => {
+            filteredFacilities.forEach((facility: any) => {
               facilitiesMap[facility.id] = {
                 facility,
                 excludedAppointmentTypes: []
@@ -307,7 +305,7 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
             console.warn("No facilities data found in booking page, using tenant-filtered facilities");
             
             // If no facilities specified, use all tenant-filtered facilities
-            facilities.forEach(facility => {
+            facilities.forEach((facility: any) => {
               facilitiesMap[facility.id] = {
                 facility,
                 excludedAppointmentTypes: []
@@ -610,8 +608,8 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
         }
       } else if (data.slots && Array.isArray(data.slots)) {
         // Extract available times from slots array
-        const availableSlots = data.slots.filter(slot => slot.available);
-        const times = availableSlots.map(slot => slot.time);
+        const availableSlots = data.slots.filter((slot: any) => slot.available);
+        const times = availableSlots.map((slot: any) => slot.time);
         
         console.log(`[ExternalBooking] Found ${availableSlots.length} available slots out of ${data.slots.length} total slots`);
         
@@ -794,11 +792,11 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
   
   // Get the selected appointment type name
   const selectedAppointmentTypeId = initialSelectionForm.watch("appointmentType");
-  const selectedAppointmentType = appointmentTypes.find(type => type.id.toString() === selectedAppointmentTypeId);
+  const selectedAppointmentType = appointmentTypes.find((type: any) => type.id.toString() === selectedAppointmentTypeId);
   
   // Get the selected facility name
   const selectedFacilityId = initialSelectionForm.watch("location");
-  const selectedFacility = facilities.find(facility => facility.id.toString() === selectedFacilityId);
+  const selectedFacility = facilities.find((facility: any) => facility.id.toString() === selectedFacilityId);
   
   return (
     <div className="min-h-screen bg-gray-50" style={styleVariables}>
@@ -893,7 +891,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                     <FormField
                       control={initialSelectionForm.control}
                       name="location"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem>
                           <FormLabel>Location</FormLabel>
                           <Select
@@ -924,7 +924,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                     <FormField
                       control={initialSelectionForm.control}
                       name="appointmentType"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem>
                           <FormLabel>Appointment Type</FormLabel>
                           <Select
@@ -939,12 +941,10 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                             </FormControl>
                             <SelectContent>
                               {selectedLocation && appointmentTypes
-                                .filter(type => type.facilityId === Number(selectedLocation))
-                                .map(type => (
-                                  <SelectItem key={type.id} value={type.id.toString()}>
-                                    {type.name} ({type.duration} min)
-                                  </SelectItem>
-                              ))}
+                                .filter((type: any) => type.facilityId === Number(selectedLocation))
+                                .map((type: any) => <SelectItem key={type.id} value={type.id.toString()}>
+                                {type.name} ({type.duration} min)
+                              </SelectItem>)}
                             </SelectContent>
                           </Select>
                           <FormDescription>
@@ -958,7 +958,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                     <FormField
                       control={initialSelectionForm.control}
                       name="pickupOrDropoff"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem className="space-y-3">
                           <FormLabel>Appointment Direction</FormLabel>
                           <FormControl>
@@ -1029,7 +1031,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                     <FormField
                       control={companyInfoForm.control}
                       name="customerName"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem>
                           <FormLabel>Company Name</FormLabel>
                           <FormControl>
@@ -1046,7 +1050,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                     <FormField
                       control={companyInfoForm.control}
                       name="contactName"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem>
                           <FormLabel>Contact Name</FormLabel>
                           <FormControl>
@@ -1064,7 +1070,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                       <FormField
                         control={companyInfoForm.control}
                         name="contactEmail"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem>
                             <FormLabel>Email Address</FormLabel>
                             <FormControl>
@@ -1081,7 +1089,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                       <FormField
                         control={companyInfoForm.control}
                         name="contactPhone"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem>
                             <FormLabel>Phone Number</FormLabel>
                             <FormControl>
@@ -1121,7 +1131,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                       <FormField
                         control={appointmentDetailsForm.control}
                         name="appointmentDate"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem className="flex flex-col">
                             <FormLabel>Appointment Date</FormLabel>
                             <Popover>
@@ -1149,7 +1161,7 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                                   selected={selectedDate}
                                   onSelect={setSelectedDate}
                                   initialFocus
-                                  disabled={(date) => {
+                                  disabled={(date: any) => {
                                     const today = new Date();
                                     today.setHours(0, 0, 0, 0);
                                     // Disable past dates and weekends
@@ -1174,7 +1186,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                       <FormField
                         control={appointmentDetailsForm.control}
                         name="appointmentTime"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem>
                             <FormLabel>Appointment Time</FormLabel>
                             <Select
@@ -1227,7 +1241,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                       <FormField
                         control={appointmentDetailsForm.control}
                         name="carrierName"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem>
                             <FormLabel>Carrier Name</FormLabel>
                             <FormControl>
@@ -1241,7 +1257,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                       <FormField
                         control={appointmentDetailsForm.control}
                         name="mcNumber"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem>
                             <FormLabel>MC Number (Optional)</FormLabel>
                             <FormControl>
@@ -1257,7 +1275,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                       <FormField
                         control={appointmentDetailsForm.control}
                         name="truckNumber"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem>
                             <FormLabel>Truck Number</FormLabel>
                             <FormControl>
@@ -1271,7 +1291,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                       <FormField
                         control={appointmentDetailsForm.control}
                         name="trailerNumber"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem>
                             <FormLabel>Trailer Number (Optional)</FormLabel>
                             <FormControl>
@@ -1287,7 +1309,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                       <FormField
                         control={appointmentDetailsForm.control}
                         name="driverName"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem>
                             <FormLabel>Driver Name</FormLabel>
                             <FormControl>
@@ -1301,7 +1325,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                       <FormField
                         control={appointmentDetailsForm.control}
                         name="driverPhone"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem>
                             <FormLabel>Driver Phone</FormLabel>
                             <FormControl>
@@ -1319,7 +1345,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                       <FormField
                         control={appointmentDetailsForm.control}
                         name="poNumber"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem>
                             <FormLabel>PO Number (Optional)</FormLabel>
                             <FormControl>
@@ -1333,7 +1361,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                       <FormField
                         control={appointmentDetailsForm.control}
                         name="bolNumber"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem>
                             <FormLabel>BOL Number (Optional)</FormLabel>
                             <FormControl>
@@ -1349,7 +1379,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                       <FormField
                         control={appointmentDetailsForm.control}
                         name="palletCount"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem>
                             <FormLabel>Pallet Count (Optional)</FormLabel>
                             <FormControl>
@@ -1363,7 +1395,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                       <FormField
                         control={appointmentDetailsForm.control}
                         name="weight"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem>
                             <FormLabel>Weight (Optional)</FormLabel>
                             <FormControl>
@@ -1378,7 +1412,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                     <FormField
                       control={appointmentDetailsForm.control}
                       name="additionalNotes"
-                      render={({ field }) => (
+                      render={({
+                        field
+                      }: any) => (
                         <FormItem>
                           <FormLabel>Additional Notes (Optional)</FormLabel>
                           <FormControl>

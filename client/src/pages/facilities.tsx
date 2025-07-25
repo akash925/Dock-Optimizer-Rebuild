@@ -128,43 +128,41 @@ export default function FacilitiesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {facilities?.map((facility) => (
-                    <TableRow key={facility.id}>
-                      <TableCell className="font-medium">{facility.name}</TableCell>
-                      <TableCell>
-                        <div className="flex items-start gap-1">
-                          <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                          <span>{formatAddress(facility)}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span>{facility.timezone}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Actions</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEditFacility(facility.id)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit Facility
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleViewFacilitySchedule(facility.id)}>
-                              <Clock className="mr-2 h-4 w-4" />
-                              View Schedule
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {facilities?.map((facility: any) => <TableRow key={facility.id}>
+                    <TableCell className="font-medium">{facility.name}</TableCell>
+                    <TableCell>
+                      <div className="flex items-start gap-1">
+                        <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                        <span>{formatAddress(facility)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>{facility.timezone}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEditFacility(facility.id)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit Facility
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleViewFacilitySchedule(facility.id)}>
+                            <Clock className="mr-2 h-4 w-4" />
+                            View Schedule
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>)}
                 </TableBody>
               </Table>
             </CardContent>

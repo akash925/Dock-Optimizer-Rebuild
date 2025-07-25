@@ -152,7 +152,6 @@ function FacilityItem({ facility, isSelected: initialIsSelected, onToggle, selec
           >
             {facility.name}
           </Label>
-          
           <Badge variant={selectedCount > 0 ? "default" : "outline"} className="ml-2">
             {selectedCount}/{facilityTypes} Types
           </Badge>
@@ -477,7 +476,7 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       queryClient.invalidateQueries({ queryKey: ['/api/booking-pages'] });
       onSuccess();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error creating booking page:", error);
       toast({
         title: "Error",
@@ -543,7 +542,7 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
         throw error;
       }
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       console.log("Update mutation succeeded with data:", data);
       toast({
         title: "Success",
@@ -553,7 +552,7 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       queryClient.invalidateQueries({ queryKey: ['/api/booking-pages'] });
       onSuccess();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error updating booking page:", error);
       toast({
         title: "Error",
@@ -813,7 +812,9 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
           <FormField
             control={form.control}
             name="name"
-            render={({ field }) => (
+            render={({
+              field
+            }: any) => (
               <FormItem>
                 <FormLabel>Name</FormLabel>
                 <FormControl>
@@ -841,7 +842,9 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
           <FormField
             control={form.control}
             name="slug"
-            render={({ field }) => (
+            render={({
+              field
+            }: any) => (
               <FormItem>
                 <FormLabel>Slug</FormLabel>
                 <FormControl>
@@ -862,7 +865,9 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
         <FormField
           control={form.control}
           name="title"
-          render={({ field }) => (
+          render={({
+            field
+          }: any) => (
             <FormItem>
               <FormLabel>Page Title</FormLabel>
               <FormControl>
@@ -882,7 +887,9 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
         <FormField
           control={form.control}
           name="description"
-          render={({ field }) => (
+          render={({
+            field
+          }: any) => (
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
@@ -904,7 +911,9 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
           <FormField
             control={form.control}
             name="welcomeMessage"
-            render={({ field }) => (
+            render={({
+              field
+            }: any) => (
               <FormItem>
                 <FormLabel>Introduction Text</FormLabel>
                 <FormControl>
@@ -925,7 +934,9 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
           <FormField
             control={form.control}
             name="confirmationMessage"
-            render={({ field }) => (
+            render={({
+              field
+            }: any) => (
               <FormItem>
                 <FormLabel>Success Message</FormLabel>
                 <FormControl>
@@ -947,7 +958,9 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
         <FormField
           control={form.control}
           name="useOrganizationLogo"
-          render={({ field }) => (
+          render={({
+            field
+          }: any) => (
             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
                 <FormLabel className="text-base">Use Organization Logo</FormLabel>
@@ -969,7 +982,9 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
           <FormField
             control={form.control}
             name="customLogo"
-            render={({ field }) => (
+            render={({
+              field
+            }: any) => (
               <FormItem>
                 <FormLabel>Custom Logo URL</FormLabel>
                 <FormControl>
@@ -991,7 +1006,9 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
           <FormField
             control={form.control}
             name="primaryColor"
-            render={({ field }) => (
+            render={({
+              field
+            }: any) => (
               <FormItem>
                 <FormLabel>Primary Color</FormLabel>
                 <div className="flex gap-2">
@@ -1024,7 +1041,9 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
         <FormField
           control={form.control}
           name="isActive"
-          render={({ field }) => (
+          render={({
+            field
+          }: any) => (
             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
                 <FormLabel className="text-base">Active Status</FormLabel>
@@ -1076,12 +1095,11 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
                 {facilities && facilities.length > 0 ? (
                   facilities
-                    .filter(facility => 
-                      !debouncedSearchTerm || 
-                      facility.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-                      facility.city.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+                    .filter((facility: any) => !debouncedSearchTerm || 
+                  facility.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                  facility.city.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
                     )
-                    .map((facility) => {
+                    .map((facility: any) => {
                       // Get all appointment types for this facility
                       const facilityTypes = Object.values(appointmentTypes)
                         .filter(type => type.facilityId === facility.id)
@@ -1116,8 +1134,8 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
               <h4 className="font-medium text-base mb-3">Appointment Types</h4>
               <div className="max-h-[300px] overflow-y-auto pr-1 space-y-3">
                 {facilities
-                  .filter(facility => selectedFacilities.includes(facility.id))
-                  .map(facility => {
+                  .filter((facility: any) => selectedFacilities.includes(facility.id))
+                  .map((facility: any) => {
                     // Filter appointment types for this facility
                     const facilityAppointmentTypes = appointmentTypes
                       ? Object.values(appointmentTypes)

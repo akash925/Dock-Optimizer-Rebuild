@@ -204,7 +204,7 @@ export default function LandingPage() {
               Take control of your warehouse schedule and streamline your dock scheduling with Dock Optimizer.
             </p>
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-              <Button 
+              <Button
                 size="lg" 
                 className="bg-white text-blue-600 hover:bg-blue-50 font-bold text-lg px-8 py-4 rounded-xl shadow-2xl transform hover:scale-105 transition-all"
                 onClick={handleBookDemo}
@@ -212,7 +212,7 @@ export default function LandingPage() {
                 <PlayCircleIcon className="mr-3 h-6 w-6" />
                 Book a Demo
               </Button>
-              <Button 
+              <Button
                 size="lg" 
                 variant="outline" 
                 className="border-2 border-white text-blue-600 bg-white hover:bg-blue-50 hover:text-blue-700 font-bold text-lg px-8 py-4 rounded-xl backdrop-blur-sm transform hover:scale-105 transition-all"
@@ -412,7 +412,7 @@ export default function LandingPage() {
           <p className="text-xl mb-8 max-w-3xl mx-auto">
             Discover the key benefits of using Dock Optimizer and how it can revolutionize your dock scheduling and operations.
           </p>
-          <Button 
+          <Button
             size="lg" 
             className="bg-white text-blue-600 hover:bg-gray-100"
             onClick={handleBookDemo}
@@ -463,7 +463,7 @@ export default function LandingPage() {
               © 2025 <a href="https://conmitto.io" target="_blank" rel="noopener noreferrer" className="hover:text-white">Conmitto Inc</a>. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
-              <Button 
+              <Button
                 variant="ghost" 
                 size="sm" 
                 onClick={handleLogin}
@@ -471,7 +471,7 @@ export default function LandingPage() {
               >
                 Login
               </Button>
-              <Button 
+              <Button
                 size="sm" 
                 onClick={handleSignUp}
                 className="bg-blue-600 hover:bg-blue-700"

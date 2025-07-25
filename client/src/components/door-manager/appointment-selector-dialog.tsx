@@ -57,13 +57,13 @@ export default function AppointmentSelectorDialog({
   // Get the facility name
   const getFacilityName = (facilityId: number | null) => {
     if (!facilityId) return "All Facilities";
-    const facility = facilities.find(f => f.id === facilityId);
+    const facility = facilities.find((f: any) => f.id === facilityId);
     return facility ? facility.name : "Unknown Facility";
   };
   
   useEffect(() => {
     if (schedules.length > 0) {
-      let filtered = schedules.filter(schedule => {
+      let filtered = schedules.filter((schedule: any) => {
         // Only include scheduled or pending appointments
         const statusOk = (schedule.status === "scheduled" || schedule.status === "pending");
         
@@ -78,13 +78,12 @@ export default function AppointmentSelectorDialog({
       
       // For "upcoming" tab, only show future appointments
       if (tab === "upcoming") {
-        filtered = filtered.filter(schedule => 
-          isFuture(new Date(schedule.startTime))
+        filtered = filtered.filter((schedule: any) => isFuture(new Date(schedule.startTime))
         );
       }
       
       // Sort by startTime (soonest first)
-      filtered.sort((a, b) => 
+      filtered.sort((a: any, b: any) => 
         new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
       );
       
@@ -108,7 +107,7 @@ export default function AppointmentSelectorDialog({
     console.log(`[AppointmentSelector] QR scan detected appointment ${scheduleId}`);
     
     // Find the appointment in our filtered list
-    const scannedAppointment = schedules.find(s => s.id === scheduleId);
+    const scannedAppointment = schedules.find((s: any) => s.id === scheduleId);
     
     if (scannedAppointment) {
       // Check if this appointment is available for assignment
@@ -129,7 +128,7 @@ export default function AppointmentSelectorDialog({
   };
   
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open: any) => !open && onClose()}>
       <DialogContent className="sm:max-w-[650px] w-[95vw] max-w-[95vw] sm:w-auto max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Select or Create Appointment</DialogTitle>
@@ -148,7 +147,7 @@ export default function AppointmentSelectorDialog({
             </div>
             <Select 
               value={selectedFacilityId?.toString() || "0"} 
-              onValueChange={(value) => {
+              onValueChange={(value: any) => {
                 // If value is "0", it means "All Facilities" (null)
                 const newFacilityId = value === "0" ? null : parseInt(value);
                 setSelectedFacilityId(newFacilityId);
@@ -165,11 +164,9 @@ export default function AppointmentSelectorDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="0">All Facilities</SelectItem>
-                {facilities.map((facility) => (
-                  <SelectItem key={facility.id} value={facility.id.toString()}>
-                    {facility.name}
-                  </SelectItem>
-                ))}
+                {facilities.map((facility: any) => <SelectItem key={facility.id} value={facility.id.toString()}>
+                  {facility.name}
+                </SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -186,7 +183,7 @@ export default function AppointmentSelectorDialog({
         </div>
         
         <div className="flex-1 overflow-hidden">
-          <Tabs defaultValue="upcoming" className="w-full h-full flex flex-col" onValueChange={(value) => setTab(value as "upcoming" | "all")}>
+          <Tabs defaultValue="upcoming" className="w-full h-full flex flex-col" onValueChange={(value: any) => setTab(value as "upcoming" | "all")}>
             <TabsList className="grid w-full grid-cols-2 mb-2 flex-shrink-0">
               <TabsTrigger value="upcoming">Upcoming Appointments</TabsTrigger>
               <TabsTrigger value="all">All Unassigned</TabsTrigger>
@@ -237,7 +234,7 @@ export default function AppointmentSelectorDialog({
                               </div>
                             </div>
                             
-                            <Button 
+                            <Button
                               size="sm" 
                               onClick={(e) => {
                                 e.stopPropagation();

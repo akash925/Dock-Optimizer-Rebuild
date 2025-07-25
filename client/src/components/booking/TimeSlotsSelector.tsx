@@ -88,7 +88,7 @@ export function TimeSlotsSelector({
     return (
       <div className="text-center py-8">
         <p className="text-red-600 mb-4">{error}</p>
-        <Button 
+        <Button
           variant="outline" 
           onClick={() => window.location.reload()}
         >

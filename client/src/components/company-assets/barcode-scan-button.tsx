@@ -79,7 +79,7 @@ export function BarcodeScanButton({ variant = 'ghost', size = 'icon' }: BarcodeS
 
   return (
     <>
-      <Button 
+      <Button
         variant={variant}
         size={size}
         onClick={handleOpenScanner}

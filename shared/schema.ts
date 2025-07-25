@@ -510,7 +510,9 @@ export const organizationUsers = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow(), // ← added
   },
-  (t) => ({ orgUserUnique: unique().on(t.organizationId, t.userId) }),
+  (t: any) => ({
+    orgUserUnique: unique().on(t.organizationId, t.userId)
+  }),
 );
 
 export const organizationModules = pgTable(
@@ -525,7 +527,9 @@ export const organizationModules = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow(), // ← added
   },
-  (t) => ({ orgModuleUnique: unique().on(t.organizationId, t.moduleName) }),
+  (t: any) => ({
+    orgModuleUnique: unique().on(t.organizationId, t.moduleName)
+  }),
 );
 
 export const organizationFacilities = pgTable(
@@ -540,7 +544,9 @@ export const organizationFacilities = pgTable(
       .references(() => facilities.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (t) => ({ orgFacilityUnique: unique().on(t.organizationId, t.facilityId) }),
+  (t: any) => ({
+    orgFacilityUnique: unique().on(t.organizationId, t.facilityId)
+  }),
 );
 
 /* ───────────────────────────── Daily availability ───────────────────────── */

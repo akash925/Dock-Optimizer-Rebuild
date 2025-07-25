@@ -346,7 +346,7 @@ export default function EnhancedNotificationBell() {
         <div className="flex items-start gap-3">
           <Checkbox
             checked={isSelected}
-            onCheckedChange={(checked) => handleNotificationSelect(notification.id, !!checked)}
+            onCheckedChange={(checked: any) => handleNotificationSelect(notification.id, !!checked)}
           />
           
           <div className="flex-1 min-w-0">
@@ -405,7 +405,7 @@ export default function EnhancedNotificationBell() {
             <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
           )}
           {totalUnread > 0 && (
-            <Badge 
+            <Badge
               variant="destructive" 
               className="absolute -top-2 -right-2 h-5 w-5 p-0 text-xs flex items-center justify-center"
             >
@@ -551,7 +551,7 @@ export default function EnhancedNotificationBell() {
                   {group.icon}
                   <span className="hidden sm:inline">{group.label}</span>
                   {group.count > 0 && (
-                    <Badge 
+                    <Badge
                       variant={group.urgentCount > 0 ? 'destructive' : 'secondary'}
                       className="h-4 text-xs"
                     >

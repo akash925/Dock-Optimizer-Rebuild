@@ -59,10 +59,9 @@ export default function OrganizationsPage() {
       }
       
       const lowerCaseSearch = searchValue.toLowerCase();
-      const filtered = organizations.filter(org => 
-        org.name.toLowerCase().includes(lowerCaseSearch) || 
-        org.subdomain?.toLowerCase().includes(lowerCaseSearch) ||
-        org.status?.toLowerCase().includes(lowerCaseSearch)
+      const filtered = organizations.filter((org: any) => org.name.toLowerCase().includes(lowerCaseSearch) || 
+      org.subdomain?.toLowerCase().includes(lowerCaseSearch) ||
+      org.status?.toLowerCase().includes(lowerCaseSearch)
       );
       
       setFilteredOrganizations(filtered);
@@ -146,7 +145,7 @@ export default function OrganizationsPage() {
                 <Search className="h-8 w-8 mb-2 opacity-50" />
                 <p>No organizations found matching "{searchTerm}"</p>
                 {searchTerm && (
-                  <Button 
+                  <Button
                     variant="link" 
                     onClick={() => {
                       setSearchTerm("");

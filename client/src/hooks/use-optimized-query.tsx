@@ -185,7 +185,7 @@ export function useOptimizedQuery<T>(
 
     // Listen for mutation events
     invalidateOnMutation.forEach(mutationKey => {
-      const unsubscribe = queryClient.getMutationCache().subscribe(event => {
+      const unsubscribe = queryClient.getMutationCache().subscribe((event: any) => {
         if (event.type === 'updated' && event.mutation.options.mutationKey?.includes(mutationKey)) {
           if (event.mutation.state.status === 'success') {
             queryClient.invalidateQueries({ queryKey });
@@ -238,7 +238,7 @@ export function useOptimizedMutation<TData, TVariables>(
 
   return useMutation({
     mutationFn,
-    onMutate: async (variables) => {
+    onMutate: async (variables: any) => {
       const rollbackData: { queryKey: QueryKey; previousData: any }[] = [];
 
       // Apply optimistic updates
@@ -256,15 +256,18 @@ export function useOptimizedMutation<TData, TVariables>(
 
       return { rollbackData };
     },
-    onError: (error, variables, context) => {
+    onError: (error: any, variables: any, context: any) => {
       // Rollback optimistic updates on error
       if (rollbackOnError && context?.rollbackData) {
-        context.rollbackData.forEach(({ queryKey, previousData }) => {
+        context.rollbackData.forEach(({
+          queryKey,
+          previousData
+        }: any) => {
           queryClient.setQueryData(queryKey, previousData);
         });
       }
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (data: any, variables: any) => {
       // Update related queries
       updateQueries.forEach(({ queryKey, updater }) => {
         queryClient.setQueryData(queryKey, (oldData: any) => {
@@ -340,7 +343,7 @@ export function useQueryPerformance(queryKey: QueryKey) {
     let errorCount = 0;
     let cacheHits = 0;
 
-    const unsubscribe = queryClient.getQueryCache().subscribe(event => {
+    const unsubscribe = queryClient.getQueryCache().subscribe((event: any) => {
       if (event.query.queryKey === queryKey) {
         if (event.type === 'updated') {
           fetchCount++;

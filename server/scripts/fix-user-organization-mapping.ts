@@ -23,7 +23,7 @@ export async function fixUserOrganizationMappings() {
     console.log(`📊 FOUND: ${allUsers.length} users, ${allOrganizations.length} organizations, ${allRoles.length} roles`);
     
     // STEP 2: Get or create default admin role
-    let adminRole = allRoles.find(r => r.name.toLowerCase() === 'admin');
+    let adminRole = allRoles.find((r: any) => r.name.toLowerCase() === 'admin');
     if (!adminRole) {
       console.log("🔧 Creating default admin role...");
       const [newRole] = await safeQuery(() => 
@@ -56,15 +56,13 @@ export async function fixUserOrganizationMappings() {
         
         if (emailDomain === 'hanzo.com' || user.username?.toLowerCase().includes('hanzo')) {
           // Find Hanzo organization
-          const hanzoOrg = allOrganizations.find(org => 
-            org.name?.toLowerCase().includes('hanzo')
+          const hanzoOrg = allOrganizations.find((org: any) => org.name?.toLowerCase().includes('hanzo')
           );
           targetOrgId = hanzoOrg?.id || 2; // Default to org 2 if Hanzo org exists
           console.log(`   🏢 Mapped to Hanzo organization: ${targetOrgId}`);
         } else if (emailDomain === 'fresh.com' || user.username?.toLowerCase().includes('fresh')) {
           // Find Fresh organization  
-          const freshOrg = allOrganizations.find(org => 
-            org.name?.toLowerCase().includes('fresh')
+          const freshOrg = allOrganizations.find((org: any) => org.name?.toLowerCase().includes('fresh')
           );
           targetOrgId = freshOrg?.id || 1; // Default to org 1
           console.log(`   🏢 Mapped to Fresh organization: ${targetOrgId}`);
@@ -137,7 +135,7 @@ export async function fixUserOrganizationMappings() {
       );
       
       console.log(`\n🏢 ${org.name} (ID: ${org.id}): ${orgUsers.length} users`);
-      orgUsers.forEach(user => {
+      orgUsers.forEach((user: any) => {
         console.log(`   👤 ${user.username} (${user.email}) - Role: ${user.roleName}`);
       });
     }

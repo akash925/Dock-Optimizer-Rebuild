@@ -266,7 +266,7 @@ router.post('/register', async (req: Request, res: Response) => {
         // Get or create admin role
         let adminRole = await storage.getRoleByName?.('admin');
         if (!adminRole) {
-          const roles = await storage.getRoles?.() || [];
+          const roles = (await storage.getRoles?.()) || [];
           adminRole = roles.find(r => r.name.toLowerCase() === 'admin');
         }
         

@@ -451,7 +451,7 @@ export function AssetImport() {
       
       return await response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast({
         title: 'Import Successful',
         description: `Successfully imported ${data.successful} of ${data.total} assets.`,

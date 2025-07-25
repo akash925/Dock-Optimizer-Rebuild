@@ -138,7 +138,7 @@ export default function CalendarPage() {
   const filteredSchedules = React.useMemo(() => {
     if (!schedules) return [];
     
-    return schedules.filter(schedule => {
+    return schedules.filter((schedule: any) => {
       // Filter by facility
       if (selectedFacilityId !== "all") {
         // Check if we have facilityId from the schedule
@@ -236,7 +236,7 @@ export default function CalendarPage() {
             <Label htmlFor="timezone-select" className="text-xs">Timezone</Label>
             <Select 
               value={selectedTimezone} 
-              onValueChange={(timezone) => {
+              onValueChange={(timezone: any) => {
                 setSelectedTimezone(timezone);
                 // Fixed: Don't try to manipulate the calendar directly
                 // The FullCalendarView component will handle the timezone change via props
@@ -260,7 +260,7 @@ export default function CalendarPage() {
           
           {/* Today, prev, next buttons */}
           <div className="flex items-end justify-center space-x-1">
-            <Button 
+            <Button
               variant="outline" 
               size="sm"
               onClick={() => {
@@ -277,7 +277,7 @@ export default function CalendarPage() {
             >
               Today
             </Button>
-            <Button 
+            <Button
               variant="outline" 
               size="sm"
               onClick={() => {
@@ -294,7 +294,7 @@ export default function CalendarPage() {
             >
               ←
             </Button>
-            <Button 
+            <Button
               variant="outline" 
               size="sm"
               onClick={() => {
@@ -483,7 +483,7 @@ export default function CalendarPage() {
           
           {/* Clear filters button */}
           <div className="flex items-end justify-start md:col-span-2">
-            <Button 
+            <Button
               variant="outline" 
               size="sm" 
               className="h-8 px-3 text-xs"

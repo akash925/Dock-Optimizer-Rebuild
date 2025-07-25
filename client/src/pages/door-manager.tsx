@@ -86,9 +86,8 @@ export default function DoorManager() {
     const now = new Date();
     
     // First check if door has an in-progress appointment
-    const inProgressSchedule = schedules.find(s => 
-      s.dockId === dock.id && 
-      s.status === "in-progress"
+    const inProgressSchedule = schedules.find((s: any) => s.dockId === dock.id && 
+    s.status === "in-progress"
     );
     
     if (inProgressSchedule) {
@@ -96,12 +95,11 @@ export default function DoorManager() {
     }
     
     // Next check if door is occupied (has active appointment within time window)
-    const currentSchedule = schedules.find(s => 
-      s.dockId === dock.id && 
-      new Date(s.startTime) <= now && 
-      new Date(s.endTime) >= now &&
-      s.status !== "cancelled" && 
-      s.status !== "completed"
+    const currentSchedule = schedules.find((s: any) => s.dockId === dock.id && 
+    new Date(s.startTime) <= now && 
+    new Date(s.endTime) >= now &&
+    s.status !== "cancelled" && 
+    s.status !== "completed"
     );
     
     if (currentSchedule) {
@@ -109,9 +107,8 @@ export default function DoorManager() {
     }
     
     // Check if any scheduled appointment is assigned to this door
-    const assignedSchedule = schedules.find(s => 
-      s.dockId === dock.id && 
-      s.status === "scheduled"
+    const assignedSchedule = schedules.find((s: any) => s.dockId === dock.id && 
+    s.status === "scheduled"
     );
     
     if (assignedSchedule) {
@@ -125,12 +122,11 @@ export default function DoorManager() {
     }
     
     // Check if door is reserved soon
-    const upcomingSchedule = schedules.find(s => 
-      s.dockId === dock.id && 
-      new Date(s.startTime) > now &&
-      new Date(s.startTime).getTime() - now.getTime() < 3600000 && // Within the next hour
-      s.status !== "cancelled" &&
-      s.status !== "completed"
+    const upcomingSchedule = schedules.find((s: any) => s.dockId === dock.id && 
+    new Date(s.startTime) > now &&
+    new Date(s.startTime).getTime() - now.getTime() < 3600000 && // Within the next hour
+    s.status !== "cancelled" &&
+    s.status !== "completed"
     );
     
     if (upcomingSchedule) {
@@ -147,7 +143,7 @@ export default function DoorManager() {
   };
 
   // Filter docks by facility and availability
-  const filteredDocks = docks.filter(dock => {
+  const filteredDocks = docks.filter((dock: any) => {
     // Filter by facility
     const facilityMatch = selectedFacilityId ? 
       (dock.facilityId === selectedFacilityId) : true;
@@ -188,7 +184,7 @@ export default function DoorManager() {
     // 1. User-selected facility ID from the selector
     // 2. The facility ID of the selected dock
     // 3. Default to null if nothing found
-    const selectedDock = docks.find(d => d.id === selectedDockId);
+    const selectedDock = docks.find((d: any) => d.id === selectedDockId);
     const dockFacilityId = selectedDock?.facilityId;
     
     const facilityId = selectedFacilityId || dockFacilityId || null;
@@ -262,7 +258,7 @@ export default function DoorManager() {
           description: "The appointment has been successfully assigned to the door",
         });
       },
-      onError: (error) => {
+      onError: (error: any) => {
         console.error("[DoorManager] Assignment failed:", error);
       }
     });
@@ -290,7 +286,7 @@ export default function DoorManager() {
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(appointmentDetailsUrl)}`;
     
     // Find carrier info
-    const carrier = carriers.find(c => c.id === schedule.carrierId);
+    const carrier = carriers.find((c: any) => c.id === schedule.carrierId);
     
     // Open QR code in a new window for easy access
     const qrWindow = window.open('', '_blank', 'width=450,height=700,scrollbars=yes');
@@ -480,7 +476,7 @@ export default function DoorManager() {
               <span className="font-medium">Facility :</span>
               <Select 
                 value={selectedFacilityId?.toString() || ""} 
-                onValueChange={(value) => {
+                onValueChange={(value: any) => {
                   console.log(`[DoorManager] Changing facility to ID: ${value}`);
                   const facilityId = Number(value);
                   setSelectedFacilityId(facilityId);
@@ -501,11 +497,9 @@ export default function DoorManager() {
                   <SelectValue placeholder="Select facility" />
                 </SelectTrigger>
                 <SelectContent>
-                  {facilities.map((facility) => (
-                    <SelectItem key={facility.id} value={facility.id.toString()}>
-                      {facility.name}
-                    </SelectItem>
-                  ))}
+                  {facilities.map((facility: any) => <SelectItem key={facility.id} value={facility.id.toString()}>
+                    {facility.name}
+                  </SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -529,7 +523,7 @@ export default function DoorManager() {
         
         {/* Refresh Button */}
         <div className="flex justify-end mb-4">
-          <Button 
+          <Button
             variant="outline" 
             size="sm" 
             onClick={() => {
@@ -545,9 +539,9 @@ export default function DoorManager() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredDocks.map((dock) => {
+          {filteredDocks.map((dock: any) => {
             const { status, currentSchedule } = getDoorStatus(dock);
-            const carrierName = currentSchedule && carriers.find(c => c.id === currentSchedule.carrierId)?.name;
+            const carrierName = currentSchedule && carriers.find((c: any) => c.id === currentSchedule.carrierId)?.name;
             
             return (
               <div 
@@ -736,7 +730,7 @@ export default function DoorManager() {
       
       {/* QR Code Dialog */}
       {showQRCode && selectedAppointmentForQR && (
-        <Dialog open={showQRCode} onOpenChange={(open) => !open && setShowQRCode(false)}>
+        <Dialog open={showQRCode} onOpenChange={(open: any) => !open && setShowQRCode(false)}>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Appointment QR Code</DialogTitle>

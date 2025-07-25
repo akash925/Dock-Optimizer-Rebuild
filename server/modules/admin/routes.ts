@@ -667,7 +667,7 @@ export const adminRoutes = (app: Express) => {
       // Update the modules
       const updatedModules = await storage.updateOrganizationModules(
         id, 
-        validatedData.map(module => ({
+        validatedData.map((module: any) => ({
           organizationId: id,
           moduleName: module.moduleName,
           enabled: module.enabled
@@ -1028,7 +1028,7 @@ export const adminRoutes = (app: Express) => {
   });
 
   // Assets management routes
-  app.get('/api/admin/assets', async (req: any, res) => {
+  app.get('/api/admin/assets', async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: 'Not authenticated' });
@@ -1055,7 +1055,7 @@ export const adminRoutes = (app: Express) => {
   });
 
   // Update asset status
-  app.patch('/api/admin/assets/:id/status', async (req: any, res) => {
+  app.patch('/api/admin/assets/:id/status', async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: 'Not authenticated' });
@@ -1102,7 +1102,7 @@ export const adminRoutes = (app: Express) => {
   });
 
   // Delete asset
-  app.delete('/api/admin/assets/:id', async (req: any, res) => {
+  app.delete('/api/admin/assets/:id', async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: 'Not authenticated' });

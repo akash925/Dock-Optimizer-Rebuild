@@ -267,7 +267,7 @@ export default function UnifiedAppointmentFlow({
         return res.json();
       }
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
       toast({
         title: editMode === 'edit' ? 'Appointment Updated' : 'Appointment Created',
@@ -325,12 +325,14 @@ export default function UnifiedAppointmentFlow({
               <FormField
                 control={form.control}
                 name="facilityId"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Facility *</FormLabel>
                     <Select 
                       value={field.value?.toString() || ''} 
-                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      onValueChange={(value: any) => field.onChange(parseInt(value))}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -353,12 +355,14 @@ export default function UnifiedAppointmentFlow({
               <FormField
                 control={form.control}
                 name="appointmentTypeId"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Appointment Type *</FormLabel>
                     <Select 
                       value={field.value?.toString() || ''} 
-                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      onValueChange={(value: any) => field.onChange(parseInt(value))}
                       disabled={!selectedFacilityId}
                     >
                       <FormControl>
@@ -384,7 +388,9 @@ export default function UnifiedAppointmentFlow({
               <FormField
                 control={form.control}
                 name="pickupOrDropoff"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Type</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
@@ -418,7 +424,9 @@ export default function UnifiedAppointmentFlow({
             <FormField
               control={form.control}
               name="appointmentDate"
-              render={({ field }) => (
+              render={({
+                field
+              }: any) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Appointment Date *</FormLabel>
                   <Popover>
@@ -441,7 +449,7 @@ export default function UnifiedAppointmentFlow({
                         mode="single"
                         selected={field.value}
                         onSelect={field.onChange}
-                        disabled={(date) => date < startOfDay(new Date())}
+                        disabled={(date: any) => date < startOfDay(new Date())}
                         initialFocus
                       />
                     </PopoverContent>
@@ -461,7 +469,9 @@ export default function UnifiedAppointmentFlow({
                 <FormField
                   control={form.control}
                   name="startTime"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Start Time *</FormLabel>
                       <Select value={field.value} onValueChange={field.onChange}>
@@ -491,7 +501,9 @@ export default function UnifiedAppointmentFlow({
                 <FormField
                   control={form.control}
                   name="endTime"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>End Time *</FormLabel>
                       <FormControl>
@@ -522,7 +534,9 @@ export default function UnifiedAppointmentFlow({
               <FormField
                 control={form.control}
                 name="companyName"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Company Name *</FormLabel>
                     <FormControl>
@@ -536,7 +550,9 @@ export default function UnifiedAppointmentFlow({
               <FormField
                 control={form.control}
                 name="contactName"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Contact Name *</FormLabel>
                     <FormControl>
@@ -550,7 +566,9 @@ export default function UnifiedAppointmentFlow({
               <FormField
                 control={form.control}
                 name="email"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Email *</FormLabel>
                     <FormControl>
@@ -564,7 +582,9 @@ export default function UnifiedAppointmentFlow({
               <FormField
                 control={form.control}
                 name="phone"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Phone *</FormLabel>
                     <FormControl>
@@ -578,7 +598,9 @@ export default function UnifiedAppointmentFlow({
               <FormField
                 control={form.control}
                 name="driverName"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Driver Name *</FormLabel>
                     <FormControl>
@@ -592,7 +614,9 @@ export default function UnifiedAppointmentFlow({
               <FormField
                 control={form.control}
                 name="truckNumber"
-                render={({ field }) => (
+                render={({
+                  field
+                }: any) => (
                   <FormItem>
                     <FormLabel>Truck Number *</FormLabel>
                     <FormControl>
@@ -607,7 +631,9 @@ export default function UnifiedAppointmentFlow({
             <FormField
               control={form.control}
               name="notes"
-              render={({ field }) => (
+              render={({
+                field
+              }: any) => (
                 <FormItem>
                   <FormLabel>Notes</FormLabel>
                   <FormControl>

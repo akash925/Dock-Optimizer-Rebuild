@@ -224,18 +224,16 @@ export default function TopNav() {
                 </div>
               ) : (
                 <DropdownMenuRadioGroup value={selectedBookingPage || undefined} onValueChange={setSelectedBookingPage}>
-                  {bookingPages.map(page => (
-                    <DropdownMenuRadioItem key={page.id} value={page.slug}>
-                      <div className="flex items-center justify-between w-full">
-                        <span className="truncate">{page.name}</span>
-                        {page.isActive ? (
-                          <span className="ml-2 h-2 w-2 rounded-full bg-green-500" title="Active" />
-                        ) : (
-                          <span className="ml-2 h-2 w-2 rounded-full bg-gray-300" title="Inactive" />
-                        )}
-                      </div>
-                    </DropdownMenuRadioItem>
-                  ))}
+                  {bookingPages.map((page: any) => <DropdownMenuRadioItem key={page.id} value={page.slug}>
+                    <div className="flex items-center justify-between w-full">
+                      <span className="truncate">{page.name}</span>
+                      {page.isActive ? (
+                        <span className="ml-2 h-2 w-2 rounded-full bg-green-500" title="Active" />
+                      ) : (
+                        <span className="ml-2 h-2 w-2 rounded-full bg-gray-300" title="Inactive" />
+                      )}
+                    </div>
+                  </DropdownMenuRadioItem>)}
                 </DropdownMenuRadioGroup>
               )}
               

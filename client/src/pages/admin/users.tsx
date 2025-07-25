@@ -228,7 +228,9 @@ export default function UsersPage() {
                 <FormField
                   control={form.control}
                   name="email"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
@@ -241,7 +243,9 @@ export default function UsersPage() {
                 <FormField
                   control={form.control}
                   name="password"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Password</FormLabel>
                       <FormControl>
@@ -255,7 +259,9 @@ export default function UsersPage() {
                   <FormField
                     control={form.control}
                     name="firstName"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>First Name</FormLabel>
                         <FormControl>
@@ -268,7 +274,9 @@ export default function UsersPage() {
                   <FormField
                     control={form.control}
                     name="lastName"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Last Name</FormLabel>
                         <FormControl>
@@ -320,7 +328,7 @@ export default function UsersPage() {
                 {searchTerm ? (
                   <>
                     <p>No users found matching "{searchTerm}"</p>
-                    <Button 
+                    <Button
                       variant="link" 
                       onClick={() => {
                         setSearchTerm("");

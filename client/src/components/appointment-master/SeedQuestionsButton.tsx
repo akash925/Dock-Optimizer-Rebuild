@@ -24,7 +24,7 @@ export function SeedQuestionsButton({ appointmentTypeId, onSuccess }: SeedQuesti
       
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       // Invalidate TanStack cache for this appointment type
       queryClient.invalidateQueries({ queryKey: ['standard-questions', appointmentTypeId] });
       queryClient.invalidateQueries({ queryKey: ['appointmentType', appointmentTypeId] });

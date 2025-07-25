@@ -126,7 +126,7 @@ export default function ReschedulePage() {
       
       return response.json() as Promise<EnhancedSchedule>;
     },
-    onSuccess: (updatedSchedule) => {
+    onSuccess: (updatedSchedule: any) => {
       setSchedule(updatedSchedule);
       setCurrentStep(STEPS.CONFIRMATION);
       toast({
@@ -272,7 +272,6 @@ export default function ReschedulePage() {
                   This appointment cannot be rescheduled because its status is {schedule.status}.
                 </p>
               )}
-              
               <Button variant="outline" asChild>
                 <Link to="/">Return to Home</Link>
               </Button>

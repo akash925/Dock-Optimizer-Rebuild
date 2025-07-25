@@ -102,7 +102,7 @@ export default function OrganizationDetailPage() {
     queryKey: ['orgDetail', orgId],
     queryFn: () => adminApi.getOrgDetail(orgId),
     staleTime: 300000, // Cache for 5 minutes
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       console.log("Organization data:", data);
       console.log("Modules data:", data?.modules || []);
       if (data?.modules) {
@@ -150,7 +150,7 @@ export default function OrganizationDetailPage() {
     queryKey: ['orgLogs', orgId, logsPage],
     queryFn: () => adminApi.getOrgLogs(orgId, logsPage),
     enabled: activeTab === 'logs',
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       setLogsData(data);
     },
   });
@@ -174,7 +174,7 @@ export default function OrganizationDetailPage() {
       setIsAddUserOpen(false);
       addUserForm.reset();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: `Failed to add user: ${error.message}`,
@@ -199,7 +199,7 @@ export default function OrganizationDetailPage() {
         queryKey: ['adminUsers'],
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: `Failed to remove user: ${error.message}`,
@@ -212,7 +212,7 @@ export default function OrganizationDetailPage() {
     mutationFn: ({ moduleName, enabled }: { moduleName: string, enabled: boolean }) => 
       // Use the more efficient single module toggle method
       adminApi.toggleSingleModule(orgId, moduleName, enabled),
-    onSuccess: (data, variables) => {
+    onSuccess: (data: any, variables: any) => {
       const { moduleName, enabled } = variables;
       toast({
         title: "Success",
@@ -226,7 +226,7 @@ export default function OrganizationDetailPage() {
         queryKey: ['adminOrgs'],
       });
     },
-    onError: (error, variables) => {
+    onError: (error: any, variables: any) => {
       const { moduleName } = variables;
       // Revert UI changes on error
       setModules(prevModules => 
@@ -397,7 +397,7 @@ export default function OrganizationDetailPage() {
                         <div className="space-y-2">
                           <Label htmlFor="userId">User</Label>
                           <Select
-                            onValueChange={(value) => addUserForm.setValue("userId", value)}
+                            onValueChange={(value: any) => addUserForm.setValue("userId", value)}
                             defaultValue={addUserForm.watch("userId")}
                           >
                             <SelectTrigger>
@@ -430,7 +430,7 @@ export default function OrganizationDetailPage() {
                         <div className="space-y-2">
                           <Label htmlFor="roleId">Role</Label>
                           <Select
-                            onValueChange={(value) => addUserForm.setValue("roleId", value)}
+                            onValueChange={(value: any) => addUserForm.setValue("roleId", value)}
                             defaultValue={addUserForm.watch("roleId")}
                           >
                             <SelectTrigger>
@@ -486,27 +486,25 @@ export default function OrganizationDetailPage() {
                   </TableHeader>
                   <TableBody>
                     {organization.users && organization.users.length > 0 ? (
-                      organization.users.map((user) => (
-                        <TableRow key={user.userId}>
-                          <TableCell className="font-medium">
-                            {user.firstName} {user.lastName}
-                          </TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>{user.roleName}</TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveUser(user.userId)}
-                              disabled={removeUserMutation.isPending}
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              <span className="sr-only">Remove</span>
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
+                      organization.users.map((user: any) => <TableRow key={user.userId}>
+                        <TableCell className="font-medium">
+                          {user.firstName} {user.lastName}
+                        </TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>{user.roleName}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveUser(user.userId)}
+                            disabled={removeUserMutation.isPending}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Remove</span>
+                          </Button>
+                        </TableCell>
+                      </TableRow>)
                     ) : (
                       <TableRow>
                         <TableCell colSpan={4} className="h-24 text-center">
@@ -544,20 +542,17 @@ export default function OrganizationDetailPage() {
                     
                     {organization?.modules && organization.modules.length > 0 ? (
                       <>
-                        {organization.modules.map((module) => (
-                          <div key={module.moduleName} className="flex items-center justify-between py-2 border-b">
-                            <Label htmlFor={`module-${module.moduleName}`} className="flex-1 font-medium">
-                              {getModuleDisplayName(module.moduleName)}
-                            </Label>
-                            <Switch
-                              id={`module-${module.moduleName}`}
-                              checked={module.enabled}
-                              onCheckedChange={(checked) =>
-                                handleModuleToggle(module.moduleName, checked)
-                              }
-                            />
-                          </div>
-                        ))}
+                        {organization.modules.map((module: any) => <div key={module.moduleName} className="flex items-center justify-between py-2 border-b">
+                          <Label htmlFor={`module-${module.moduleName}`} className="flex-1 font-medium">
+                            {getModuleDisplayName(module.moduleName)}
+                          </Label>
+                          <Switch
+                            id={`module-${module.moduleName}`}
+                            checked={module.enabled}
+                            onCheckedChange={(checked: any) => handleModuleToggle(module.moduleName, checked)
+                            }
+                          />
+                        </div>)}
                         <div className="mt-6 text-sm text-muted-foreground">
                           Changes are saved automatically
                         </div>
@@ -598,17 +593,15 @@ export default function OrganizationDetailPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {(logsData?.logs || organization.logs || []).map((log) => (
-                            <TableRow key={log.id || Math.random()}>
-                              <TableCell className="font-mono text-xs">
-                                {log.timestamp ? new Date(log.timestamp).toLocaleString() : 'Unknown date'}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline">{log.action || 'Unknown'}</Badge>
-                              </TableCell>
-                              <TableCell>{log.details || 'No details'}</TableCell>
-                            </TableRow>
-                          ))}
+                          {(logsData?.logs || organization.logs || []).map((log: any) => <TableRow key={log.id || Math.random()}>
+                            <TableCell className="font-mono text-xs">
+                              {log.timestamp ? new Date(log.timestamp).toLocaleString() : 'Unknown date'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{log.action || 'Unknown'}</Badge>
+                            </TableCell>
+                            <TableCell>{log.details || 'No details'}</TableCell>
+                          </TableRow>)}
                         </TableBody>
                       </Table>
                     ) : (

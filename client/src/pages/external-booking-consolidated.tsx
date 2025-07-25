@@ -169,7 +169,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
   
         if (q.required) {
           if (fieldType === 'checkbox') {
-            validator = (validator as z.ZodBoolean).refine(val => val === true, {
+            validator = (validator as z.ZodBoolean).refine((val: any) => val === true, {
               message: `${q.label} is required`,
             });
           } else if (fieldType !== 'number') {
@@ -295,7 +295,6 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
 
   const fetchAvailableTimes = async () => {
     if (!bookingData.date || !bookingData.appointmentTypeId || !bookingData.facilityId) return;
-    
     setIsLoadingTimes(true);
     try {
       const data = await api.get<any[]>(
@@ -360,7 +359,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
       
       setStep(4);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Booking creation failed:", error);
       toast({
         title: "Booking Failed",
@@ -449,10 +448,12 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                 <Label htmlFor="facility">Facility</Label>
                 <Select 
                   value={bookingData.facilityId?.toString()} 
-                  onValueChange={(value) => setBookingData(prev => ({ 
-                    ...prev, 
+                  onValueChange={(value: any) => setBookingData((prev: any) => ({
+                    ...prev,
                     facilityId: parseInt(value),
-                    appointmentTypeId: undefined // Reset appointment type when facility changes
+
+                    // Reset appointment type when facility changes
+                    appointmentTypeId: undefined
                   }))}
                 >
                   <SelectTrigger>
@@ -472,7 +473,10 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                 <Label htmlFor="appointmentType">Appointment Type</Label>
                 <Select 
                   value={bookingData.appointmentTypeId?.toString()} 
-                  onValueChange={(value) => setBookingData(prev => ({ ...prev, appointmentTypeId: parseInt(value) }))}
+                  onValueChange={(value: any) => setBookingData((prev: any) => ({
+                    ...prev,
+                    appointmentTypeId: parseInt(value)
+                  }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select appointment type" />
@@ -545,7 +549,11 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                   onDateChange={(date) => {
                     if (date) {
                       const dateStr = format(date, 'yyyy-MM-dd');
-                      setBookingData(prev => ({ ...prev, date: dateStr, time: undefined }));
+                      setBookingData((prev: any) => ({
+                        ...prev,
+                        date: dateStr,
+                        time: undefined
+                      }));
                     }
                   }}
                   disabledDays={(date) => {
@@ -574,7 +582,10 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                     facilityId={bookingData.facilityId || 0}
                     appointmentTypeId={bookingData.appointmentTypeId || 0}
                     bookingPageSlug={slug}
-                    onTimeSelect={(time) => setBookingData(prev => ({ ...prev, time }))}
+                    onTimeSelect={(time) => setBookingData((prev: any) => ({
+                      ...prev,
+                      time
+                    }))}
                     selectedTime={bookingData.time}
                   />
                 </div>
@@ -607,7 +618,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
             
             <Form {...form}>
               <form 
-                onSubmit={form.handleSubmit((data) => {
+                onSubmit={form.handleSubmit((data: any) => {
                   console.log('=== FORM SUBMISSION DEBUG ===');
                   console.log('Form data being submitted:', data);
                   console.log('Form validation state:', form.formState.errors);
@@ -617,7 +628,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                   const formData = data.customFields || data;
                   console.log('Processed form data:', formData);
                   handleSubmitBooking(formData);
-                }, (errors) => {
+                }, (errors: any) => {
                   console.error("Form validation errors:", errors);
                   toast({
                     title: "Validation Error",

@@ -111,8 +111,8 @@ export const useOrg = (orgId?: number) => {
   const enabledModules = useMemo(() => {
     const modules = org?.modules || [];
     return modules
-      .filter(m => m.enabled)
-      .map(m => m.moduleName);
+      .filter((m: any) => m.enabled)
+      .map((m: any) => m.moduleName);
   }, [org?.modules]);
   
   // Setup module toggle mutation

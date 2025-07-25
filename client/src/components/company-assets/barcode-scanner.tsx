@@ -235,7 +235,7 @@ export function BarcodeScanner({ onDetected, onClose, mode = 'unified' }: Barcod
       setScannerActive(true);
       
       // Start decoding from video device
-      await reader.decodeFromVideoDevice(deviceId, video, (result, error) => {
+      await reader.decodeFromVideoDevice(deviceId, video, (result: any, error: any) => {
         if (result) {
           console.log('Detected barcode:', result.getText());
           // Stop scanning after detection
@@ -410,7 +410,7 @@ export function BarcodeScanner({ onDetected, onClose, mode = 'unified' }: Barcod
             {/* Camera switcher - Responsive design */}
             {cameras.length > 1 && (
               isMobile ? (
-                <Button 
+                <Button
                   variant="outline" 
                   size="icon" 
                   onClick={switchCamera}

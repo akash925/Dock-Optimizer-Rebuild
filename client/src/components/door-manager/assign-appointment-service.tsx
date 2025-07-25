@@ -70,7 +70,7 @@ export function useAssignAppointmentToDoor() {
         description: "The appointment has been checked in and assigned to the door",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Assignment failed",
         description: error instanceof Error ? error.message : "Failed to assign appointment to door",

@@ -87,7 +87,7 @@ export default function CancelPage() {
       
       return response.json() as Promise<Schedule>;
     },
-    onSuccess: (updatedSchedule) => {
+    onSuccess: (updatedSchedule: any) => {
       setSchedule(updatedSchedule);
       setCurrentStep(STEPS.CONFIRMATION);
       toast({
@@ -266,7 +266,7 @@ export default function CancelPage() {
             </div>
             
             <div className="flex flex-col gap-4">
-              <Button 
+              <Button
                 variant="destructive"
                 disabled={schedule.status !== "scheduled"} 
                 onClick={() => setIsCancelDialogOpen(true)}
@@ -279,7 +279,6 @@ export default function CancelPage() {
                   This appointment cannot be cancelled because its status is {schedule.status}.
                 </p>
               )}
-              
               <Button variant="outline" asChild>
                 <Link to="/">Return to Home</Link>
               </Button>
@@ -310,7 +309,7 @@ export default function CancelPage() {
                 <AlertDialogFooter>
                   <AlertDialogCancel>No, keep appointment</AlertDialogCancel>
                   <AlertDialogAction 
-                    onClick={(e) => {
+                    onClick={(e: any) => {
                       e.preventDefault();
                       cancelMutation.mutate();
                       setIsCancelDialogOpen(false);

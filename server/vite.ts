@@ -41,7 +41,7 @@ export async function setupVite(app: Express, server: Server) {
     appType: "custom",
     customLogger: {
       ...viteLogger,
-      error: (msg, opts) => {
+      error: (msg: any, opts: any) => {
         viteLogger.error(msg, opts);
         /* Hard-fail in Replit so we see the error immediately */
         process.exit(1);
@@ -53,7 +53,7 @@ export async function setupVite(app: Express, server: Server) {
   app.use(vite.middlewares);
 
   // HTML entry (always read fresh from disk)
-  app.use("*", async (req, res, next) => {
+  app.use("*", async (req: any, res: any, next: any) => {
     try {
       const url = req.originalUrl;
       const templatePath = path.resolve(
@@ -101,7 +101,7 @@ export function serveStatic(app: Express) {
   app.use(express.static(distPath));
 
   /* 2️⃣  SPA fallback: send index.html for any unknown route */
-  app.get("*", (_req, res) =>
+  app.get("*", (_req: any, res: any) =>
     res.sendFile(path.join(distPath, "index.html"))
   );
 }

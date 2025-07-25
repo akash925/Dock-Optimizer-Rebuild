@@ -33,7 +33,6 @@ import {
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
-// @ts-ignore - Missing type definitions
 import connectPg from "connect-pg-simple";
 import { eq, and, gte, lte, or, ilike, SQL, sql, inArray } from "drizzle-orm";
 import { db, pool, safeQuery } from "./db";
@@ -43,7 +42,6 @@ import { getRedis } from './src/utils/redis';
 import { logger } from "./utils/logger";
 import { emailService } from './services/email';
 import crypto from "crypto";
-// @ts-ignore - Missing type definitions
 import connectRedis from 'connect-redis';
 
 const redis = getRedis();
@@ -549,7 +547,7 @@ export class MemStorage implements IStorage {
       .innerJoin(organizationFacilities, eq(facilities.id, organizationFacilities.facilityId))
       .where(eq(organizationFacilities.organizationId, organizationId));
     
-    return results.map(r => r.facilities);
+    return results.map((r: any) => r.facilities);
   }
   async getOrganizationByFacilityId(facilityId: number): Promise<any> { return null; }
   async getOrganizationByAppointmentTypeId(appointmentTypeId: number): Promise<any> { return null; }
@@ -1143,7 +1141,7 @@ export class DatabaseStorage implements IStorage {
         .innerJoin(organizationFacilities, eq(facilities.id, organizationFacilities.facilityId))
         .where(eq(organizationFacilities.organizationId, tenantId));
       
-      return results.map(r => r.facility);
+      return results.map((r: any) => r.facility);
     }
     return await db.select().from(facilities);
   }
@@ -1155,7 +1153,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(organizationFacilities, eq(facilities.id, organizationFacilities.facilityId))
       .where(eq(organizationFacilities.organizationId, organizationId));
     
-    return results.map(r => r.facilities);
+    return results.map((r: any) => r.facilities);
   }
 
   async createFacility(insertFacility: InsertFacility): Promise<Facility> {
@@ -1258,7 +1256,7 @@ export class DatabaseStorage implements IStorage {
           .innerJoin(facilities, eq(docks.facilityId, facilities.id))
           .where(eq(facilities.tenantId, tenantId));
         logger.debug(`[DatabaseStorage] getDocks for tenant ${tenantId} result count: ${dockList.length}`);
-        return dockList.map(item => item.dock);
+        return dockList.map((item: any) => item.dock);
       }
       const dockList = await db.select().from(docks);
       logger.debug(`[DatabaseStorage] getDocks (unfiltered) result count: ${dockList.length}`);
@@ -1330,7 +1328,7 @@ export class DatabaseStorage implements IStorage {
         .innerJoin(schedules, eq(carriers.id, schedules.carrierId))
         .innerJoin(appointmentTypes, eq(schedules.appointmentTypeId, appointmentTypes.id))
         .where(eq(appointmentTypes.tenantId, tenantId));
-      return tenantCarriers.map(item => item.carrier);
+      return tenantCarriers.map((item: any) => item.carrier);
     }
     const result = await db.select().from(carriers);
     logger.debug(`[DatabaseStorage] getCarriers result count: ${result.length}`);
@@ -1991,11 +1989,14 @@ export class DatabaseStorage implements IStorage {
         .orderBy(customQuestions.order);
       
       // Map database field names back to frontend field names
-      return questions.map(q => ({
+      return questions.map((q: any) => ({
         id: q.id,
         label: q.label,
         type: q.type,
-        isRequired: q.isRequired || false,  // Map isRequired back to frontend (field is already correctly named in schema)
+
+        // Map isRequired back to frontend (field is already correctly named in schema)
+        isRequired: q.isRequired || false,
+
         placeholder: q.placeholder,
         options: q.options,
         defaultValue: q.defaultValue,
@@ -2003,7 +2004,7 @@ export class DatabaseStorage implements IStorage {
         appointmentTypeId: q.appointmentTypeId,
         applicableType: q.applicableType,
         createdAt: q.createdAt,
-        lastModifiedAt: q.lastModifiedAt,
+        lastModifiedAt: q.lastModifiedAt
       }));
     } catch (error) {
       console.error('Error fetching custom questions by appointment type:', error);
@@ -2118,7 +2119,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(standardQuestions.appointmentTypeId, appointmentTypeId))
         .orderBy(standardQuestions.orderPosition, standardQuestions.id);
       
-      return questions.map(q => ({
+      return questions.map((q: any) => ({
         id: q.id,
         appointmentTypeId: q.appointmentTypeId,
         fieldKey: q.fieldKey,

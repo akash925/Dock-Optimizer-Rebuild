@@ -70,9 +70,8 @@ export default function DoorManager() {
     const now = new Date();
     
     // First check if door has an in-progress appointment
-    const inProgressSchedule = schedules.find(s => 
-      s.dockId === dock.id && 
-      s.status === "in-progress"
+    const inProgressSchedule = schedules.find((s: any) => s.dockId === dock.id && 
+    s.status === "in-progress"
     );
     
     if (inProgressSchedule) {
@@ -80,12 +79,11 @@ export default function DoorManager() {
     }
     
     // Next check if door is occupied (has active appointment within time window)
-    const currentSchedule = schedules.find(s => 
-      s.dockId === dock.id && 
-      new Date(s.startTime) <= now && 
-      new Date(s.endTime) >= now &&
-      s.status !== "cancelled" && 
-      s.status !== "completed"
+    const currentSchedule = schedules.find((s: any) => s.dockId === dock.id && 
+    new Date(s.startTime) <= now && 
+    new Date(s.endTime) >= now &&
+    s.status !== "cancelled" && 
+    s.status !== "completed"
     );
     
     if (currentSchedule) {
@@ -93,9 +91,8 @@ export default function DoorManager() {
     }
     
     // Check if any scheduled appointment is assigned to this door
-    const assignedSchedule = schedules.find(s => 
-      s.dockId === dock.id && 
-      s.status === "scheduled"
+    const assignedSchedule = schedules.find((s: any) => s.dockId === dock.id && 
+    s.status === "scheduled"
     );
     
     if (assignedSchedule) {
@@ -109,12 +106,11 @@ export default function DoorManager() {
     }
     
     // Check if door is reserved soon
-    const upcomingSchedule = schedules.find(s => 
-      s.dockId === dock.id && 
-      new Date(s.startTime) > now &&
-      new Date(s.startTime).getTime() - now.getTime() < 3600000 && // Within the next hour
-      s.status !== "cancelled" &&
-      s.status !== "completed"
+    const upcomingSchedule = schedules.find((s: any) => s.dockId === dock.id && 
+    new Date(s.startTime) > now &&
+    new Date(s.startTime).getTime() - now.getTime() < 3600000 && // Within the next hour
+    s.status !== "cancelled" &&
+    s.status !== "completed"
     );
     
     if (upcomingSchedule) {
@@ -131,7 +127,7 @@ export default function DoorManager() {
   };
 
   // Filter docks by facility and availability
-  const filteredDocks = docks.filter(dock => {
+  const filteredDocks = docks.filter((dock: any) => {
     // Filter by facility
     const facilityMatch = selectedFacilityId ? 
       (dock.facilityId === selectedFacilityId) : true;
@@ -149,7 +145,7 @@ export default function DoorManager() {
     setSelectedDockId(dockId);
     
     // Find the door's facility ID
-    const selectedDock = docks.find(dock => dock.id === dockId);
+    const selectedDock = docks.find((dock: any) => dock.id === dockId);
     if (selectedDock) {
       // Set the facility filter to the door's facility
       setSelectedFacilityId(selectedDock.facilityId);
@@ -226,7 +222,7 @@ export default function DoorManager() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Door Management</h1>
-        <Button 
+        <Button
           variant="outline" 
           onClick={() => {
             refetchDocks();
@@ -242,21 +238,21 @@ export default function DoorManager() {
       <div className="flex gap-4 mb-6">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Filter:</span>
-          <Button 
+          <Button
             variant={filterType === "all" ? "default" : "outline"} 
             size="sm"
             onClick={() => setFilterType("all")}
           >
             All
           </Button>
-          <Button 
+          <Button
             variant={filterType === "available" ? "default" : "outline"} 
             size="sm"
             onClick={() => setFilterType("available")}
           >
             Available
           </Button>
-          <Button 
+          <Button
             variant={filterType === "not_available" ? "default" : "outline"} 
             size="sm"
             onClick={() => setFilterType("not_available")}
@@ -269,18 +265,16 @@ export default function DoorManager() {
           <span className="text-sm font-medium">Facility:</span>
           <Select 
             value={selectedFacilityId?.toString() || ""} 
-            onValueChange={(value) => setSelectedFacilityId(value ? parseInt(value) : null)}
+            onValueChange={(value: any) => setSelectedFacilityId(value ? parseInt(value) : null)}
           >
             <SelectTrigger className="w-[250px]">
               <SelectValue placeholder="All Facilities" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">All Facilities</SelectItem>
-              {facilities.map((facility) => (
-                <SelectItem key={facility.id} value={facility.id.toString()}>
-                  {facility.name}
-                </SelectItem>
-              ))}
+              {facilities.map((facility: any) => <SelectItem key={facility.id} value={facility.id.toString()}>
+                {facility.name}
+              </SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -302,9 +296,9 @@ export default function DoorManager() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {filteredDocks.map((dock) => {
+        {filteredDocks.map((dock: any) => {
           const { status, currentSchedule } = getDoorStatus(dock);
-          const carrierName = currentSchedule && carriers.find(c => c.id === currentSchedule.carrierId)?.name;
+          const carrierName = currentSchedule && carriers.find((c: any) => c.id === currentSchedule.carrierId)?.name;
           
           return (
             <Card 
@@ -332,7 +326,7 @@ export default function DoorManager() {
               
               <CardContent className="space-y-3">
                 <div className="text-sm">
-                  <Badge 
+                  <Badge
                     variant={status === "available" ? "default" : "secondary"}
                     className={
                       status === "available" ? "bg-green-100 text-green-800" :

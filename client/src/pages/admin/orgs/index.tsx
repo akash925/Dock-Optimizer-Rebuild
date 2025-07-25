@@ -209,91 +209,89 @@ export default function OrganizationsListPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {organizations.map((org) => (
-                    <TableRow key={org.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center space-x-2">
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
-                            {org.logoUrl ? (
-                              <img src={org.logoUrl} alt={org.name} className="h-6 w-6" />
-                            ) : (
-                              <Building2 className="h-4 w-4" />
-                            )}
-                          </span>
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium leading-none">
-                              <Link href={`/admin/orgs/${org.id}`}>
-                                {org.name}
-                              </Link>
-                            </p>
-                            <p className="text-xs text-muted-foreground hidden sm:inline-block">
-                              {org.contactEmail || 'No contact email'}
-                            </p>
-                          </div>
+                  {organizations.map((org: any) => <TableRow key={org.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center space-x-2">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+                          {org.logoUrl ? (
+                            <img src={org.logoUrl} alt={org.name} className="h-6 w-6" />
+                          ) : (
+                            <Building2 className="h-4 w-4" />
+                          )}
+                        </span>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium leading-none">
+                            <Link href={`/admin/orgs/${org.id}`}>
+                              {org.name}
+                            </Link>
+                          </p>
+                          <p className="text-xs text-muted-foreground hidden sm:inline-block">
+                            {org.contactEmail || 'No contact email'}
+                          </p>
                         </div>
-                      </TableCell>
-                      <TableCell>{org.subdomain}</TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <Badge variant="outline" className={getStatusBadgeStyle(org.status)}>
-                          {org.status === 'ACTIVE' ? (
-                            <Check className="mr-1 h-3 w-3" />
-                          ) : org.status === 'INACTIVE' || org.status === 'SUSPENDED' ? (
-                            <X className="mr-1 h-3 w-3" />
-                          ) : null}
-                          {org.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <div className="flex items-center">
-                          <Users className="mr-1 h-3 w-3 text-muted-foreground" />
-                          <span>{org.userCount}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <div className="flex items-center">
-                          <Package className="mr-1 h-3 w-3 text-muted-foreground" />
-                          <span>{org.moduleCount}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/admin/orgs/${org.id}`}>
-                                <Building2 className="mr-2 h-4 w-4" />
-                                View Details
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/admin/orgs/${org.id}/edit`}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem asChild>
-                              <Link href={`/admin/orgs/${org.id}/users`}>
-                                <Users className="mr-2 h-4 w-4" />
-                                Manage Users
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/admin/orgs/${org.id}/modules`}>
-                                <Package className="mr-2 h-4 w-4" />
-                                Configure Modules
-                              </Link>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>{org.subdomain}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <Badge variant="outline" className={getStatusBadgeStyle(org.status)}>
+                        {org.status === 'ACTIVE' ? (
+                          <Check className="mr-1 h-3 w-3" />
+                        ) : org.status === 'INACTIVE' || org.status === 'SUSPENDED' ? (
+                          <X className="mr-1 h-3 w-3" />
+                        ) : null}
+                        {org.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <div className="flex items-center">
+                        <Users className="mr-1 h-3 w-3 text-muted-foreground" />
+                        <span>{org.userCount}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <div className="flex items-center">
+                        <Package className="mr-1 h-3 w-3 text-muted-foreground" />
+                        <span>{org.moduleCount}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/orgs/${org.id}`}>
+                              <Building2 className="mr-2 h-4 w-4" />
+                              View Details
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/orgs/${org.id}/edit`}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/orgs/${org.id}/users`}>
+                              <Users className="mr-2 h-4 w-4" />
+                              Manage Users
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/orgs/${org.id}/modules`}>
+                              <Package className="mr-2 h-4 w-4" />
+                              Configure Modules
+                            </Link>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>)}
                 </TableBody>
               </Table>
             ) : (

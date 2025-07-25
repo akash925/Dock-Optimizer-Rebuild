@@ -28,7 +28,7 @@ const availabilityQuerySchema = z.object({
   appointmentTypeId: z.string().transform(Number).optional(),
   typeId: z.string().transform(Number).optional(),
   bookingPageSlug: z.string().optional(),
-}).refine(data => data.appointmentTypeId || data.typeId, {
+}).refine((data: any) => data.appointmentTypeId || data.typeId, {
   message: 'Either appointmentTypeId or typeId must be provided',
   path: ['appointmentTypeId', 'typeId'],
 });
@@ -181,7 +181,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerQrCodeRoutes(app);
 
   // AVAILABILITY API ROUTES - CRITICAL FOR APPOINTMENT BOOKING
-  app.get('/api/availability', validate('query', availabilityQuerySchema), async (req: any, res) => {
+  app.get('/api/availability', validate('query', availabilityQuerySchema), async (req: any, res: any) => {
     try {
       const { date, facilityId, appointmentTypeId, typeId, bookingPageSlug } = req.query;
       
@@ -237,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/availability/v2', validate('query', availabilityQuerySchema), async (req: any, res) => {
+  app.get('/api/availability/v2', validate('query', availabilityQuerySchema), async (req: any, res: any) => {
     try {
       const { date, facilityId, appointmentTypeId, typeId, bookingPageSlug } = req.query;
       
@@ -290,7 +290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/schedules/:id/check-in', isAuthenticated, isAdmin, async (req: any, res) => {
+  app.patch('/api/schedules/:id/check-in', isAuthenticated, isAdmin, async (req: any, res: any) => {
     try {
       // CRITICAL FIX: Allow external check-in without authentication for QR code functionality
       // Check if user is authenticated, but don't require it for external check-ins
@@ -332,7 +332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/schedules/:id/check-out', isAuthenticated, isAdmin, async (req: any, res) => {
+  app.patch('/api/schedules/:id/check-out', isAuthenticated, isAdmin, async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       const user = req.user as User;
@@ -406,7 +406,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/schedules/:id/assign-door', isAuthenticated, isAdmin, async (req: any, res) => {
+  app.patch('/api/schedules/:id/assign-door', isAuthenticated, isAdmin, async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       const user = req.user as User;
@@ -439,7 +439,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/schedules/:id/release - Release a door (set dockId to null)
-  app.post('/api/schedules/:id/release', isAuthenticated, isAdmin, async (req: any, res) => {
+  app.post('/api/schedules/:id/release', isAuthenticated, isAdmin, async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       const user = req.user as User;
@@ -536,7 +536,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/schedules/:id/cancel', isAuthenticated, isAdmin, async (req: any, res) => {
+  app.patch('/api/schedules/:id/cancel', isAuthenticated, isAdmin, async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       const user = req.user as User;
@@ -558,7 +558,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/schedules/:id/reschedule', isAuthenticated, isAdmin, async (req: any, res) => {
+  app.patch('/api/schedules/:id/reschedule', isAuthenticated, isAdmin, async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       const user = req.user as User;
@@ -628,7 +628,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // **UNIFIED QUESTIONS API - SINGLE SOURCE OF TRUTH**
   // Standard Questions Routes
-  app.get('/api/standard-questions/appointment-type/:id', async (req: any, res) => {
+  app.get('/api/standard-questions/appointment-type/:id', async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       
@@ -648,7 +648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post('/api/standard-questions', async (req: any, res) => {
+  app.post('/api/standard-questions', async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       
@@ -663,7 +663,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.put('/api/standard-questions/:id', async (req: any, res) => {
+  app.put('/api/standard-questions/:id', async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       
@@ -688,7 +688,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Save standard questions for appointment type
-  app.post('/api/standard-questions/appointment-type/:id/save', async (req: any, res) => {
+  app.post('/api/standard-questions/appointment-type/:id/save', async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       
@@ -709,7 +709,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Custom Questions Routes  
-  app.get('/api/custom-questions/:appointmentTypeId', async (req: any, res) => {
+  app.get('/api/custom-questions/:appointmentTypeId', async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       
@@ -732,7 +732,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post('/api/custom-questions', async (req: any, res) => {
+  app.post('/api/custom-questions', async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       
@@ -750,7 +750,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.put('/api/custom-questions/:id', async (req: any, res) => {
+  app.put('/api/custom-questions/:id', async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       
@@ -777,7 +777,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/custom-questions/:id', async (req: any, res) => {
+  app.delete('/api/custom-questions/:id', async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       
@@ -835,7 +835,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/organizations/modules', updateOrganizationModule);
 
   // Dock routes - needed for Door Manager
-  app.get('/api/docks', async (req: any, res) => {
+  app.get('/api/docks', async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: 'Not authenticated' });
@@ -857,7 +857,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Carrier routes - needed for various modules
-  app.get('/api/carriers', async (req: any, res) => {
+  app.get('/api/carriers', async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: 'Not authenticated' });
@@ -880,7 +880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // SCHEDULES API ENDPOINTS - CRITICAL FOR APPOINTMENT MANAGEMENT
   // GET /api/schedules - Get all schedules for the authenticated user's tenant
-  app.get('/api/schedules', async (req: any, res) => {
+  app.get('/api/schedules', async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: 'Not authenticated' });
@@ -908,7 +908,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Additional schedule endpoints will be added by calendar module
 
   // CRITICAL: Add route to get schedule by confirmation code (for external check-in)
-  app.get('/api/schedules/confirmation/:confirmationCode', async (req: any, res) => {
+  app.get('/api/schedules/confirmation/:confirmationCode', async (req: any, res: any) => {
     try {
       const { confirmationCode } = req.params;
       
@@ -936,7 +936,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add endpoint for associating BOL files with schedules
-  app.post('/api/schedules/:scheduleId/associate-bol', async (req: any, res) => {
+  app.post('/api/schedules/:scheduleId/associate-bol', async (req: any, res: any) => {
     try {
       const scheduleId = parseInt(req.params.scheduleId);
       const { fileUrl, filename, metadata } = req.body;
@@ -989,7 +989,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // CRITICAL FIX: Add the missing /api/upload/checkout-photo endpoint
-  app.post('/api/upload/checkout-photo', bolUpload.single('file'), async (req: any, res) => {
+  app.post('/api/upload/checkout-photo', bolUpload.single('file'), async (req: any, res: any) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No photo file uploaded' });
@@ -1037,7 +1037,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User profile and preferences routes
-  app.get('/api/user-preferences', async (req: any, res) => {
+  app.get('/api/user-preferences', async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       const user = req.user as User;
@@ -1049,7 +1049,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/user-preferences', async (req: any, res) => {
+  app.put('/api/user-preferences', async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       const user = req.user as User;
@@ -1061,7 +1061,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/user/profile', async (req: any, res) => {
+  app.put('/api/user/profile', async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       const user = req.user as User;
@@ -1073,7 +1073,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/user/password', async (req: any, res) => {
+  app.put('/api/user/password', async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       const user = req.user as User;
@@ -1092,7 +1092,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/user/test-email', async (req: any, res) => {
+  app.post('/api/user/test-email', async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       const user = req.user as User;
@@ -1107,7 +1107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // BOL Presigned URL endpoints
-  app.post('/api/bol-upload/presign', async (req: any, res) => {
+  app.post('/api/bol-upload/presign', async (req: any, res: any) => {
     try {
       if (!req.user || !req.user?.id) {
         return res.status(401).json({ error: 'Authentication required' });
@@ -1182,7 +1182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Note: /api/bol-upload/upload route is handled by the BOL upload module
 
-  app.post('/api/bol-upload/confirm', async (req: any, res) => {
+  app.post('/api/bol-upload/confirm', async (req: any, res: any) => {
     try {
       if (!req.user || !req.user?.id) {
         return res.status(401).json({ error: 'Authentication required' });
@@ -1301,7 +1301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Simple availability endpoint - uses real availability calculation
-  app.get('/api/availability/simple', async (req: any, res) => {
+  app.get('/api/availability/simple', async (req: any, res: any) => {
     try {
       const { facilityId, appointmentTypeId, date, bookingPageSlug } = req.query;
       

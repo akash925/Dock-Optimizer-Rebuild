@@ -23,10 +23,10 @@ export default function BookingRouter() {
   return (
     <Switch>
       <Route path="/external/:slug/confirmation/:code">
-        {(params) => <BookingConfirmation confirmationCode={params.code} bookingPageSlug={params.slug} />}
+        {(params: any) => <BookingConfirmation confirmationCode={params.code} bookingPageSlug={params.slug} />}
       </Route>
       <Route path="/external/:slug">
-        {(params) => <ExternalBookingConsolidated slug={params.slug} />}
+        {(params: any) => <ExternalBookingConsolidated slug={params.slug} />}
       </Route>
       {/* Legacy route for booking confirmation without slug */}
       <Route path="/external/booking-confirmation">

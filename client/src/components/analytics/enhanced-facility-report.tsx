@@ -60,7 +60,7 @@ export default function EnhancedFacilityReport({ data, dateRange }: EnhancedFaci
             padding={0.4}
             valueScale={{ type: 'linear' }}
             indexScale={{ type: 'band', round: true }}
-            colors={(bar) => bar.data.color}
+            colors={(bar: any) => bar.data.color}
             borderRadius={4}
             borderWidth={1}
             borderColor={{ from: 'color', modifiers: [['darker', 0.3]] }}
@@ -87,7 +87,9 @@ export default function EnhancedFacilityReport({ data, dateRange }: EnhancedFaci
             labelSkipWidth={12}
             labelSkipHeight={12}
             labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-            tooltip={({ data }) => (
+            tooltip={({
+              data
+            }: any) => (
               <div className="bg-white p-3 shadow-lg rounded-lg border max-w-xs">
                 <div className="font-medium text-sm">{data.fullName}</div>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">

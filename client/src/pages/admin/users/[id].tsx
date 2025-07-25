@@ -169,7 +169,9 @@ function AddToOrgDialog({ userId, onSuccess }: { userId: number, onSuccess: () =
             <FormField
               control={form.control}
               name="orgId"
-              render={({ field }) => (
+              render={({
+                field
+              }: any) => (
                 <FormItem>
                   <FormLabel>Organization</FormLabel>
                   <Select
@@ -198,7 +200,9 @@ function AddToOrgDialog({ userId, onSuccess }: { userId: number, onSuccess: () =
             <FormField
               control={form.control}
               name="roleId"
-              render={({ field }) => (
+              render={({
+                field
+              }: any) => (
                 <FormItem>
                   <FormLabel>Role</FormLabel>
                   <Select
@@ -396,27 +400,25 @@ export default function UserDetailPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {user.roles.map((role) => (
-                        <TableRow key={role.orgId}>
-                          <TableCell className="font-medium">{role.orgName}</TableCell>
-                          <TableCell>
-                            <Badge variant={role.roleName === 'super-admin' ? 'destructive' : role.roleName === 'admin' ? 'default' : 'secondary'}>
-                              {role.roleName}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveFromOrg(role.orgId)}
-                              disabled={removeFromOrgMutation.isPending}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                              <span className="sr-only">Remove</span>
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {user.roles.map((role: any) => <TableRow key={role.orgId}>
+                        <TableCell className="font-medium">{role.orgName}</TableCell>
+                        <TableCell>
+                          <Badge variant={role.roleName === 'super-admin' ? 'destructive' : role.roleName === 'admin' ? 'default' : 'secondary'}>
+                            {role.roleName}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveFromOrg(role.orgId)}
+                            disabled={removeFromOrgMutation.isPending}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                            <span className="sr-only">Remove</span>
+                          </Button>
+                        </TableCell>
+                      </TableRow>)}
                     </TableBody>
                   </Table>
                 ) : (
@@ -451,17 +453,15 @@ export default function UserDetailPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {user.activityLogs.map((log) => (
-                        <TableRow key={log.id}>
-                          <TableCell className="font-mono text-xs">
-                            {new Date(log.timestamp).toLocaleString()}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{log.action}</Badge>
-                          </TableCell>
-                          <TableCell>{log.details}</TableCell>
-                        </TableRow>
-                      ))}
+                      {user.activityLogs.map((log: any) => <TableRow key={log.id}>
+                        <TableCell className="font-mono text-xs">
+                          {new Date(log.timestamp).toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{log.action}</Badge>
+                        </TableCell>
+                        <TableCell>{log.details}</TableCell>
+                      </TableRow>)}
                     </TableBody>
                   </Table>
                 ) : (

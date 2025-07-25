@@ -60,7 +60,7 @@ export function ServiceSelection({
           </Label>
           <Select
             value={selectedFacilityId?.toString()}
-            onValueChange={(value) => onFacilityChange(parseInt(value))}
+            onValueChange={(value: any) => onFacilityChange(parseInt(value))}
           >
             <SelectTrigger id="facility-select" className="h-12">
               <SelectValue placeholder="Choose a facility..." />
@@ -100,7 +100,7 @@ export function ServiceSelection({
           </Label>
           <Select
             value={selectedAppointmentTypeId?.toString()}
-            onValueChange={(value) => onAppointmentTypeChange(parseInt(value))}
+            onValueChange={(value: any) => onAppointmentTypeChange(parseInt(value))}
           >
             <SelectTrigger id="appointment-type-select" className="h-12">
               <SelectValue placeholder="Choose an appointment type..." />

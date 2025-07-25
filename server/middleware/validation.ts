@@ -69,7 +69,7 @@ export const checkRole = (roles: string[]) => {
 export const bookAppointmentSchema = z.object({
   facilityId: z.coerce.number().positive({ message: "Facility ID is required" }),
   appointmentTypeId: z.coerce.number().positive({ message: "Appointment type ID is required" }),
-  date: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
+  date: z.string().refine((val: any) => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, { message: "Start time must be in format HH:MM" }),
   
   // Contact information
@@ -135,9 +135,9 @@ export const validate = (location: RequestLocation, schema: z.ZodTypeAny) => {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const errors = error.errors.map(err => ({
+        const errors = error.errors.map((err: any) => ({
           path: err.path.join('.'),
-          message: err.message,
+          message: err.message
         }));
         return res.status(400).json({ success: false, errors });
       }

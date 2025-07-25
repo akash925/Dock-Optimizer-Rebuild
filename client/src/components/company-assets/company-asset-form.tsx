@@ -295,7 +295,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="name"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Asset Name *</FormLabel>
                         <FormControl>
@@ -310,7 +312,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="category"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Category *</FormLabel>
                         <Select 
@@ -339,7 +343,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="manufacturer"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Manufacturer *</FormLabel>
                         <FormControl>
@@ -354,7 +360,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="model"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Model</FormLabel>
                         <FormControl>
@@ -369,7 +377,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="owner"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Owner *</FormLabel>
                         <FormControl>
@@ -384,7 +394,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="department"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Department</FormLabel>
                         <FormControl>
@@ -399,7 +411,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="status"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Status</FormLabel>
                         <Select 
@@ -428,7 +442,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="location"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem className="col-span-2">
                         <FormLabel>Location</FormLabel>
                         <Select 
@@ -457,7 +473,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="description"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem className="col-span-2">
                         <FormLabel>Description</FormLabel>
                         <FormControl>
@@ -482,7 +500,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="barcode"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Barcode</FormLabel>
                         <FormControl>
@@ -497,7 +517,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="serialNumber"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Serial Number</FormLabel>
                         <FormControl>
@@ -512,7 +534,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="template"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Template</FormLabel>
                         <FormControl>
@@ -527,7 +551,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="manufacturerPartNumber"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Manufacturer Part #</FormLabel>
                         <FormControl>
@@ -542,7 +568,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="condition"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Condition</FormLabel>
                         <FormControl>
@@ -557,7 +585,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="supplierName"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Supplier Name</FormLabel>
                         <FormControl>
@@ -572,7 +602,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="poNumber"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>PO Number</FormLabel>
                         <FormControl>
@@ -587,7 +619,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="vendorInformation"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Vendor Information</FormLabel>
                         <FormControl>
@@ -619,7 +653,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="lastMaintenanceDate"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Last Service Date</FormLabel>
                         <Popover>
@@ -642,7 +678,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                             <CalendarComponent
                               mode="single"
                               selected={field.value ? new Date(field.value) : undefined}
-                              onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
+                              onSelect={(date: any) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
                               initialFocus
                             />
                           </PopoverContent>
@@ -656,7 +692,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="nextMaintenanceDate"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Next Service Date</FormLabel>
                         <Popover>
@@ -679,7 +717,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                             <CalendarComponent
                               mode="single"
                               selected={field.value ? new Date(field.value) : undefined}
-                              onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
+                              onSelect={(date: any) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
                               initialFocus
                             />
                           </PopoverContent>
@@ -693,7 +731,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="notes"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem className="col-span-2">
                         <FormLabel>Notes</FormLabel>
                         <FormControl>
@@ -718,7 +758,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="purchasePrice"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Purchase Price</FormLabel>
                         <FormControl>
@@ -742,7 +784,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="currency"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Currency</FormLabel>
                         <Select 
@@ -774,7 +818,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="purchaseDate"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Purchase Date</FormLabel>
                         <Popover>
@@ -797,7 +843,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                             <CalendarComponent
                               mode="single"
                               selected={field.value ? new Date(field.value) : undefined}
-                              onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
+                              onSelect={(date: any) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
                               initialFocus
                             />
                           </PopoverContent>
@@ -811,7 +857,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="implementationDate"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Implementation Date</FormLabel>
                         <Popover>
@@ -834,7 +882,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                             <CalendarComponent
                               mode="single"
                               selected={field.value ? new Date(field.value) : undefined}
-                              onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
+                              onSelect={(date: any) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
                               initialFocus
                             />
                           </PopoverContent>
@@ -848,7 +896,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="warrantyExpiration"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem className="flex flex-col col-span-2">
                         <FormLabel>Warranty Expiration Date</FormLabel>
                         <Popover>
@@ -871,7 +921,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                             <CalendarComponent
                               mode="single"
                               selected={field.value ? new Date(field.value) : undefined}
-                              onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
+                              onSelect={(date: any) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
                               initialFocus
                             />
                           </PopoverContent>
@@ -885,7 +935,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="depreciation"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Depreciation</FormLabel>
                         <FormControl>
@@ -907,7 +959,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="assetValue"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Current Value</FormLabel>
                         <FormControl>
@@ -939,7 +993,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="lastMaintenanceDate"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Last Maintenance Date</FormLabel>
                         <Popover>
@@ -962,7 +1018,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                             <CalendarComponent
                               mode="single"
                               selected={field.value ? new Date(field.value) : undefined}
-                              onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
+                              onSelect={(date: any) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
                               initialFocus
                             />
                           </PopoverContent>
@@ -976,7 +1032,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="nextMaintenanceDate"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Next Maintenance Date</FormLabel>
                         <Popover>
@@ -999,7 +1057,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                             <CalendarComponent
                               mode="single"
                               selected={field.value ? new Date(field.value) : undefined}
-                              onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
+                              onSelect={(date: any) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
                               initialFocus
                             />
                           </PopoverContent>
@@ -1013,7 +1071,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="maintenanceSchedule"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Maintenance Schedule</FormLabel>
                         <FormControl>
@@ -1035,7 +1095,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="maintenanceContact"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Maintenance Contact</FormLabel>
                         <FormControl>
@@ -1054,7 +1116,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="maintenanceNotes"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem className="col-span-2">
                         <FormLabel>Maintenance Notes</FormLabel>
                         <FormControl>
@@ -1074,7 +1138,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="implementationDate"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Implementation Date</FormLabel>
                         <Popover>
@@ -1097,7 +1163,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                             <CalendarComponent
                               mode="single"
                               selected={field.value ? new Date(field.value) : undefined}
-                              onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
+                              onSelect={(date: any) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
                               initialFocus
                             />
                           </PopoverContent>
@@ -1114,7 +1180,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   <FormField
                     control={form.control}
                     name="expectedLifetime"
-                    render={({ field }) => (
+                    render={({
+                      field
+                    }: any) => (
                       <FormItem>
                         <FormLabel>Expected Lifetime</FormLabel>
                         <FormControl>

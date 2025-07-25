@@ -16,7 +16,7 @@ const logger = require('../logger');
  * @param {string} filePath - Path to the PDF file
  * @returns {Object} - Validation result with success flag and error message if any
  */
-function validatePdf(filePath) {
+function validatePdf(filePath: any) {
   try {
     if (!fs.existsSync(filePath)) {
       return { 
@@ -105,7 +105,7 @@ function validatePdf(filePath) {
  * @param {string} filePath - Path to the image file
  * @returns {Object} - Validation result with success flag and error message if any
  */
-function validateImage(filePath) {
+function validateImage(filePath: any) {
   try {
     if (!fs.existsSync(filePath)) {
       return { 
@@ -167,7 +167,7 @@ function validateImage(filePath) {
  * @param {string} filePath - Path to the document file
  * @returns {Object} - Validation result with success flag and error message if any
  */
-function validateDocument(filePath) {
+function validateDocument(filePath: any) {
   if (!filePath) {
     return { 
       isValid: false, 

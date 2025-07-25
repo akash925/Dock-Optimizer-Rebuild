@@ -150,7 +150,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
       
       return responseData;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       console.log("Booking created successfully:", data);
       
       const confirmationCode = data.confirmationCode || 
@@ -185,7 +185,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
       
       setStep(4);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Booking creation failed:", error);
       toast({
         title: "Booking Failed",

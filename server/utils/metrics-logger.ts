@@ -34,7 +34,7 @@ const metricsStore = {
  * @param {string} metrics.errorType - Type of error if unsuccessful
  * @param {number} metrics.tenantId - ID of tenant who uploaded the document
  */
-function recordDocumentProcessingMetrics(metrics) {
+function recordDocumentProcessingMetrics(metrics: any) {
   try {
     const {
       documentType,
@@ -76,7 +76,7 @@ function recordDocumentProcessingMetrics(metrics) {
     
     // Log to database for persistent storage and analysis
     logMetricsToDatabase(metrics)
-      .catch(err => logger.error('Metrics-Logger', 'Failed to log metrics to database', err));
+      .catch((err: any) => logger.error('Metrics-Logger', 'Failed to log metrics to database', err));
     
     // Log summary for quick reference
     logger.info('Metrics-Logger', 'Document processing metrics recorded', {
@@ -98,7 +98,7 @@ function recordDocumentProcessingMetrics(metrics) {
  * @param {number} sizeInBytes - Size in bytes
  * @returns {string} - Size range category
  */
-function getSizeRange(sizeInBytes) {
+function getSizeRange(sizeInBytes: any) {
   if (sizeInBytes < 100 * 1024) {
     return '< 100KB';
   } else if (sizeInBytes < 500 * 1024) {
@@ -118,7 +118,7 @@ function getSizeRange(sizeInBytes) {
  * @param {Object} metrics - Metrics to log
  * @returns {Promise<void>}
  */
-async function logMetricsToDatabase(metrics) {
+async function logMetricsToDatabase(metrics: any) {
   try {
     const query = `
       INSERT INTO document_processing_metrics
@@ -218,7 +218,7 @@ function getPerformanceMetrics() {
  * @param {number} decimals - Decimal places
  * @returns {string} - Formatted string
  */
-function formatBytes(bytes, decimals = 2) {
+function formatBytes(bytes: any, decimals = 2) {
   if (bytes === 0) return '0 Bytes';
   
   const k = 1024;

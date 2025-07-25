@@ -78,7 +78,7 @@ export default function AuthPage() {
         onSuccess: () => {
           navigate("/");
         },
-        onError: (error) => {
+        onError: (error: any) => {
           console.error("Login mutation error:", error);
           // Show the error toast from the mutation
         }
@@ -137,7 +137,9 @@ export default function AuthPage() {
                       <FormField
                         control={loginForm.control}
                         name="username"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem>
                             <FormLabel>Username</FormLabel>
                             <FormControl>
@@ -150,7 +152,9 @@ export default function AuthPage() {
                       <FormField
                         control={loginForm.control}
                         name="password"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem>
                             <FormLabel>Password</FormLabel>
                             <FormControl>
@@ -189,7 +193,9 @@ export default function AuthPage() {
                         <FormField
                           control={registerForm.control}
                           name="firstName"
-                          render={({ field }) => (
+                          render={({
+                            field
+                          }: any) => (
                             <FormItem>
                               <FormLabel>First Name</FormLabel>
                               <FormControl>
@@ -202,7 +208,9 @@ export default function AuthPage() {
                         <FormField
                           control={registerForm.control}
                           name="lastName"
-                          render={({ field }) => (
+                          render={({
+                            field
+                          }: any) => (
                             <FormItem>
                               <FormLabel>Last Name</FormLabel>
                               <FormControl>
@@ -216,7 +224,9 @@ export default function AuthPage() {
                       <FormField
                         control={registerForm.control}
                         name="email"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem>
                             <FormLabel>Email</FormLabel>
                             <FormControl>
@@ -229,7 +239,9 @@ export default function AuthPage() {
                       <FormField
                         control={registerForm.control}
                         name="username"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem>
                             <FormLabel>Username</FormLabel>
                             <FormControl>
@@ -242,7 +254,9 @@ export default function AuthPage() {
                       <FormField
                         control={registerForm.control}
                         name="password"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem>
                             <FormLabel>Password</FormLabel>
                             <FormControl>
@@ -255,7 +269,9 @@ export default function AuthPage() {
                       <FormField
                         control={registerForm.control}
                         name="role"
-                        render={({ field }) => (
+                        render={({
+                          field
+                        }: any) => (
                           <FormItem>
                             <FormLabel>Role</FormLabel>
                             <select

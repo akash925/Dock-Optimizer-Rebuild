@@ -45,7 +45,7 @@ export function CompanyAssets() {
             <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">Manage your organization's assets and files in one place</p>
           </div>
           {/* We'll add a quick action button here to improve navigation */}
-          <Button 
+          <Button
             variant="outline"
             className="hidden sm:flex items-center gap-2 mt-2 sm:mt-0"
             onClick={() => {
@@ -82,14 +82,14 @@ export function CompanyAssets() {
                 </SheetHeader>
                 
                 <div className="flex border-b mb-4">
-                  <Button 
+                  <Button
                     variant={addAssetMode === 'form' ? 'default' : 'ghost'} 
                     onClick={() => setAddAssetMode('form')}
                     className="rounded-none rounded-t-md"
                   >
                     Add Single Asset
                   </Button>
-                  <Button 
+                  <Button
                     variant={addAssetMode === 'import' ? 'default' : 'ghost'} 
                     onClick={() => setAddAssetMode('import')}
                     className="rounded-none rounded-t-md"

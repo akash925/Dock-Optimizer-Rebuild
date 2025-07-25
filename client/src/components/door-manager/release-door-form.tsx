@@ -77,7 +77,7 @@ export default function ReleaseDoorForm({
       // Attempt release up to 3 times in case of network issues
       let attempts = 0;
       const maxAttempts = 3;
-      let response;
+      let response: any;
       
       while (attempts < maxAttempts) {
         attempts++;
@@ -121,7 +121,7 @@ export default function ReleaseDoorForm({
       console.log("[ReleaseDoorForm] Door release API returned:", result);
       return result;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       console.log("[ReleaseDoorForm] Door release succeeded with data:", data);
       
       // Verify the dockId is actually null in the returned data
@@ -192,7 +192,7 @@ export default function ReleaseDoorForm({
   };
   
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open: any) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Release Door</DialogTitle>

@@ -97,7 +97,9 @@ export function useUpdateStandardQuestion() {
       console.log(`[StandardQuestion] Successfully updated ID ${id}:`, result);
       return result;
     },
-    onSuccess: (data, { id }) => {
+    onSuccess: (data: any, {
+      id
+    }: any) => {
       // Get appointment type ID from the updated question
       const appointmentTypeId = data.appointmentTypeId;
       

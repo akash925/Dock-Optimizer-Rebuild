@@ -215,7 +215,7 @@ export default function AppointmentsPage() {
     dynamicColumns.forEach(column => {
       options[column.key] = new Set();
       
-      schedules.forEach(schedule => {
+      schedules.forEach((schedule: any) => {
         if (schedule.customFormData && typeof schedule.customFormData === 'object') {
           const formData = schedule.customFormData as Record<string, string>;
           const value = formData[column.key];
@@ -409,7 +409,7 @@ export default function AppointmentsPage() {
   const filteredSchedules = useMemo(() => {
     if (!schedules) return [];
     
-    return schedules.filter(schedule => {
+    return schedules.filter((schedule: any) => {
       const scheduleDate = new Date(schedule.startTime);
       
       // Date range filter
@@ -462,7 +462,7 @@ export default function AppointmentsPage() {
       }
       
       return true;
-    }).sort((a, b) => 
+    }).sort((a: any, b: any) => 
       new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
     );
   }, [schedules, dateRange, dynamicFilters, facilityFilter, typeFilter, searchQuery, facilities]);
@@ -471,16 +471,16 @@ export default function AppointmentsPage() {
   const facilityList = useMemo(() => {
     if (!schedules || !facilities) return [];
     const facilityNames = schedules
-      .map(s => getFacilityName(s))
-      .filter((name): name is string => !!name && name !== "No facility assigned");
+      .map((s: any) => getFacilityName(s))
+      .filter((name: any): name is string => !!name && name !== "No facility assigned");
     return Array.from(new Set(facilityNames)).sort();
   }, [schedules, facilities]);
 
   const typeList = useMemo(() => {
     if (!schedules) return [];
     const types = schedules
-      .map(s => s.type)
-      .filter((type): type is string => !!type);
+      .map((s: any) => s.type)
+      .filter((type: any): type is string => !!type);
     return Array.from(new Set(types)).sort();
   }, [schedules]);
   
@@ -495,7 +495,7 @@ export default function AppointmentsPage() {
       return;
     }
     
-    const exportData = filteredSchedules.map(schedule => ({
+    const exportData = filteredSchedules.map((schedule: any) => ({
       "Customer Name": schedule.customerName || "",
       "Facility": getSafeFacilityName(schedule),
       "Appointment Type": schedule.type,
@@ -508,7 +508,9 @@ export default function AppointmentsPage() {
       "BOL Number": schedule.bolNumber || "",
       "PO Number": schedule.poNumber || "",
       "Is Cancelled": schedule.status === "cancelled" ? "true" : "false",
-      "Is Rescheduled": "false", // We don't have this info currently
+
+      // We don't have this info currently
+      "Is Rescheduled": "false"
     }));
     
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -536,7 +538,7 @@ export default function AppointmentsPage() {
       return;
     }
     
-    const exportData = filteredSchedules.map(schedule => ({
+    const exportData = filteredSchedules.map((schedule: any) => ({
       "Customer Name": schedule.customerName || "",
       "Facility": getSafeFacilityName(schedule),
       "Appointment Type": schedule.type,
@@ -549,7 +551,9 @@ export default function AppointmentsPage() {
       "BOL Number": schedule.bolNumber || "",
       "PO Number": schedule.poNumber || "",
       "Is Cancelled": schedule.status === "cancelled" ? "true" : "false",
-      "Is Rescheduled": "false", // We don't have this info currently
+
+      // We don't have this info currently
+      "Is Rescheduled": "false"
     }));
     
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -675,8 +679,7 @@ export default function AppointmentsPage() {
                 <div className="font-medium text-sm">{column.label}</div>
                 <Select
                   value={dynamicFilters[column.key] || "all"}
-                  onValueChange={(value) => 
-                    setDynamicFilters(prev => ({ ...prev, [column.key]: value }))
+                  onValueChange={(value: any) => setDynamicFilters(prev => ({ ...prev, [column.key]: value }))
                   }
                 >
                   <SelectTrigger>
@@ -753,7 +756,7 @@ export default function AppointmentsPage() {
             
             {/* Reset Filters */}
             <div className="md:col-span-2 flex items-end">
-              <Button 
+              <Button
                 variant="outline" 
                 onClick={() => {
                   setDateRange({ 
@@ -799,32 +802,30 @@ export default function AppointmentsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredSchedules.map((schedule) => (
-                <TableRow key={schedule.id}>
-                  <TableCell>
-                    <div className="font-medium">{schedule.customerName || "-"}</div>
+              {filteredSchedules.map((schedule: any) => <TableRow key={schedule.id}>
+                <TableCell>
+                  <div className="font-medium">{schedule.customerName || "-"}</div>
+                </TableCell>
+                <TableCell>{getFacilityName(schedule)}</TableCell>
+                <TableCell>{getAppointmentTypeBadge(schedule.type)}</TableCell>
+                <TableCell>
+                  <div className="font-medium">{formatDate(schedule.startTime)}</div>
+                  <div className="text-muted-foreground text-sm">{formatTime(schedule.startTime)}</div>
+                </TableCell>
+                <TableCell>{getAppointmentStatusBadge(schedule.status)}</TableCell>
+                <TableCell>{schedule.carrierName || getCarrierName(schedule.carrierId) || "-"}</TableCell>
+                {/* Dynamic columns based on appointment type fields */}
+                {dynamicColumns.map(column => (
+                  <TableCell key={column.key}>
+                    {getCustomFormValue(schedule, column.key) || "-"}
                   </TableCell>
-                  <TableCell>{getFacilityName(schedule)}</TableCell>
-                  <TableCell>{getAppointmentTypeBadge(schedule.type)}</TableCell>
-                  <TableCell>
-                    <div className="font-medium">{formatDate(schedule.startTime)}</div>
-                    <div className="text-muted-foreground text-sm">{formatTime(schedule.startTime)}</div>
-                  </TableCell>
-                  <TableCell>{getAppointmentStatusBadge(schedule.status)}</TableCell>
-                  <TableCell>{schedule.carrierName || getCarrierName(schedule.carrierId) || "-"}</TableCell>
-                  {/* Dynamic columns based on appointment type fields */}
-                  {dynamicColumns.map(column => (
-                    <TableCell key={column.key}>
-                      {getCustomFormValue(schedule, column.key) || "-"}
-                    </TableCell>
-                  ))}
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedScheduleId(schedule.id)}>
-                      View
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+                ))}
+                <TableCell className="text-right">
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedScheduleId(schedule.id)}>
+                    View
+                  </Button>
+                </TableCell>
+              </TableRow>)}
               
               {filteredSchedules.length === 0 && (
                 <TableRow>
@@ -912,12 +913,12 @@ export default function AppointmentsPage() {
       
       {/* Appointment Details Modal */}
       <AppointmentDetailsDialog 
-        appointment={selectedScheduleId ? filteredSchedules.find(s => s.id === selectedScheduleId) as any : null}
+        appointment={selectedScheduleId ? filteredSchedules.find((s: any) => s.id === selectedScheduleId) as any : null}
         open={!!selectedScheduleId}
         onOpenChange={(open) => {
           if (!open) setSelectedScheduleId(null);
         }}
-        facilityName={selectedScheduleId ? getFacilityName(filteredSchedules.find(s => s.id === selectedScheduleId)!) : ""}
+        facilityName={selectedScheduleId ? getFacilityName(filteredSchedules.find((s: any) => s.id === selectedScheduleId)!) : ""}
         timeFormat="12h"
       />
     </div>

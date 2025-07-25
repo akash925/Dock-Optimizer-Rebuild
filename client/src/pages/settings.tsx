@@ -384,7 +384,7 @@ export default function Settings() {
                       <Switch 
                         id="scheduleChanges"
                         checked={preferences?.scheduleChanges || false}
-                        onCheckedChange={(checked) => handlePreferenceChange('scheduleChanges', checked)}
+                        onCheckedChange={(checked: any) => handlePreferenceChange('scheduleChanges', checked)}
                       />
                       <Label htmlFor="scheduleChanges">Schedule changes</Label>
                     </div>
@@ -395,7 +395,7 @@ export default function Settings() {
                       <Switch 
                         id="truckArrivalAlerts"
                         checked={preferences?.truckArrivalAlerts || false}
-                        onCheckedChange={(checked) => handlePreferenceChange('truckArrivalAlerts', checked)}
+                        onCheckedChange={(checked: any) => handlePreferenceChange('truckArrivalAlerts', checked)}
                       />
                       <Label htmlFor="truckArrivalAlerts">Truck arrival alerts</Label>
                     </div>
@@ -406,7 +406,7 @@ export default function Settings() {
                       <Switch 
                         id="dockAssignments"
                         checked={preferences?.dockAssignments || false}
-                        onCheckedChange={(checked) => handlePreferenceChange('dockAssignments', checked)}
+                        onCheckedChange={(checked: any) => handlePreferenceChange('dockAssignments', checked)}
                       />
                       <Label htmlFor="dockAssignments">Dock assignments</Label>
                     </div>
@@ -417,7 +417,7 @@ export default function Settings() {
                       <Switch 
                         id="weeklyReports"
                         checked={preferences?.weeklyReports || false}
-                        onCheckedChange={(checked) => handlePreferenceChange('weeklyReports', checked)}
+                        onCheckedChange={(checked: any) => handlePreferenceChange('weeklyReports', checked)}
                       />
                       <Label htmlFor="weeklyReports">Weekly performance reports</Label>
                     </div>
@@ -439,7 +439,7 @@ export default function Settings() {
                       <Switch 
                         id="urgentAlertsOnly"
                         checked={preferences?.urgentAlertsOnly || false}
-                        onCheckedChange={(checked) => handlePreferenceChange('urgentAlertsOnly', checked)}
+                        onCheckedChange={(checked: any) => handlePreferenceChange('urgentAlertsOnly', checked)}
                       />
                       <Label htmlFor="urgentAlertsOnly">Urgent alerts only</Label>
                     </div>
@@ -450,7 +450,7 @@ export default function Settings() {
                       <Switch 
                         id="allUpdates"
                         checked={preferences?.allUpdates || false}
-                        onCheckedChange={(checked) => handlePreferenceChange('allUpdates', checked)}
+                        onCheckedChange={(checked: any) => handlePreferenceChange('allUpdates', checked)}
                       />
                       <Label htmlFor="allUpdates">All updates</Label>
                     </div>
@@ -466,7 +466,7 @@ export default function Settings() {
                   Send a test email to verify your notification settings are configured correctly.
                 </p>
                 <div className="flex items-center gap-2">
-                  <Button 
+                  <Button
                     variant="outline" 
                     onClick={() => sendTestEmailMutation.mutate()}
                     disabled={sendTestEmailMutation.isPending}
@@ -785,7 +785,7 @@ function OrganizationLogoSettings() {
               >
                 {uploadLogoMutation.isPending ? 'Uploading...' : 'Upload Logo'}
               </Button>
-              <Button 
+              <Button
                 variant="outline" 
                 onClick={handleRemovePreview}
                 disabled={uploadLogoMutation.isPending}
@@ -977,7 +977,7 @@ function OrganizationEmailTemplates() {
                   <Switch
                     id="includeQrCode"
                     checked={currentTemplate.includeQrCode !== false}
-                    onCheckedChange={(checked) => handleTemplateUpdate(activeTemplate, 'includeQrCode', checked)}
+                    onCheckedChange={(checked: any) => handleTemplateUpdate(activeTemplate, 'includeQrCode', checked)}
                   />
                   <Label htmlFor="includeQrCode">Include QR Code for check-in</Label>
                 </div>
@@ -987,7 +987,7 @@ function OrganizationEmailTemplates() {
                   <Switch
                     id="includeCalendarAttachment"
                     checked={currentTemplate.includeCalendarAttachment !== false}
-                    onCheckedChange={(checked) => handleTemplateUpdate(activeTemplate, 'includeCalendarAttachment', checked)}
+                    onCheckedChange={(checked: any) => handleTemplateUpdate(activeTemplate, 'includeCalendarAttachment', checked)}
                   />
                   <Label htmlFor="includeCalendarAttachment">Include calendar attachment (.ics file)</Label>
                 </div>
@@ -1019,7 +1019,7 @@ function OrganizationEmailTemplates() {
                   <Switch
                     id="includeReleaseNotes"
                     checked={currentTemplate.includeReleaseNotes !== false}
-                    onCheckedChange={(checked) => handleTemplateUpdate(activeTemplate, 'includeReleaseNotes', checked)}
+                    onCheckedChange={(checked: any) => handleTemplateUpdate(activeTemplate, 'includeReleaseNotes', checked)}
                   />
                   <Label htmlFor="includeReleaseNotes">Include release notes in email</Label>
                 </div>
@@ -1029,7 +1029,7 @@ function OrganizationEmailTemplates() {
                   <Switch
                     id="includeReleaseImages"
                     checked={currentTemplate.includeReleaseImages !== false}
-                    onCheckedChange={(checked) => handleTemplateUpdate(activeTemplate, 'includeReleaseImages', checked)}
+                    onCheckedChange={(checked: any) => handleTemplateUpdate(activeTemplate, 'includeReleaseImages', checked)}
                   />
                   <Label htmlFor="includeReleaseImages">Include release images in email</Label>
                 </div>

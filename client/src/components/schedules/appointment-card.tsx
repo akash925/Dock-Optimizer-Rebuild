@@ -267,7 +267,7 @@ export function AppointmentCard({
               <Badge variant={getStatusBadgeVariant()} className="text-xs font-medium">
                 {appointment.status.replace('-', ' ')}
               </Badge>
-              <Badge 
+              <Badge
                 variant={appointment.type === 'inbound' ? 'default' : 'secondary'}
                 className="text-xs font-medium"
               >

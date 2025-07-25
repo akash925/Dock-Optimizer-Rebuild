@@ -125,7 +125,7 @@ async function main() {
   try {
     // Get all existing organizations
     const organizations = await db.select({ id: tenants.id }).from(tenants);
-    const orgIds = organizations.map(org => org.id);
+    const orgIds = organizations.map((org: any) => org.id);
     
     if (orgIds.length === 0) {
       console.log('[Holiday Seeder] ⚠️ No organizations found. Skipping holiday seeding.');

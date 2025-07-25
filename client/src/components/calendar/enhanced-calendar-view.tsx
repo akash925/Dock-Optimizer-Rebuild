@@ -228,7 +228,7 @@ function CalendarSettings({
           <Separator />
           
           <div className="flex gap-2">
-            <Button 
+            <Button
               variant="outline" 
               size="sm" 
               onClick={() => onSettingsChange({
@@ -250,7 +250,7 @@ function CalendarSettings({
             >
               Reset Default
             </Button>
-            <Button 
+            <Button
               variant="outline" 
               size="sm" 
               onClick={() => setIsOpen(false)}
@@ -722,7 +722,7 @@ export default function EnhancedCalendarView({
                         dayMaxEvents={false}
                         eventOrderStrict={true}
                         eventConstraint="businessHours"
-                        eventClassNames={(arg) => {
+                        eventClassNames={(arg: any) => {
                           const classes = ['custom-event'];
                           if (displaySettings.compactMode) {
                             classes.push('compact-event');
@@ -784,7 +784,7 @@ export default function EnhancedCalendarView({
                 slotLabelInterval="01:00"
                 slotMinTime="05:00:00"
                 slotMaxTime="22:00:00"
-                eventClassNames={(arg) => {
+                eventClassNames={(arg: any) => {
                   const classes = ['custom-event'];
                   if (displaySettings.compactMode) {
                     classes.push('compact-event');

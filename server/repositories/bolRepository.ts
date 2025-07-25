@@ -80,7 +80,7 @@ export class BolRepository {
     .leftJoin(bolDocuments, eq(appointmentBolLinks.bolDocumentId, bolDocuments.id))
     .where(eq(appointmentBolLinks.appointmentId, appointmentId));
     
-    return result.map(r => r.bolDocument).filter((doc): doc is BolDocument => doc !== null);
+    return result.map((r: any) => r.bolDocument).filter((doc: any): doc is BolDocument => doc !== null);
   }
 
   /**

@@ -555,7 +555,7 @@ export default function FacilityMaster() {
       
       return await res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       console.log("Facility created successfully:", data);
       queryClient.invalidateQueries({ queryKey: ["/api/facilities"] });
       setIsCreateDialogOpen(false);
@@ -605,7 +605,7 @@ export default function FacilityMaster() {
       
       return await res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       console.log("Facility updated successfully:", data);
       queryClient.invalidateQueries({ queryKey: ["/api/facilities"] });
       setIsEditDialogOpen(false);
@@ -708,7 +708,7 @@ export default function FacilityMaster() {
   };
 
   // Filter holidays based on facility and scope
-  const filteredHolidays = holidays?.filter((holiday) => {
+  const filteredHolidays = holidays?.filter((holiday: any) => {
     if (holidayTab === "organization") {
       return holiday.scope === "organization";
     } else {
@@ -717,7 +717,7 @@ export default function FacilityMaster() {
   });
 
   // Filter facilities based on search query
-  const filteredFacilities = facilities?.filter((facility) => {
+  const filteredFacilities = facilities?.filter((facility: any) => {
     if (!searchQuery) return true;
     
     const query = searchQuery.toLowerCase();
@@ -770,7 +770,7 @@ export default function FacilityMaster() {
           <span>Show</span>
           <Select
             value={entriesPerPage.toString()}
-            onValueChange={(value) => setEntriesPerPage(parseInt(value))}
+            onValueChange={(value: any) => setEntriesPerPage(parseInt(value))}
           >
             <SelectTrigger className="w-[70px]">
               <SelectValue placeholder="10" />
@@ -819,101 +819,99 @@ export default function FacilityMaster() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedFacilities?.map((facility) => (
-              <TableRow key={facility.id}>
-                <TableCell className="text-center">{facility.id}</TableCell>
-                <TableCell>{facility.name}</TableCell>
-                <TableCell>{facility.address1}</TableCell>
-                <TableCell>{facility.address2 || ""}</TableCell>
-                <TableCell>{facility.pincode}</TableCell>
-                <TableCell>{facility.country}</TableCell>
-                <TableCell>
-                  <div className="flex justify-center space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      className="h-8 w-8 p-0 bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-600"
-                      onClick={() => handleEditClick(facility)}
-                      title="Edit Facility"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+            {paginatedFacilities?.map((facility: any) => <TableRow key={facility.id}>
+              <TableCell className="text-center">{facility.id}</TableCell>
+              <TableCell>{facility.name}</TableCell>
+              <TableCell>{facility.address1}</TableCell>
+              <TableCell>{facility.address2 || ""}</TableCell>
+              <TableCell>{facility.pincode}</TableCell>
+              <TableCell>{facility.country}</TableCell>
+              <TableCell>
+                <div className="flex justify-center space-x-2">
+                  <Button
+                    variant="outline" 
+                    size="icon" 
+                    className="h-8 w-8 p-0 bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-600"
+                    onClick={() => handleEditClick(facility)}
+                    title="Edit Facility"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
 
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      className="h-8 w-8 p-0 bg-green-50 hover:bg-green-100 border-green-200 text-green-600"
-                      onClick={() => handleDoorsClick(facility)}
-                      title="Manage Doors"
+                  <Button
+                    variant="outline" 
+                    size="icon" 
+                    className="h-8 w-8 p-0 bg-green-50 hover:bg-green-100 border-green-200 text-green-600"
+                    onClick={() => handleDoorsClick(facility)}
+                    title="Manage Doors"
+                  >
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      className="h-4 w-4" 
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
                     >
-                      <svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        className="h-4 w-4" 
-                        fill="none" 
-                        viewBox="0 0 24 24" 
-                        stroke="currentColor"
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M12 5v14m7-7H5" 
+                      />
+                      <rect 
+                        x="4" 
+                        y="4" 
+                        width="16" 
+                        height="16" 
+                        rx="2" 
+                        strokeWidth={2} 
+                      />
+                    </svg>
+                  </Button>
+                  
+                  <Button
+                    variant="outline" 
+                    size="icon" 
+                    className="h-8 w-8 p-0 bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-600"
+                    onClick={() => handleSettingsClick(facility)}
+                    title="Facility Settings"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline" 
+                        size="icon" 
+                        className="h-8 w-8 p-0 bg-red-50 hover:bg-red-100 border-red-200 text-red-600"
+                        title="Delete Facility"
                       >
-                        <path 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round" 
-                          strokeWidth={2} 
-                          d="M12 5v14m7-7H5" 
-                        />
-                        <rect 
-                          x="4" 
-                          y="4" 
-                          width="16" 
-                          height="16" 
-                          rx="2" 
-                          strokeWidth={2} 
-                        />
-                      </svg>
-                    </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      className="h-8 w-8 p-0 bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-600"
-                      onClick={() => handleSettingsClick(facility)}
-                      title="Facility Settings"
-                    >
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                    
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-8 w-8 p-0 bg-red-50 hover:bg-red-100 border-red-200 text-red-600"
-                          title="Delete Facility"
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete the facility
+                          "{facility.name}" and may affect related data.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => handleDeleteClick(facility)}
+                          className="bg-red-600 hover:bg-red-700"
                         >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the facility
-                            "{facility.name}" and may affect related data.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={() => handleDeleteClick(facility)}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </TableCell>
+            </TableRow>)}
 
             {(paginatedFacilities?.length || 0) === 0 && (
               <TableRow>
@@ -965,7 +963,9 @@ export default function FacilityMaster() {
                 <FormField
                   control={createForm.control}
                   name="name"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Facility Name</FormLabel>
                       <FormControl>
@@ -979,7 +979,9 @@ export default function FacilityMaster() {
                 <FormField
                   control={createForm.control}
                   name="address1"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Address Line 1</FormLabel>
                       <FormControl>
@@ -1006,7 +1008,9 @@ export default function FacilityMaster() {
                 <FormField
                   control={createForm.control}
                   name="address2"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Address Line 2</FormLabel>
                       <FormControl>
@@ -1020,7 +1024,9 @@ export default function FacilityMaster() {
                 <FormField
                   control={createForm.control}
                   name="city"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>City</FormLabel>
                       <FormControl>
@@ -1034,7 +1040,9 @@ export default function FacilityMaster() {
                 <FormField
                   control={createForm.control}
                   name="state"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>State/Province</FormLabel>
                       <FormControl>
@@ -1048,7 +1056,9 @@ export default function FacilityMaster() {
                 <FormField
                   control={createForm.control}
                   name="pincode"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Postal Code</FormLabel>
                       <FormControl>
@@ -1062,7 +1072,9 @@ export default function FacilityMaster() {
                 <FormField
                   control={createForm.control}
                   name="country"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Country</FormLabel>
                       <Select
@@ -1088,7 +1100,9 @@ export default function FacilityMaster() {
                 <FormField
                   control={createForm.control}
                   name="timezone"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Timezone</FormLabel>
                       <Select 
@@ -1158,7 +1172,9 @@ export default function FacilityMaster() {
                 <FormField
                   control={editForm.control}
                   name="name"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Facility Name</FormLabel>
                       <FormControl>
@@ -1172,7 +1188,9 @@ export default function FacilityMaster() {
                 <FormField
                   control={editForm.control}
                   name="address1"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Address Line 1</FormLabel>
                       <FormControl>
@@ -1199,7 +1217,9 @@ export default function FacilityMaster() {
                 <FormField
                   control={editForm.control}
                   name="address2"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Address Line 2</FormLabel>
                       <FormControl>
@@ -1213,7 +1233,9 @@ export default function FacilityMaster() {
                 <FormField
                   control={editForm.control}
                   name="city"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>City</FormLabel>
                       <FormControl>
@@ -1227,7 +1249,9 @@ export default function FacilityMaster() {
                 <FormField
                   control={editForm.control}
                   name="state"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>State/Province</FormLabel>
                       <FormControl>
@@ -1241,7 +1265,9 @@ export default function FacilityMaster() {
                 <FormField
                   control={editForm.control}
                   name="pincode"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Postal Code</FormLabel>
                       <FormControl>
@@ -1255,7 +1281,9 @@ export default function FacilityMaster() {
                 <FormField
                   control={editForm.control}
                   name="country"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Country</FormLabel>
                       <Select
@@ -1281,7 +1309,9 @@ export default function FacilityMaster() {
                 <FormField
                   control={editForm.control}
                   name="timezone"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem>
                       <FormLabel>Timezone</FormLabel>
                       <Select 

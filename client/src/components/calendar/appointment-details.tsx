@@ -56,7 +56,7 @@ export default function AppointmentDetails({ scheduleId, onClose }: AppointmentD
       });
       setShowDockAssignment(true);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error checking in",
         description: error.message,
@@ -81,7 +81,7 @@ export default function AppointmentDetails({ scheduleId, onClose }: AppointmentD
         description: "The appointment has been completed successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error checking out",
         description: error.message,
@@ -107,7 +107,7 @@ export default function AppointmentDetails({ scheduleId, onClose }: AppointmentD
         description: "The appointment has been assigned to a door successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error assigning door",
         description: error.message,
@@ -118,7 +118,7 @@ export default function AppointmentDetails({ scheduleId, onClose }: AppointmentD
 
   if (isLoading || !schedule) {
     return (
-      <Dialog open={!!scheduleId} onOpenChange={(open) => !open && onClose()}>
+      <Dialog open={!!scheduleId} onOpenChange={(open: any) => !open && onClose()}>
         <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
             <DialogTitle>Appointment Details</DialogTitle>
@@ -160,7 +160,7 @@ export default function AppointmentDetails({ scheduleId, onClose }: AppointmentD
   };
 
   return (
-    <Dialog open={!!scheduleId} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={!!scheduleId} onOpenChange={(open: any) => !open && onClose()}>
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle>
@@ -209,7 +209,7 @@ export default function AppointmentDetails({ scheduleId, onClose }: AppointmentD
                   <div className="flex items-center gap-2">
                     <span className="text-orange-600">No dock assigned</span>
                     {schedule.status === 'in-progress' && (
-                      <Button 
+                      <Button
                         size="sm" 
                         variant="outline"
                         onClick={() => setShowDockAssignment(true)}
@@ -426,24 +426,22 @@ export default function AppointmentDetails({ scheduleId, onClose }: AppointmentD
             </p>
             <div className="grid grid-cols-2 gap-3">
               {docks
-                .filter(dock => dock.isActive)
-                .map(dock => (
-                  <Button
-                    key={dock.id}
-                    variant="outline"
-                    className="h-auto p-4 flex flex-col items-center gap-2"
-                    onClick={() => assignDockMutation.mutate(dock.id)}
-                    disabled={assignDockMutation.isPending}
-                  >
-                    <DoorOpen className="h-6 w-6" />
-                    <span className="font-medium">{dock.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {dock.type || 'Standard'}
-                    </span>
-                  </Button>
-                ))}
+                .filter((dock: any) => dock.isActive)
+                .map((dock: any) => <Button
+                key={dock.id}
+                variant="outline"
+                className="h-auto p-4 flex flex-col items-center gap-2"
+                onClick={() => assignDockMutation.mutate(dock.id)}
+                disabled={assignDockMutation.isPending}
+              >
+                <DoorOpen className="h-6 w-6" />
+                <span className="font-medium">{dock.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {dock.type || 'Standard'}
+                </span>
+              </Button>)}
             </div>
-            {docks.filter(dock => dock.isActive).length === 0 && (
+            {docks.filter((dock: any) => dock.isActive).length === 0 && (
               <p className="text-center text-muted-foreground py-8">
                 No available docks found for this facility
               </p>
@@ -453,7 +451,7 @@ export default function AppointmentDetails({ scheduleId, onClose }: AppointmentD
             <Button variant="outline" onClick={() => setShowDockAssignment(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               variant="secondary"
               onClick={() => navigate("/door-manager")}
             >
@@ -464,5 +462,5 @@ export default function AppointmentDetails({ scheduleId, onClose }: AppointmentD
          </DialogContent>
        </Dialog>
       </Dialog>
-    );
+  );
 }

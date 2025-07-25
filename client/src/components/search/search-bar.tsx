@@ -36,7 +36,9 @@ export default function SearchBar() {
   // Fetch search results
   const { data: searchResults = [], isLoading } = useQuery<SearchResult[]>({
     queryKey: ["/api/schedules/search", searchQuery],
-    queryFn: ({ queryKey }) => {
+    queryFn: ({
+      queryKey
+    }: any) => {
       const query = queryKey[1] as string;
       return fetch(`/api/schedules/search?query=${encodeURIComponent(query)}`)
         .then(res => {
@@ -152,7 +154,7 @@ export default function SearchBar() {
             </div>
           ) : (
             <ul>
-              {searchResults.map((result, index) => (
+              {searchResults.map((result: any, index: any) => (
                 <li
                   key={result.id}
                   className={`px-4 py-3 text-sm cursor-pointer hover:bg-neutral-50 flex flex-col ${

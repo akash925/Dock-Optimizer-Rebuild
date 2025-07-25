@@ -298,7 +298,7 @@ export default function ScheduleWeekCalendar({
       {/* Ultra Compact Filters - Combined row with calendar navigation */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
         <div className="flex items-center space-x-1">
-          <Button 
+          <Button
             variant="outline" 
             size="icon" 
             onClick={goToPreviousWeek}
@@ -307,7 +307,7 @@ export default function ScheduleWeekCalendar({
           >
             <ChevronLeft className="h-3 w-3" />
           </Button>
-          <Button 
+          <Button
             variant="outline" 
             size="icon" 
             onClick={goToNextWeek}
@@ -316,7 +316,7 @@ export default function ScheduleWeekCalendar({
           >
             <ChevronRight className="h-3 w-3" />
           </Button>
-          <Button 
+          <Button
             variant="outline" 
             size="sm"
             onClick={goToToday}
@@ -330,7 +330,7 @@ export default function ScheduleWeekCalendar({
         {/* View Mode Switch */}
         <div className="flex items-center space-x-2 ml-auto">
           <div className="bg-muted rounded-md p-1 flex space-x-1">
-            <Button 
+            <Button
               variant="ghost" 
               size="sm" 
               className="h-7 px-3 text-xs"
@@ -352,7 +352,7 @@ export default function ScheduleWeekCalendar({
             >
               Day
             </Button>
-            <Button 
+            <Button
               variant="default" 
               size="sm" 
               className="h-7 px-3 text-xs"
@@ -361,7 +361,7 @@ export default function ScheduleWeekCalendar({
             >
               Week
             </Button>
-            <Button 
+            <Button
               variant="ghost" 
               size="sm" 
               className="h-7 px-3 text-xs"
@@ -418,7 +418,7 @@ export default function ScheduleWeekCalendar({
             )}
           </div>
           {/* Timezone selection moved to parent component */}
-          <Button 
+          <Button
             variant="secondary" 
             size="sm"
             className="h-7 px-2 text-xs"

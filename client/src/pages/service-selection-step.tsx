@@ -63,7 +63,9 @@ export default function ServiceSelectionStep({ bookingPage }: { bookingPage: any
     error: facilitiesError
   } = useQuery<any[]>({
     queryKey: ['/api/facilities', { bookingPageSlug: bookingPage?.slug }],
-    queryFn: async ({ queryKey }) => {
+    queryFn: async ({
+      queryKey
+    }: any) => {
       const [baseUrl, params] = queryKey;
       // Important: Use port 5000 directly for API requests
       const apiUrl = `${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
@@ -104,7 +106,9 @@ export default function ServiceSelectionStep({ bookingPage }: { bookingPage: any
     error: typesError
   } = useQuery<any[]>({
     queryKey: ['/api/appointment-types', { bookingPageSlug: bookingPage?.slug }],
-    queryFn: async ({ queryKey }) => {
+    queryFn: async ({
+      queryKey
+    }: any) => {
       const [baseUrl, params] = queryKey;
       // Use relative URL path for API requests to work in any environment
       const apiUrl = `${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
@@ -372,13 +376,15 @@ ${data.notes ? `Notes: ${data.notes}` : ''}
                 <FormField
                   control={form.control}
                   name="facilityId"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem className="space-y-2">
                       <FormLabel className="font-medium">
                         Location<span className="text-red-500">*</span>
                       </FormLabel>
                       <Select
-                        onValueChange={(value) => handleFacilityChange(value)}
+                        onValueChange={(value: any) => handleFacilityChange(value)}
                         defaultValue={field.value}
                         value={field.value}
                       >
@@ -407,7 +413,9 @@ ${data.notes ? `Notes: ${data.notes}` : ''}
                 <FormField
                   control={form.control}
                   name="appointmentTypeId"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem className="space-y-2">
                       <FormLabel className="font-medium">
                         Dock Appointment Type<span className="text-red-500">*</span>
@@ -452,7 +460,9 @@ ${data.notes ? `Notes: ${data.notes}` : ''}
                 <FormField
                   control={form.control}
                   name="pickupOrDropoff"
-                  render={({ field }) => (
+                  render={({
+                    field
+                  }: any) => (
                     <FormItem className="space-y-2">
                       <FormLabel className="font-medium">
                         Pickup or Dropoff<span className="text-red-500">*</span>

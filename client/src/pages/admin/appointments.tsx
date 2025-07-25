@@ -321,7 +321,7 @@ function AppointmentDetailsModal({ appointmentId, open, onOpenChange }: {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {details.customFields.map((field, index) => (
+                      {details.customFields.map((field: any, index: any) => (
                         <div key={index}>
                           <span className="font-medium">{field.field_key}:</span>
                           <div className="mt-1 text-sm">{field.field_value}</div>
@@ -468,7 +468,7 @@ export default function AdminAppointments() {
               
               <Select 
                 value={filters.status} 
-                onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
+                onValueChange={(value: any) => setFilters(prev => ({ ...prev, status: value }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Status" />
@@ -486,22 +486,20 @@ export default function AdminAppointments() {
 
               <Select 
                 value={filters.organizationId} 
-                onValueChange={(value) => setFilters(prev => ({ ...prev, organizationId: value }))}
+                onValueChange={(value: any) => setFilters(prev => ({ ...prev, organizationId: value }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Organization" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Organizations</SelectItem>
-                  {organizations?.map(org => (
-                    <SelectItem key={org.id} value={org.id.toString()}>
-                      {org.name}
-                    </SelectItem>
-                  ))}
+                  {organizations?.map((org: any) => <SelectItem key={org.id} value={org.id.toString()}>
+                    {org.name}
+                  </SelectItem>)}
                 </SelectContent>
               </Select>
 
-              <Button 
+              <Button
                 variant="outline" 
                 onClick={() => {
                   setFilters({
@@ -557,63 +555,61 @@ export default function AdminAppointments() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data?.appointments.map((appointment) => (
-                    <TableRow key={appointment.id}>
-                      <TableCell>
-                        <div className="font-mono text-sm">
-                          {appointment.confirmation_code}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          #{appointment.id}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          {format(parseISO(appointment.start_time), 'MMM d, yyyy')}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {format(parseISO(appointment.start_time), 'h:mm a')} - {format(parseISO(appointment.end_time), 'h:mm a')}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm font-medium">
-                          {appointment.customer_name || 'N/A'}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Driver: {appointment.driver_name || 'N/A'}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm font-medium">
-                          {appointment.organization_name}
-                        </div>
-                        <Badge variant="outline" className="text-xs">
-                          {appointment.organization_subdomain}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm font-medium">
-                          {appointment.facility_name}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {appointment.dock_name}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(appointment.status)}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewDetails(appointment.id)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {data?.appointments.map((appointment: any) => <TableRow key={appointment.id}>
+                    <TableCell>
+                      <div className="font-mono text-sm">
+                        {appointment.confirmation_code}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        #{appointment.id}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {format(parseISO(appointment.start_time), 'MMM d, yyyy')}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {format(parseISO(appointment.start_time), 'h:mm a')} - {format(parseISO(appointment.end_time), 'h:mm a')}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm font-medium">
+                        {appointment.customer_name || 'N/A'}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Driver: {appointment.driver_name || 'N/A'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm font-medium">
+                        {appointment.organization_name}
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {appointment.organization_subdomain}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm font-medium">
+                        {appointment.facility_name}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {appointment.dock_name}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(appointment.status)}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewDetails(appointment.id)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                    </TableCell>
+                  </TableRow>)}
                 </TableBody>
               </Table>
             )}

@@ -58,7 +58,7 @@ export default function ScheduleMonthCalendar({
       {/* Calendar Header with view mode toggle */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
         <div className="flex items-center space-x-2">
-          <Button 
+          <Button
             variant="outline" 
             size="icon" 
             onClick={goToPreviousMonth}
@@ -66,7 +66,7 @@ export default function ScheduleMonthCalendar({
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button 
+          <Button
             variant="outline" 
             size="sm"
             onClick={goToToday}
@@ -74,7 +74,7 @@ export default function ScheduleMonthCalendar({
           >
             Today
           </Button>
-          <Button 
+          <Button
             variant="outline" 
             size="icon" 
             onClick={goToNextMonth}
@@ -87,7 +87,7 @@ export default function ScheduleMonthCalendar({
         {/* View Mode Switch */}
         <div className="flex items-center space-x-2 ml-auto">
           <div className="bg-muted rounded-md p-1 flex space-x-1">
-            <Button 
+            <Button
               variant="ghost" 
               size="sm" 
               className="h-7 px-3 text-xs"
@@ -108,7 +108,7 @@ export default function ScheduleMonthCalendar({
             >
               Day
             </Button>
-            <Button 
+            <Button
               variant="ghost" 
               size="sm" 
               className="h-7 px-3 text-xs"
@@ -128,7 +128,7 @@ export default function ScheduleMonthCalendar({
             >
               Week
             </Button>
-            <Button 
+            <Button
               variant="default" 
               size="sm" 
               className="h-7 px-3 text-xs"
@@ -159,7 +159,7 @@ export default function ScheduleMonthCalendar({
         ))}
         
         {/* Days of the month */}
-        {daysInMonth.map((day, index) => {
+        {daysInMonth.map((day: any, index: any) => {
           // Count schedules for this day
           const dailySchedules = schedules.filter(schedule => {
             const scheduleDate = new Date(schedule.startTime);
