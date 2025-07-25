@@ -28,11 +28,9 @@ export const listAssets = async (req: Request, res: Response) => {
     
     // Otherwise return all assets
     const assets = await companyAssetsService.list();
-    // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
     return res.json(assets);
   } catch (error) {
     console.error('Error fetching assets:', error);
-    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(500).json({ error: 'Failed to fetch assets' });
   }
 };
