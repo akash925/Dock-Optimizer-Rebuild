@@ -102,24 +102,58 @@ export default function EnhancedAppointmentDetails({ scheduleId, onClose }: Enha
                          'America/New_York'; // Default to Eastern time
 
   // Convert schedule to the expected format for AppointmentDetailsDialog
-  const extendedSchedule = {
-    ...schedule,
+  const extendedSchedule: ExtendedSchedule = {
+    // Core required fields
+    id: schedule.id,
+    dockId: schedule.facilityId, // Use facilityId as dockId fallback
+    carrierId: schedule.createdBy, // Use createdBy as carrierId fallback  
+    appointmentTypeId: 1, // Default appointment type
+    notes: scheduleCasted.notes || null,
+    
     // Convert Date objects to ISO strings
     startTime: schedule.startTime.toISOString(),
     endTime: schedule.endTime.toISOString(),
     createdAt: schedule.createdAt.toISOString(),
     updatedAt: schedule.lastModifiedAt?.toISOString() || schedule.createdAt.toISOString(),
     lastModifiedAt: schedule.lastModifiedAt?.toISOString(),
-    lastModifiedBy: schedule.createdBy, // Map createdBy to lastModifiedBy
+    lastModifiedBy: schedule.createdBy,
+    
+    // Status and type fields
+    status: schedule.status || 'scheduled',
+    type: schedule.type || 'appointment',
+    
+    // Truck and driver info
+    truckNumber: schedule.truckNumber || '',
+    trailerNumber: scheduleCasted.trailerNumber || null,
+    driverName: scheduleCasted.driverName || null,
+    driverPhone: scheduleCasted.driverPhone || null,
+    driverEmail: scheduleCasted.driverEmail || null,
+    
+    // Time tracking
     actualStartTime: schedule.actualStartTime?.toISOString(),
     actualEndTime: schedule.actualEndTime?.toISOString(),
-    // Add additional properties
+    
+    // Additional properties
     facilityName,
+    facilityId: schedule.facilityId,
     facilityTimezone,
-    dockName: schedule.dockId ? `Dock #${schedule.dockId}` : undefined,
+    dockName: schedule.facilityId ? `Dock #${schedule.facilityId}` : undefined,
     appointmentTypeName: scheduleCasted.appointmentTypeName,
-    truckNumber: schedule.truckNumber || ''
-  } as ExtendedSchedule;
+    customerName: scheduleCasted.customerName,
+    carrierName: scheduleCasted.carrierName,
+    confirmationCode: scheduleCasted.confirmationCode,
+    bolNumber: scheduleCasted.bolNumber || null,
+    bolDocumentPath: scheduleCasted.bolDocumentPath || null,
+    customFormData: scheduleCasted.customFormData,
+    bolDocuments: scheduleCasted.bolDocuments || [],
+    weight: scheduleCasted.weight || null,
+    palletCount: scheduleCasted.palletCount || null,
+    mcNumber: scheduleCasted.mcNumber || null,
+    poNumber: scheduleCasted.poNumber || null,
+    appointmentMode: scheduleCasted.appointmentMode,
+    creatorEmail: scheduleCasted.creatorEmail || null,
+    createdBy: schedule.createdBy
+  };
 
   return (
     <AppointmentDetailsDialog

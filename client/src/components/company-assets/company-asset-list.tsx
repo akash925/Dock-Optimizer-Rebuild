@@ -101,9 +101,9 @@ interface CompanyAssetListProps {
 }
 
 interface FilterOptions {
-  category: AssetCategory | null;
-  location: AssetLocation | null;
-  status: AssetStatus | null;
+  category: AssetCategory | 'all' | '' | null;
+  location: AssetLocation | 'all' | '' | null;
+  status: AssetStatus | 'all' | '' | null;
   tags: string[];
 }
 
@@ -289,7 +289,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   const paginatedAssets = assets?.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
-  );
+      );
 
   // Get category icon based on asset category
   const getCategoryIcon = (category: AssetCategory) => {

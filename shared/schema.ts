@@ -424,27 +424,64 @@ export const insertBookingPageSchema = createInsertSchema(bookingPages).omit({
 export const assets = pgTable("assets", {
   id: serial("id").primaryKey(),
   filename: text("filename").notNull(),
-  /* … unchanged … */
+  description: text("description"),
+  fileType: text("file_type"),
+  fileSize: integer("file_size"),
+  url: text("url"),
+  tags: jsonb("tags"),
+  uploadedBy: integer("uploaded_by"),
+  createdAt: timestamp("created_at").defaultNow(),
   lastAccessedAt: timestamp("last_accessed_at"),
 });
 
 export const companyAssets = pgTable("company_assets", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  /* missing barcode column */
+  manufacturer: text("manufacturer").notNull(),
+  owner: text("owner").notNull(),
+  category: text("category").notNull(),
   barcode: text("barcode"),
-  /* your new columns … */
-  implementationDate: date("implementation_date"),
-  /* legacy cols kept so drizzle won’t delete data */
-  implemented_date: date("implemented_date"),
-  last_service_date: date("last_service_date"),
-  next_service_date: date("next_service_date"),
-  /* … rest unchanged … */
-  tenantId: integer("tenant_id")
-    .notNull()
-    .references(() => tenants.id),
+  serialNumber: text("serial_number"),
+  description: text("description"),
+  purchasePrice: text("purchase_price"),
+  currency: text("currency").default("USD"),
+  purchaseDate: date("purchase_date"),
+  implementedDate: date("implemented_date"),
+  warrantyExpiration: date("warranty_expiration"),
+  location: text("location").default("warehouse"),
+  status: text("status").default("active"),
+  template: text("template"),
+  tags: jsonb("tags"),
+  model: text("model"),
+  condition: text("condition"),
+  notes: text("notes"),
+  photoUrl: text("photo_url"),
+  documentUrls: jsonb("document_urls"),
+  lastServiceDate: date("last_service_date"),
+  nextServiceDate: date("next_service_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: integer("created_by"),
+  updatedBy: integer("updated_by"),
+  department: text("department"),
+  depreciation: text("depreciation"),
+  assetValue: text("asset_value"),
+  manufacturerPartNumber: text("manufacturer_part_number"),
+  supplierName: text("supplier_name"),
+  poNumber: text("po_number"),
+  vendorInformation: text("vendor_information"),
+  lastMaintenanceDate: timestamp("last_maintenance_date"),
+  nextMaintenanceDate: timestamp("next_maintenance_date"),
+  maintenanceSchedule: text("maintenance_schedule"),
+  maintenanceContact: text("maintenance_contact"),
+  maintenanceNotes: text("maintenance_notes"),
+  implementationDate: timestamp("implementation_date"),
+  expectedLifetime: text("expected_lifetime"),
+  certificationDate: timestamp("certification_date"),
+  certificationExpiry: timestamp("certification_expiry"),
+  tenantId: integer("tenant_id"),
+  compressedImage: text("compressed_image"),
+  imageMetadata: jsonb("image_metadata"),
 });
 
 export const insertCompanyAssetSchema = createInsertSchema(companyAssets).omit({
@@ -708,24 +745,30 @@ export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;
 export type RoleRecord = typeof roles.$inferSelect; // convenience
 export type InsertRoleRecord = typeof roles.$inferInsert;
 
-export type Schedule = typeof schedules.$inferSelect;
+// Note: Schedule, User, UserPreferences types are defined in shared/shims.d.ts to allow augmentation
+// export type Schedule = typeof schedules.$inferSelect;
 export type InsertSchedule = typeof schedules.$inferInsert;
 
 export type StandardQuestion = typeof standardQuestions.$inferSelect;
 export type InsertStandardQuestion = typeof standardQuestions.$inferInsert;
 
-export type User = typeof users.$inferSelect;
+// export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-export type UserPreferences = typeof userPreferences.$inferSelect;
+// export type UserPreferences = typeof userPreferences.$inferSelect;
 export type InsertUserPreferences = typeof userPreferences.$inferInsert;
 
 /* Simple enum shared with the backend service layer */
 export const AssetCategory = {
-  IMAGE: "image",
-  DOCUMENT: "document",
-  VIDEO: "video",
-  OTHER: "other",
+  EQUIPMENT: "EQUIPMENT",
+  DOCK: "DOCK",
+  OFFICE: "OFFICE",
+  WAREHOUSE: "WAREHOUSE",
+  FACILITY: "FACILITY",
+  VEHICLE: "VEHICLE",
+  TECHNOLOGY: "TECHNOLOGY",
+  FURNITURE: "FURNITURE",
+  OTHER: "OTHER",
 } as const;
 export type AssetCategory = (typeof AssetCategory)[keyof typeof AssetCategory];
 
@@ -735,6 +778,9 @@ export const AssetLocation = {
   OFFICE: "OFFICE",
   WAREHOUSE: "WAREHOUSE",
   FACILITY: "FACILITY",
+  STORAGE: "STORAGE",
+  MAINTENANCE: "MAINTENANCE",
+  OTHER: "OTHER",
 } as const;
 export type AssetLocation = (typeof AssetLocation)[keyof typeof AssetLocation];
 
@@ -773,13 +819,13 @@ export type FeatureFlag = {
 };
 
 /* Missing types for storage.ts */
-export type DefaultHours = typeof organizationDefaultHours.$inferSelect;
+// Note: DefaultHours type is defined in shared/shims.d.ts to allow augmentation
+// export type DefaultHours = typeof organizationDefaultHours.$inferSelect;
 
 /* Enhanced schedule type used in storage */
 export interface EnhancedSchedule extends Schedule {
   facilityName?: string;
   dockName?: string;
-  carrierName?: string;
   bookingPageUrl?: string;
   appointmentTime?: Date;
   timezone?: string;

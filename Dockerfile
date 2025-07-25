@@ -42,8 +42,9 @@ FROM base AS runtime
 RUN addgroup -g 1001 -S nodejs \
  && adduser -S dockopt -u 1001 -G nodejs
 
-# install Doppler CLI (still root)
-RUN wget -qO- https://cli.doppler.com/install.sh | sh
+    # install Doppler CLI dependencies and Doppler CLI (still root)
+    RUN apk add --no-cache gnupg wget curl && \
+        wget -qO- https://cli.doppler.com/install.sh | sh
 
 USER dockopt
 

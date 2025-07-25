@@ -591,7 +591,7 @@ export default function EnhancedCalendarView({
             </div>
             
             <Droppable droppableId="unscheduled">
-              {(provided, snapshot) => (
+              {(provided: any, snapshot: any) => (
                 <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
@@ -605,7 +605,7 @@ export default function EnhancedCalendarView({
                       draggableId={appointment.id.toString()}
                       index={index}
                     >
-                      {(provided, snapshot) => (
+                      {(provided: any, snapshot: any) => (
                         <div
                           ref={provided.innerRef}
                           {...provided.draggableProps}
@@ -658,7 +658,7 @@ export default function EnhancedCalendarView({
 
           {/* Calendar Area */}
           <Droppable droppableId="calendar">
-            {(provided, snapshot) => (
+            {(provided: any, snapshot: any) => (
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}

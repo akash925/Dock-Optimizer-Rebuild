@@ -180,7 +180,7 @@ export function AssetList() {
                           variant="ghost"
                           size="icon"
                           title="View"
-                          onClick={() => window.open(asset.url, '_blank')}
+                          onClick={() => asset.url && window.open(asset.url, '_blank')}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -190,7 +190,7 @@ export function AssetList() {
                           title="Download"
                           onClick={() => {
                             const link = document.createElement('a');
-                            link.href = asset.url;
+                            link.href = asset.url || '';
                             link.download = asset.filename;
                             document.body.appendChild(link);
                             link.click();

@@ -32,26 +32,67 @@ declare global {
 
 // Database schema extensions (read-only augmentations)
 declare module '@shared/schema' {
-  interface Schedule {
+  // Base type definitions (replacing the ones commented out in schema.ts)
+  type Schedule = {
+    id: number;
+    createdAt: Date;
+    type: string;
+    status: string;
+    createdBy: number | null;
+    tenantId: number | null;
+    lastModifiedAt: Date | null;
+    facilityId: number | null;
+    mcNumber: string | null;
+    carrierName: string | null;
+    startTime: Date;
+    endTime: Date;
+    [key: string]: any;
+  } & {
     lastModifiedBy?: number | null;
-  }
+  };
   
-  interface DefaultHours {
+  type DefaultHours = {
+    id: number;
+    createdAt: Date;
+    updatedAt: Date | null;
+    tenantId: number | null;
+    organizationId: number;
+    dayOfWeek: number;
+    startTime: string | null;
+    endTime: string | null;
+    breakStart: string | null;
+    breakEnd: string | null;
+  } & {
     isOpen?: boolean;
     openTime?: string;
     closeTime?: string;
-    breakStart?: string | null;
-    breakEnd?: string | null;
     updatedAt?: Date | null;
-  }
+  };
   
-  interface UserPreferences {
+  type UserPreferences = {
+    id: number;
+    createdAt: Date;
+    updatedAt: Date | null;
+    userId: number;
+    organizationId: number;
+    emailNotificationsEnabled: boolean;
+  } & {
     pushNotificationsEnabled?: boolean;
-  }
+  };
   
-  interface User {
+  type User = {
+    id: number;
+    email: string;
+    username: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    createdAt: Date;
+    tenantId: number | null;
+  } & {
     modules?: string | string[];
-  }
+  };
 }
 
 // Storage interface extensions

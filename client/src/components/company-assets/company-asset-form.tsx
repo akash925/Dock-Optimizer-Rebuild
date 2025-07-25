@@ -92,9 +92,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
       // Financial information
       purchasePrice: assetToEdit?.purchasePrice || '',
       currency: assetToEdit?.currency || 'USD',
-      purchaseDate: assetToEdit?.purchaseDate ? formatDate(assetToEdit.purchaseDate) : undefined,
-      implementationDate: assetToEdit?.implementationDate ? formatDate(assetToEdit.implementationDate) : undefined,
-      warrantyExpiration: assetToEdit?.warrantyExpiration ? formatDate(assetToEdit.warrantyExpiration) : undefined,
+      purchaseDate: assetToEdit?.purchaseDate || undefined,
+      implementationDate: assetToEdit?.implementationDate || undefined,
+      warrantyExpiration: assetToEdit?.warrantyExpiration || undefined,
       depreciation: assetToEdit?.depreciation || '',
       assetValue: assetToEdit?.assetValue || '',
       
@@ -107,7 +107,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
       
       // Additional metadata
       model: assetToEdit?.model || '',
-      assetCondition: assetToEdit?.assetCondition || '',
+      condition: assetToEdit?.condition || '',
       notes: assetToEdit?.notes || '',
       manufacturerPartNumber: assetToEdit?.manufacturerPartNumber || '',
       supplierName: assetToEdit?.supplierName || '',
@@ -115,11 +115,11 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
       vendorInformation: assetToEdit?.vendorInformation || '',
       
       // Tracking dates and maintenance info
-      lastMaintenanceDate: assetToEdit?.lastMaintenanceDate ? formatDate(assetToEdit.lastMaintenanceDate) : undefined,
-      nextMaintenanceDate: assetToEdit?.nextMaintenanceDate ? formatDate(assetToEdit.nextMaintenanceDate) : undefined,
+      lastMaintenanceDate: assetToEdit?.lastMaintenanceDate || undefined,
+      nextMaintenanceDate: assetToEdit?.nextMaintenanceDate || undefined,
       maintenanceSchedule: assetToEdit?.maintenanceSchedule || '',
-      certificationDate: assetToEdit?.certificationDate ? formatDate(assetToEdit.certificationDate) : undefined,
-      certificationExpiry: assetToEdit?.certificationExpiry ? formatDate(assetToEdit.certificationExpiry) : undefined,
+      certificationDate: assetToEdit?.certificationDate || undefined,
+      certificationExpiry: assetToEdit?.certificationExpiry || undefined,
     },
   });
 
@@ -343,7 +343,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                       <FormItem>
                         <FormLabel>Manufacturer *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter manufacturer name" {...field} />
+                          <Input placeholder="Enter manufacturer name" {...field} value={field.value ?? ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -373,7 +373,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                       <FormItem>
                         <FormLabel>Owner *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter owner/responsible person" {...field} />
+                          <Input placeholder="Enter owner/responsible person" {...field} value={field.value ?? ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -541,7 +541,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   {/* Condition */}
                   <FormField
                     control={form.control}
-                    name="assetCondition"
+                    name="condition"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Condition</FormLabel>
