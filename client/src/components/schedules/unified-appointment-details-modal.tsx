@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Schedule, ExtendedSchedule } from '@shared/schema';
+import { Schedule, EnhancedSchedule } from '@shared/schema';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { Calendar, Clock, MapPin, Truck, User, Phone, Mail, FileText, QrCode } from 'lucide-react';
 
 interface UnifiedAppointmentDetailsModalProps {
-  appointment: ExtendedSchedule | null;
+  appointment: EnhancedSchedule | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   facilityTimezone?: string;
@@ -106,7 +106,7 @@ export function UnifiedAppointmentDetailsModal({
         description: "The appointment has been successfully updated",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error updating appointment",
         description: error.message,
@@ -131,7 +131,7 @@ export function UnifiedAppointmentDetailsModal({
         description: "The appointment has been checked in",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error checking in",
         description: error.message,
@@ -157,7 +157,7 @@ export function UnifiedAppointmentDetailsModal({
         description: "The appointment has been completed",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error checking out",
         description: error.message,
@@ -431,7 +431,7 @@ export function UnifiedAppointmentDetailsModal({
                     >
                       Save Changes
                     </Button>
-                    <Button 
+                    <Button
                       variant="outline" 
                       onClick={() => setIsEditing(false)}
                     >
@@ -439,7 +439,7 @@ export function UnifiedAppointmentDetailsModal({
                     </Button>
                   </>
                 ) : (
-                  <Button 
+                  <Button
                     variant="outline" 
                     onClick={() => setIsEditing(true)}
                   >
