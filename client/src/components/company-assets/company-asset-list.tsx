@@ -149,19 +149,19 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
     }
     
     // Add category filter if selected - ensure it's not 'all' or empty string
-    if (filters.category && filters.category !== 'all' && filters.category !== '') {
+    if (filters.category && filters.category !== 'all' && Object.values(AssetCategory).includes(filters.category as any)) {
       params.append('category', filters.category);
       console.log("Adding category filter:", filters.category);
     }
     
     // Add location filter if selected - ensure it's not 'all' or empty string
-    if (filters.location && filters.location !== 'all' && filters.location !== '') {
+    if (filters.location && filters.location !== 'all' && Object.values(AssetLocation).includes(filters.location as any)) {
       params.append('location', filters.location);
       console.log("Adding location filter:", filters.location);
     }
     
     // Add status filter if selected - ensure it's not 'all' or empty string
-    if (filters.status && filters.status !== 'all' && filters.status !== '') {
+    if (filters.status && filters.status !== 'all' && Object.values(AssetStatus).includes(filters.status as any)) {
       params.append('status', filters.status);
       console.log("Adding status filter:", filters.status);
     }
@@ -253,7 +253,9 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
       }
       return { id, status };
     },
-    onSuccess: ({ status }) => {
+    onSuccess: ({
+      status
+    }: any) => {
       toast({
         title: 'Status updated',
         description: `Asset status has been updated to ${status}`,
@@ -298,14 +300,12 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
         return <Wrench className="h-5 w-5 text-blue-500" />;
       case AssetCategory.VEHICLE:
         return <Truck className="h-5 w-5 text-green-500" />;
-      case AssetCategory.TOOLS:
+      case AssetCategory.EQUIPMENT:
         return <HardHat className="h-5 w-5 text-yellow-500" />;
-      case AssetCategory.ELECTRONICS:
+      case AssetCategory.TECHNOLOGY:
         return <Box className="h-5 w-5 text-indigo-500" />;
       case AssetCategory.FURNITURE:
         return <Package className="h-5 w-5 text-purple-500" />;
-      case AssetCategory.SAFETY:
-        return <HardHat className="h-5 w-5 text-orange-500" />;
       case AssetCategory.OTHER:
         return <FileQuestion className="h-5 w-5 text-gray-500" />;
       default:
@@ -344,7 +344,6 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
       case AssetStatus.RETIRED:
         return "destructive"; // red
       case AssetStatus.INACTIVE:
-      case AssetStatus.LOST:
       default:
         return "outline"; // gray
     }
@@ -419,7 +418,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   // Get all available tags from assets
   const getAllTags = (): string[] => {
     const allTags = new Set<string>();
-    assets?.forEach(asset => {
+    assets?.forEach((asset: any) => {
       if (asset.tags) {
         try {
           // Only parse if it's a string
@@ -546,7 +545,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
               {/* Sort Dropdown */}
               <Select 
                 value={sortBy || 'name'} 
-                onValueChange={(value) => setSortBy(value)}
+                onValueChange={(value: any) => setSortBy(value)}
               >
                 <SelectTrigger className="w-[180px]">
                   <span className="flex items-center gap-2">
@@ -593,7 +592,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                       <label className="text-sm font-medium">Category</label>
                       <Select 
                         value={filters.category || "all"} 
-                        onValueChange={(value) => {
+                        onValueChange={(value: any) => {
                           console.log("Category changed to:", value);
                           setFilters({...filters, category: value === "all" ? null : value as AssetCategory});
                         }}
@@ -614,7 +613,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                       <label className="text-sm font-medium">Location</label>
                       <Select 
                         value={filters.location || "all"} 
-                        onValueChange={(value) => {
+                        onValueChange={(value: any) => {
                           console.log("Location changed to:", value);
                           setFilters({...filters, location: value === "all" ? null : value as AssetLocation});
                         }}
@@ -635,7 +634,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                       <label className="text-sm font-medium">Status</label>
                       <Select 
                         value={filters.status || "all"} 
-                        onValueChange={(value) => {
+                        onValueChange={(value: any) => {
                           console.log("Status changed to:", value);
                           setFilters({...filters, status: value === "all" ? null : value as AssetStatus});
                         }}
@@ -686,9 +685,9 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
         {/* Active filters display */}
         {(filters.category || filters.location || filters.status || filters.tags.length > 0) && (
           <div className="flex flex-wrap gap-2 mb-4">
-            {filters.category && (
+            {filters.category && filters.category !== 'all' && Object.values(AssetCategory).includes(filters.category as any) && (
               <Badge variant="secondary" className="flex items-center gap-1">
-                Category: {formatCategory(filters.category)}
+                Category: {formatCategory(filters.category as AssetCategory)}
                 <X 
                   className="h-3 w-3 cursor-pointer" 
                   onClick={() => setFilters({...filters, category: null})}
@@ -760,155 +759,153 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                     </TableRow>
                   </TableHeader>
                 <TableBody>
-                  {paginatedAssets?.map((asset) => (
-                    <TableRow 
-                      key={asset.id} 
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => navigateToFullEditPage(asset)}
-                    >
-                      <TableCell className="pl-4" onClick={(e) => {
-                        e.stopPropagation();
-                        if (asset.photoUrl) {
-                          console.log('Image icon clicked for asset:', asset.name);
-                          openImageViewer(asset.photoUrl, asset.name);
-                        }
-                      }}>
-                        <div className="cursor-pointer hover:text-primary" title={asset.photoUrl ? "Click to view full image" : "No image available"}>
-                          {getCategoryIcon(asset.category)}
+                  {paginatedAssets?.map((asset: any) => <TableRow 
+                    key={asset.id} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => navigateToFullEditPage(asset)}
+                  >
+                    <TableCell className="pl-4" onClick={(e) => {
+                      e.stopPropagation();
+                      if (asset.photoUrl) {
+                        console.log('Image icon clicked for asset:', asset.name);
+                        openImageViewer(asset.photoUrl, asset.name);
+                      }
+                    }}>
+                      <div className="cursor-pointer hover:text-primary" title={asset.photoUrl ? "Click to view full image" : "No image available"}>
+                        {getCategoryIcon(asset.category)}
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium whitespace-nowrap">{asset.name}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatCategory(asset.category)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{asset.manufacturer || '-'}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {asset.status ? (
+                        <Badge variant={getStatusVariant(asset.status)} className="capitalize">
+                          {asset.status}
+                        </Badge>
+                      ) : '-'}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{asset.location || '-'}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {asset.serialNumber && <div className="text-xs">{asset.serialNumber}</div>}
+                      {asset.barcode && <div className="text-xs text-muted-foreground">{asset.barcode}</div>}
+                      {!asset.serialNumber && !asset.barcode && '-'}
+                    </TableCell>
+                    {/* Hidden on smaller screens */}
+                    <TableCell className="hidden lg:table-cell whitespace-nowrap">{asset.owner || '-'}</TableCell>
+                    <TableCell className="hidden lg:table-cell whitespace-nowrap">{asset.department || '-'}</TableCell>
+                    <TableCell className="hidden md:table-cell whitespace-nowrap">{formatCurrency(asset.purchasePrice)}</TableCell>
+                    <TableCell className="hidden md:table-cell whitespace-nowrap">{asset.purchaseDate ? formatDate(new Date(asset.purchaseDate)) : '-'}</TableCell>
+                    <TableCell className="hidden xl:table-cell whitespace-nowrap">{asset.implementationDate ? formatDate(new Date(asset.implementationDate)) : '-'}</TableCell>
+                    <TableCell className="hidden xl:table-cell whitespace-nowrap">
+                      {asset.nextMaintenanceDate ? (
+                        <div className="flex items-center">
+                          <Calendar className="h-3 w-3 mr-1 text-muted-foreground" />
+                          {formatDate(new Date(asset.nextMaintenanceDate))}
                         </div>
-                      </TableCell>
-                      <TableCell className="font-medium whitespace-nowrap">{asset.name}</TableCell>
-                      <TableCell className="whitespace-nowrap">{formatCategory(asset.category)}</TableCell>
-                      <TableCell className="whitespace-nowrap">{asset.manufacturer || '-'}</TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {asset.status ? (
-                          <Badge variant={getStatusVariant(asset.status)} className="capitalize">
-                            {asset.status}
+                      ) : '-'}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell whitespace-nowrap">
+                      <div className="flex flex-wrap gap-1 max-w-[150px]">
+                        {formatTags(asset.tags).map((tag, i) => (
+                          <Badge key={i} variant="outline" className="text-xs">
+                            {tag}
                           </Badge>
-                        ) : '-'}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">{asset.location || '-'}</TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {asset.serialNumber && <div className="text-xs">{asset.serialNumber}</div>}
-                        {asset.barcode && <div className="text-xs text-muted-foreground">{asset.barcode}</div>}
-                        {!asset.serialNumber && !asset.barcode && '-'}
-                      </TableCell>
-                      {/* Hidden on smaller screens */}
-                      <TableCell className="hidden lg:table-cell whitespace-nowrap">{asset.owner || '-'}</TableCell>
-                      <TableCell className="hidden lg:table-cell whitespace-nowrap">{asset.department || '-'}</TableCell>
-                      <TableCell className="hidden md:table-cell whitespace-nowrap">{formatCurrency(asset.purchasePrice)}</TableCell>
-                      <TableCell className="hidden md:table-cell whitespace-nowrap">{asset.purchaseDate ? formatDate(new Date(asset.purchaseDate)) : '-'}</TableCell>
-                      <TableCell className="hidden xl:table-cell whitespace-nowrap">{asset.implementationDate ? formatDate(new Date(asset.implementationDate)) : '-'}</TableCell>
-                      <TableCell className="hidden xl:table-cell whitespace-nowrap">
-                        {asset.nextMaintenanceDate ? (
-                          <div className="flex items-center">
-                            <Calendar className="h-3 w-3 mr-1 text-muted-foreground" />
-                            {formatDate(new Date(asset.nextMaintenanceDate))}
-                          </div>
-                        ) : '-'}
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell whitespace-nowrap">
-                        <div className="flex flex-wrap gap-1 max-w-[150px]">
-                          {formatTags(asset.tags).map((tag, i) => (
-                            <Badge key={i} variant="outline" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                          {(!asset.tags || formatTags(asset.tags).length === 0) && '-'}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="relative z-10">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="z-50 min-w-[200px]">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        ))}
+                        {(!asset.tags || formatTags(asset.tags).length === 0) && '-'}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="relative z-10">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="z-50 min-w-[200px]">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuGroup>
+                            <DropdownMenuItem onClick={() => navigateToFullEditPage(asset)}>
+                              <Pencil className="w-4 h-4 mr-2" />
+                              Edit Asset
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuGroup>
-                              <DropdownMenuItem onClick={() => navigateToFullEditPage(asset)}>
-                                <Pencil className="w-4 h-4 mr-2" />
-                                Edit Asset
+                            <DropdownMenuLabel>Update Status</DropdownMenuLabel>
+                            {Object.values(AssetStatus).map((status) => (
+                              <DropdownMenuItem 
+                                key={status}
+                                disabled={asset.status === status}
+                                onClick={() => handleStatusUpdate(asset.id, status)}
+                              >
+                                <Badge variant={getStatusVariant(status)} className="mr-2 capitalize">
+                                  {status}
+                                </Badge>
+                                {asset.status === status ? 'Current' : 'Change to'}
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuLabel>Update Status</DropdownMenuLabel>
-                              {Object.values(AssetStatus).map((status) => (
-                                <DropdownMenuItem 
-                                  key={status}
-                                  disabled={asset.status === status}
-                                  onClick={() => handleStatusUpdate(asset.id, status)}
-                                >
-                                  <Badge variant={getStatusVariant(status)} className="mr-2 capitalize">
-                                    {status}
-                                  </Badge>
-                                  {asset.status === status ? 'Current' : 'Change to'}
+                            ))}
+                            <DropdownMenuSeparator />
+                            {asset.photoUrl && (
+                              <>
+                                <DropdownMenuItem onClick={() => viewAssetImage(asset)}>
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  View Full Image
                                 </DropdownMenuItem>
-                              ))}
-                              <DropdownMenuSeparator />
-                              {asset.photoUrl && (
-                                <>
-                                  <DropdownMenuItem onClick={() => viewAssetImage(asset)}>
-                                    <Eye className="w-4 h-4 mr-2" />
-                                    View Full Image
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => {
-                                    console.log('Fullscreen clicked for asset:', asset.name, asset.photoUrl);
-                                    openImageViewer(asset.photoUrl!, asset.name);
-                                  }}>
-                                    <Maximize2 className="w-4 h-4 mr-2" />
-                                    Full Screen View
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => downloadAssetImage(asset)}>
-                                    <Download className="w-4 h-4 mr-2" />
-                                    Download Image
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => window.open(asset.photoUrl!, '_blank')}>
-                                    <ExternalLink className="w-4 h-4 mr-2" />
-                                    Open in New Tab
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                </>
-                              )}
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete Asset</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to delete this company asset? This action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction 
-                                      onClick={() => handleDelete(asset.id)}
-                                      className="bg-red-500 hover:bg-red-600 text-white"
-                                    >
-                                      {deleteMutation.isPending ? (
-                                        <>
-                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                          Deleting...
-                                        </>
-                                      ) : (
-                                        'Delete'
-                                      )}
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </DropdownMenuGroup>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                                <DropdownMenuItem onClick={() => {
+                                  console.log('Fullscreen clicked for asset:', asset.name, asset.photoUrl);
+                                  openImageViewer(asset.photoUrl!, asset.name);
+                                }}>
+                                  <Maximize2 className="w-4 h-4 mr-2" />
+                                  Full Screen View
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => downloadAssetImage(asset)}>
+                                  <Download className="w-4 h-4 mr-2" />
+                                  Download Image
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => window.open(asset.photoUrl!, '_blank')}>
+                                  <ExternalLink className="w-4 h-4 mr-2" />
+                                  Open in New Tab
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                              </>
+                            )}
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e: any) => e.preventDefault()} className="text-red-600">
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Asset</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete this company asset? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => handleDelete(asset.id)}
+                                    className="bg-red-500 hover:bg-red-600 text-white"
+                                  >
+                                    {deleteMutation.isPending ? (
+                                      <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Deleting...
+                                      </>
+                                    ) : (
+                                      'Delete'
+                                    )}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>)}
                 </TableBody>
               </Table>
               </div>
