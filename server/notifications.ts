@@ -10,6 +10,13 @@ import { getTimeZoneAbbreviation, getTimeZoneName } from '../shared/timezone-uti
 import { getStorage } from './storage';
 
 /**
+ * Check if email service is configured and ready to send emails
+ */
+export function isEmailServiceConfigured(): boolean {
+  return !!(process.env.SENDGRID_API_KEY && process.env.SENDGRID_FROM_EMAIL);
+}
+
+/**
  * Helper function to determine the correct booking page URL for a schedule
  */
 function getBookingPageUrl(schedule: EnhancedSchedule, host: string): string {

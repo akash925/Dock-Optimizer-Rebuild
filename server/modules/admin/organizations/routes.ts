@@ -5,6 +5,7 @@ import { TenantStatus, AvailableModule, activityLogs } from '@shared/schema';
 import { db } from '../../../db';
 import { eq, sql } from 'drizzle-orm';
 import { users, tenants, organizationUsers, organizationModules, roles } from '@shared/schema';
+import { isAuthenticated } from '../../../types/express';
 
 // API routes for organization modules
 export const registerOrganizationModulesRoutes = (app: Express) => {

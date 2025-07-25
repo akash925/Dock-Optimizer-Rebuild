@@ -2,6 +2,12 @@ import { Pool, neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
 import "@testing-library/jest-dom";
 
+// Jest globals
+declare global {
+  var beforeAll: (fn: () => Promise<void>) => void;
+  var afterAll: (fn: () => Promise<void>) => void;
+}
+
 // Configure Neon WebSockets for serverless environments
 neonConfig.webSocketConstructor = ws;
 

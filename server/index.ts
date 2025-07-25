@@ -9,7 +9,7 @@ import express, { Request, Response, NextFunction } from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { registerRoutes } from "./routes.ts";
+import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { tenantMiddleware } from "./middleware/tenant";
 import { initializeWebSocket } from "./websocket/index";
@@ -85,7 +85,7 @@ app.use((req, res, next) => {
   const origJson = res.json;
   // eslint‑disable‑next‑line @typescript-eslint/ban-ts-comment
   // @ts‑ignore – override type safely
-  res.json = function (this: typeof res, payload: unknown, ...args: unknown[]) {
+  res.json = function (this: typeof res, payload: unknown, ...args: any[]) {
     body = payload;
     return origJson.call(this, payload, ...args);
   } as typeof res.json;

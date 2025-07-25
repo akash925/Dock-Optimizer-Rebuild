@@ -1,5 +1,6 @@
 import QRCode from 'qrcode';
 import { Request, Response } from 'express';
+import { isAuthenticated } from '../types/express';
 
 /**
  * Generate a QR code SVG for appointment check-in

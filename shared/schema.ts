@@ -189,10 +189,42 @@ export const facilities = pgTable("facilities", {
   company: text("company"),
   timezone: text("timezone").default("America/New_York"),
   tenantId: integer("tenant_id"),
-  /* business-hours columns unchanged … */
+  /* business-hours columns */
   mondayStart: text("monday_start").default("08:00"),
   mondayEnd: text("monday_end").default("17:00"),
-  /* … rest of weekday columns … */
+  mondayOpen: boolean("monday_open").default(true),
+  mondayBreakStart: text("monday_break_start"),
+  mondayBreakEnd: text("monday_break_end"),
+  tuesdayStart: text("tuesday_start").default("08:00"),
+  tuesdayEnd: text("tuesday_end").default("17:00"),
+  tuesdayOpen: boolean("tuesday_open").default(true),
+  tuesdayBreakStart: text("tuesday_break_start"),
+  tuesdayBreakEnd: text("tuesday_break_end"),
+  wednesdayStart: text("wednesday_start").default("08:00"),
+  wednesdayEnd: text("wednesday_end").default("17:00"),
+  wednesdayOpen: boolean("wednesday_open").default(true),
+  wednesdayBreakStart: text("wednesday_break_start"),
+  wednesdayBreakEnd: text("wednesday_break_end"),
+  thursdayStart: text("thursday_start").default("08:00"),
+  thursdayEnd: text("thursday_end").default("17:00"),
+  thursdayOpen: boolean("thursday_open").default(true),
+  thursdayBreakStart: text("thursday_break_start"),
+  thursdayBreakEnd: text("thursday_break_end"),
+  fridayStart: text("friday_start").default("08:00"),
+  fridayEnd: text("friday_end").default("17:00"),
+  fridayOpen: boolean("friday_open").default(true),
+  fridayBreakStart: text("friday_break_start"),
+  fridayBreakEnd: text("friday_break_end"),
+  saturdayStart: text("saturday_start").default("08:00"),
+  saturdayEnd: text("saturday_end").default("17:00"),
+  saturdayOpen: boolean("saturday_open").default(false),
+  saturdayBreakStart: text("saturday_break_start"),
+  saturdayBreakEnd: text("saturday_break_end"),
+  sundayStart: text("sunday_start").default("08:00"),
+  sundayEnd: text("sunday_end").default("17:00"),
+  sundayOpen: boolean("sunday_open").default(false),
+  sundayBreakStart: text("sunday_break_start"),
+  sundayBreakEnd: text("sunday_break_end"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastModifiedAt: timestamp("last_modified_at"),
 });
@@ -228,6 +260,29 @@ export const schedules = pgTable("schedules", {
   endTime: timestamp("end_time").notNull(),
   type: text("type").notNull(),
   status: text("status").notNull(),
+  /* missing columns for existing code */
+  driverName: text("driver_name"),
+  customerName: text("customer_name"),
+  confirmationCode: text("confirmation_code"),
+  /* additional missing columns from storage.ts */
+  tenantId: integer("tenant_id").references(() => tenants.id),
+  createdBy: integer("created_by").references(() => users.id),
+  truckNumber: text("truck_number"),
+  trailerNumber: text("trailer_number"),
+  driverPhone: text("driver_phone"),
+  driverEmail: text("driver_email"),
+  carrierName: text("carrier_name"),
+  mcNumber: text("mc_number"),
+  bolNumber: text("bol_number"),
+  poNumber: text("po_number"),
+  palletCount: integer("pallet_count"),
+  weight: text("weight"),
+  appointmentMode: text("appointment_mode"),
+  notes: text("notes"),
+  customFormData: jsonb("custom_form_data"),
+  creatorEmail: text("creator_email"),
+  actualStartTime: timestamp("actual_start_time"),
+  actualEndTime: timestamp("actual_end_time"),
   /* meta */
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastModifiedAt: timestamp("last_modified_at"),
@@ -348,6 +403,8 @@ export const bookingPages = pgTable("booking_pages", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
+  /* missing style properties */
+  primaryColor: text("primary_color").default("#4CAF50"),
   /* other cols unchanged */
   tenantId: integer("tenant_id"),
   createdBy: integer("created_by").notNull(),
@@ -374,6 +431,8 @@ export const assets = pgTable("assets", {
 export const companyAssets = pgTable("company_assets", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  /* missing barcode column */
+  barcode: text("barcode"),
   /* your new columns … */
   implementationDate: date("implementation_date"),
   /* legacy cols kept so drizzle won’t delete data */
@@ -477,10 +536,18 @@ export const organizationDefaultHours = pgTable("organization_default_hours", {
   organizationId: integer("organization_id")
     .notNull()
     .references(() => tenants.id, { onDelete: "cascade" }),
+  tenantId: integer("tenant_id")
+    .references(() => tenants.id, { onDelete: "cascade" }),
   dayOfWeek: integer("day_of_week").notNull(),
   startTime: text("start_time").default("08:00"),
   endTime: text("end_time").default("17:00"),
+  isOpen: boolean("is_open").default(true),
+  openTime: text("open_time").default("08:00"),
+  closeTime: text("close_time").default("17:00"),
+  breakStart: text("break_start"),
+  breakEnd: text("break_end"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const organizationHolidays = pgTable("organization_holidays", {
@@ -524,6 +591,18 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
 });
 
 /* ───────────────────────────── Legacy / support tables ──────────────────── */
+
+/* Activity logs table for organization actions */
+export const activityLogs = pgTable("activity_logs", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id")
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .references(() => users.id, { onDelete: "cascade" }),
+  action: text("action").notNull(),
+  details: text("details"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
 /* Session store the app still touches */
 export const session = pgTable("session", {
@@ -684,12 +763,29 @@ export const activityLogs = {
 export type ActivityLog = keyof typeof activityLogs;
 
 export type Tenant = typeof tenants.$inferSelect;
+export type InsertTenant = typeof tenants.$inferInsert;
+
 export type FeatureFlag = {
   id: number;
   tenantId: number;
   module: AvailableModule;
   enabled: boolean;
 };
+
+/* Missing types for storage.ts */
+export type DefaultHours = typeof organizationDefaultHours.$inferSelect;
+
+/* Enhanced schedule type used in storage */
+export interface EnhancedSchedule extends Schedule {
+  facilityName?: string;
+  dockName?: string;
+  carrierName?: string;
+  bookingPageUrl?: string;
+  appointmentTime?: Date;
+  timezone?: string;
+  template?: any;
+  lastModifiedBy?: number | null;
+}
 
 /* -------------------------------------------------------------------------- */
 /* End of schema – the rest of your generated types / insert schemas remain  */

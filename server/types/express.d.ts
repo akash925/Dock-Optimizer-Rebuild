@@ -13,9 +13,10 @@ declare module "express-serve-static-core" {
       role: string;
       username: string;
       tenantId: number | null;
-      email?: string;
-      firstName?: string;
-      lastName?: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      modules?: string[];
     };
     isAuthenticated?: () => boolean;
     logout?: (callback?: (err: any) => void) => void;

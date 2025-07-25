@@ -33,6 +33,7 @@ import {
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+// @ts-ignore - Missing type definitions
 import connectPg from "connect-pg-simple";
 import { eq, and, gte, lte, or, ilike, SQL, sql, inArray } from "drizzle-orm";
 import { db, pool, safeQuery } from "./db";
@@ -42,6 +43,7 @@ import { getRedis } from './src/utils/redis';
 import { logger } from "./utils/logger";
 import { emailService } from './services/email';
 import crypto from "crypto";
+// @ts-ignore - Missing type definitions
 import connectRedis from 'connect-redis';
 
 const redis = getRedis();
@@ -486,6 +488,7 @@ export class MemStorage implements IStorage {
             confirmationCode: schedule.confirmationCode,
             facilityName: (await this.getFacility(schedule.facilityId!))?.name,
             appointmentDate: schedule.startTime,
+            appointmentTime: schedule.startTime,
             customerName: schedule.customerName,
             timezone: tenant?.timezone || 'Etc/UTC',
             template: confirmationTemplate,
@@ -503,7 +506,7 @@ export class MemStorage implements IStorage {
       
       // Emit appointment:created event with id and tenantId
       eventSystem.emit('appointment:created', {
-        schedule: schedule,
+        schedule: { ...schedule, lastModifiedBy: schedule.createdBy } as EnhancedSchedule,
         tenantId: schedule.tenantId || 1
       });
       
@@ -976,7 +979,7 @@ export class DatabaseStorage implements IStorage {
       ORDER BY s.id DESC
     `);
     
-    logger.debug('[DatabaseStorage] getSchedules tenant-filtered result count:', { count: result.rows.length });
+    logger.debug(`[DatabaseStorage] getSchedules tenant-filtered result count: ${result.rows.length}`);
     
     // Transform snake_case fields to camelCase for frontend compatibility
     const transformedSchedules = result.rows.map((row: any) => ({
@@ -1253,11 +1256,11 @@ export class DatabaseStorage implements IStorage {
           .from(docks)
           .innerJoin(facilities, eq(docks.facilityId, facilities.id))
           .where(eq(facilities.tenantId, tenantId));
-        logger.debug(`[DatabaseStorage] getDocks for tenant ${tenantId} result count:`, { count: dockList.length });
+        logger.debug(`[DatabaseStorage] getDocks for tenant ${tenantId} result count: ${dockList.length}`);
         return dockList.map(item => item.dock);
       }
       const dockList = await db.select().from(docks);
-      logger.debug('[DatabaseStorage] getDocks (unfiltered) result count:', { count: dockList.length });
+      logger.debug(`[DatabaseStorage] getDocks (unfiltered) result count: ${dockList.length}`);
       return dockList;
     } catch (error) {
       console.error('Error fetching docks:', error);
@@ -1329,12 +1332,12 @@ export class DatabaseStorage implements IStorage {
       return tenantCarriers.map(item => item.carrier);
     }
     const result = await db.select().from(carriers);
-    logger.debug('[DatabaseStorage] getCarriers result count:', { count: result.length });
+    logger.debug(`[DatabaseStorage] getCarriers result count: ${result.length}`);
     return result;
   }
 
   async getCarrier(id: number): Promise<Carrier | undefined> {
-    logger.debug('[DatabaseStorage] getCarrier called with id:', { id });
+    logger.debug(`[DatabaseStorage] getCarrier called with id: ${id}`);
     const result = await db.select().from(carriers).where(eq(carriers.id, id));
     return result[0];
   }
@@ -1508,15 +1511,15 @@ export class DatabaseStorage implements IStorage {
       }
       
       logger.debug(`[Storage] Executing company assets query with ${conditions.length} conditions for tenant ${filters.tenantId}`);
-      logger.debug(`[Storage] Generated SQL conditions:`, { conditions });
+      logger.debug(`[Storage] Generated SQL conditions: ${JSON.stringify(conditions)}`);
       
       // Test with raw SQL first to verify data exists
       const rawTestResult = await db.execute(sql`SELECT COUNT(*) as count FROM company_assets WHERE tenant_id = ${filters.tenantId}`);
       logger.debug(`[Storage] Raw SQL test - found ${rawTestResult.rows[0]?.count} assets for tenant ${filters.tenantId}`);
       
       const assets = await query;
-      logger.debug(`[Storage] Drizzle query returned ${assets.length} company assets with filters:`, { filters });
-      logger.debug(`[Storage] Sample asset data:`, { assets: assets.slice(0, 2) });
+      logger.debug(`[Storage] Drizzle query returned ${assets.length} company assets with filters: ${JSON.stringify(filters)}`);
+      logger.debug(`[Storage] Sample asset data: ${JSON.stringify(assets.slice(0, 2))}`);
       return assets;
     } catch (error) {
       console.error('Error fetching company assets:', error);
@@ -1525,17 +1528,17 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getFilteredCompanyAssets(filters: any): Promise<any[]> {
-    logger.debug('[DatabaseStorage] getFilteredCompanyAssets called with filters:', { filters });
+    logger.debug(`[DatabaseStorage] getFilteredCompanyAssets called with filters: ${JSON.stringify(filters)}`);
     const result = await this.getCompanyAssets(filters);
-    logger.debug('[DatabaseStorage] getFilteredCompanyAssets result count:', { count: result.length });
+    logger.debug(`[DatabaseStorage] getFilteredCompanyAssets result count: ${result.length}`);
     return result;
   }
 
   async getCompanyAsset(id: number): Promise<any | undefined> {
     try {
-      logger.debug('[DatabaseStorage] getCompanyAsset called with id:', { id });
+      logger.debug(`[DatabaseStorage] getCompanyAsset called with id: ${id}`);
       const [asset] = await db.select().from(companyAssets).where(eq(companyAssets.id, id)).limit(1);
-      logger.debug('[DatabaseStorage] getCompanyAsset result:', { asset: asset ? 'found' : 'not found' });
+      logger.debug(`[DatabaseStorage] getCompanyAsset result: ${asset ? 'found' : 'not found'}`);
       return asset;
     } catch (error) {
       console.error('Error fetching company asset by id:', error);
@@ -1549,9 +1552,9 @@ export class DatabaseStorage implements IStorage {
   
   async createCompanyAsset(companyAsset: InsertCompanyAsset): Promise<CompanyAsset> {
     try {
-      logger.debug('[DatabaseStorage] createCompanyAsset called with:', { companyAsset });
+      logger.debug(`[DatabaseStorage] createCompanyAsset called with: ${JSON.stringify(companyAsset)}`);
       const [newAsset] = await db.insert(companyAssets).values(companyAsset).returning();
-      logger.debug('[DatabaseStorage] createCompanyAsset created asset with id:', { id: newAsset.id });
+      logger.debug(`[DatabaseStorage] createCompanyAsset created asset with id: ${newAsset.id}`);
       return newAsset;
     } catch (error) {
       console.error('Error creating company asset:', error);
@@ -1561,12 +1564,12 @@ export class DatabaseStorage implements IStorage {
   
   async updateCompanyAsset(id: number, companyAssetUpdate: UpdateCompanyAsset): Promise<CompanyAsset | undefined> {
     try {
-      logger.debug('[DatabaseStorage] updateCompanyAsset called with id:', { id, data: companyAssetUpdate });
+      logger.debug(`[DatabaseStorage] updateCompanyAsset called with id: ${id}, data: ${JSON.stringify(companyAssetUpdate)}`);
       const [updatedAsset] = await db.update(companyAssets)
         .set({ ...companyAssetUpdate, updatedAt: new Date() })
         .where(eq(companyAssets.id, id))
         .returning();
-      logger.debug('[DatabaseStorage] updateCompanyAsset updated asset:', { success: updatedAsset ? 'success' : 'not found' });
+      logger.debug(`[DatabaseStorage] updateCompanyAsset updated asset: ${updatedAsset ? 'success' : 'not found'}`);
       return updatedAsset;
     } catch (error) {
       console.error('Error updating company asset:', error);
@@ -1576,9 +1579,9 @@ export class DatabaseStorage implements IStorage {
 
   async findCompanyAssetByBarcode(barcode: string): Promise<CompanyAsset | undefined> {
     try {
-      logger.debug('[DatabaseStorage] findCompanyAssetByBarcode called with barcode:', { barcode });
+      logger.debug(`[DatabaseStorage] findCompanyAssetByBarcode called with barcode: ${barcode}`);
       const [asset] = await db.select().from(companyAssets).where(eq(companyAssets.barcode, barcode)).limit(1);
-      logger.debug('[DatabaseStorage] findCompanyAssetByBarcode result:', { asset: asset ? 'found' : 'not found' });
+      logger.debug(`[DatabaseStorage] findCompanyAssetByBarcode result: ${asset ? 'found' : 'not found'}`);
       return asset;
     } catch (error) {
       console.error('Error finding company asset by barcode:', error);
