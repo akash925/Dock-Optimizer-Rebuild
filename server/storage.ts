@@ -27,37 +27,6 @@ import {
   appointmentTypes, dailyAvailability, customQuestions, standardQuestions, bookingPages, assets, companyAssets,
   tenants, roles, organizationUsers, organizationModules, organizationFacilities, userPreferences,
   organizationDefaultHours, organizationHolidays, bolDocuments,
-
-// Extended interface for storage operations to fix TS2339 errors
-interface ExtendedInsertAppointmentSettings extends InsertAppointmentSettings {
-  maxConcurrentInbound?: number;
-  maxConcurrentOutbound?: number;
-  shareAvailabilityInfo?: boolean;
-  sunday?: boolean; monday?: boolean; tuesday?: boolean; wednesday?: boolean;
-  thursday?: boolean; friday?: boolean; saturday?: boolean;
-  sundayStartTime?: string; sundayEndTime?: string;
-  mondayStartTime?: string; mondayEndTime?: string;
-  tuesdayStartTime?: string; tuesdayEndTime?: string;
-  wednesdayStartTime?: string; wednesdayEndTime?: string;
-  thursdayStartTime?: string; thursdayEndTime?: string;
-  fridayStartTime?: string; fridayEndTime?: string;
-  saturdayStartTime?: string; saturdayEndTime?: string;
-  sundayBreakStartTime?: string; sundayBreakEndTime?: string;
-  mondayBreakStartTime?: string; mondayBreakEndTime?: string;
-  tuesdayBreakStartTime?: string; tuesdayBreakEndTime?: string;
-  wednesdayBreakStartTime?: string; wednesdayBreakEndTime?: string;
-  thursdayBreakStartTime?: string; thursdayBreakEndTime?: string;
-  fridayBreakStartTime?: string; fridayBreakEndTime?: string;
-  saturdayBreakStartTime?: string; saturdayBreakEndTime?: string;
-  sundayMaxAppointments?: number; mondayMaxAppointments?: number;
-  tuesdayMaxAppointments?: number; wednesdayMaxAppointments?: number;
-  thursdayMaxAppointments?: number; fridayMaxAppointments?: number;
-  saturdayMaxAppointments?: number;
-  defaultBufferTime?: number; defaultGracePeriod?: number;
-  defaultEmailReminderTime?: number;
-  allowAppointmentsThroughBreaks?: boolean;
-  allowAppointmentsPastBusinessHours?: boolean;
-}
   BolDocument, InsertBolDocument,
   OcrJob, InsertOcrJob, ocrJobs,
   PasswordResetToken, InsertPasswordResetToken, passwordResetTokens
@@ -74,6 +43,60 @@ import { logger } from "./utils/logger";
 import { emailService } from './services/email';
 import crypto from "crypto";
 import connectRedis from 'connect-redis';
+
+// Extended interface for storage operations to fix TS2339 errors
+interface ExtendedInsertAppointmentSettings extends InsertAppointmentSettings {
+  maxConcurrentInbound?: number;
+  maxConcurrentOutbound?: number;
+  shareAvailabilityInfo?: boolean;
+  sunday?: boolean;
+  monday?: boolean;
+  tuesday?: boolean;
+  wednesday?: boolean;
+  thursday?: boolean;
+  friday?: boolean;
+  saturday?: boolean;
+  sundayStartTime?: string;
+  sundayEndTime?: string;
+  mondayStartTime?: string;
+  mondayEndTime?: string;
+  tuesdayStartTime?: string;
+  tuesdayEndTime?: string;
+  wednesdayStartTime?: string;
+  wednesdayEndTime?: string;
+  thursdayStartTime?: string;
+  thursdayEndTime?: string;
+  fridayStartTime?: string;
+  fridayEndTime?: string;
+  saturdayStartTime?: string;
+  saturdayEndTime?: string;
+  sundayBreakStartTime?: string;
+  sundayBreakEndTime?: string;
+  mondayBreakStartTime?: string;
+  mondayBreakEndTime?: string;
+  tuesdayBreakStartTime?: string;
+  tuesdayBreakEndTime?: string;
+  wednesdayBreakStartTime?: string;
+  wednesdayBreakEndTime?: string;
+  thursdayBreakStartTime?: string;
+  thursdayBreakEndTime?: string;
+  fridayBreakStartTime?: string;
+  fridayBreakEndTime?: string;
+  saturdayBreakStartTime?: string;
+  saturdayBreakEndTime?: string;
+  sundayMaxAppointments?: number;
+  mondayMaxAppointments?: number;
+  tuesdayMaxAppointments?: number;
+  wednesdayMaxAppointments?: number;
+  thursdayMaxAppointments?: number;
+  fridayMaxAppointments?: number;
+  saturdayMaxAppointments?: number;
+  defaultBufferTime?: number;
+  defaultGracePeriod?: number;
+  defaultEmailReminderTime?: number;
+  allowAppointmentsThroughBreaks?: boolean;
+  allowAppointmentsPastBusinessHours?: boolean;
+}
 
 const redis = getRedis();
 
