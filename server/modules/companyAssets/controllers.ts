@@ -20,12 +20,9 @@ import crypto from 'crypto';
 export const listAssets = async (req: Request, res: Response) => {
   try {
     // If userId query param is present, filter by user
-    // @ts-expect-error TS(2339): Property 'query' does not exist on type 'Request<c... Remove this comment to see the full error message
     if (req.query.userId && !isNaN(Number(req.query.userId))) {
-      // @ts-expect-error TS(2339): Property 'query' does not exist on type 'Request<c... Remove this comment to see the full error message
       const userId = Number(req.query.userId);
       const assets = await companyAssetsService.getAssetsByUser(userId);
-      // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
       return res.json(assets);
     }
     
