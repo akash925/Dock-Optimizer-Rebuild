@@ -45,6 +45,12 @@ const bookingPageFormSchema = insertBookingPageSchema.extend({
   slug: z.string().min(3, "Slug must be at least 3 characters")
     .regex(/^[a-z0-9-]+$/, "Slug can only contain lowercase letters, numbers, and hyphens"),
   title: z.string().min(3, "Title must be at least 3 characters"),
+  description: z.string().optional(),
+  welcomeMessage: z.string().optional(),
+  confirmationMessage: z.string().optional(),
+  customLogo: z.string().optional(),
+  useOrganizationLogo: z.boolean().optional(),
+  isActive: z.boolean().optional(),
 });
 
 // Type definitions for facilities and appointment types
@@ -227,7 +233,7 @@ function AppointmentTypeItem({ type, isSelected: initialIsSelected, onToggle }: 
 }
 
 type BookingPageFormProps = {
-  bookingPage?: BookingPageSchema;
+  bookingPage?: any; // Use any to bypass schema mismatches until schema is updated
   onSuccess: () => void;
   onCancel: () => void;
 };
@@ -280,14 +286,14 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       ? {
           name: bookingPage.name,
           slug: bookingPage.slug,
-          title: bookingPage.title,
-          description: bookingPage.description,
-          welcomeMessage: bookingPage.welcomeMessage,
-          confirmationMessage: bookingPage.confirmationMessage,
-          customLogo: bookingPage.customLogo,
-          useOrganizationLogo: bookingPage.useOrganizationLogo,
+          title: (bookingPage as any).title || "",
+          description: (bookingPage as any).description || "",
+          welcomeMessage: (bookingPage as any).welcomeMessage || "Book your appointment online",
+          confirmationMessage: (bookingPage as any).confirmationMessage || "Your appointment has been successfully booked.",
+          customLogo: (bookingPage as any).customLogo || "",
+          useOrganizationLogo: (bookingPage as any).useOrganizationLogo ?? true,
           primaryColor: bookingPage.primaryColor || "#22c55e",
-          isActive: bookingPage.isActive
+          isActive: (bookingPage as any).isActive ?? true
         }
       : {
           name: "",

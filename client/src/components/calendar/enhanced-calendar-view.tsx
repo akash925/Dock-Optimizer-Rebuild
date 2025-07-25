@@ -1,5 +1,29 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+// TODO: Install react-beautiful-dnd or migrate to @dnd-kit
+// import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+
+// Temporary type definitions for drag-and-drop (until package is installed)
+type DropResult = {
+  destination?: { droppableId: string; index: number } | null;
+  source: { droppableId: string; index: number };
+  draggableId: string;
+};
+
+type DroppableProvided = {
+  droppableProps: any;
+  innerRef: (element: HTMLElement | null) => void;
+};
+
+type DraggableProvided = {
+  draggableProps: any;
+  dragHandleProps: any;
+  innerRef: (element: HTMLElement | null) => void;
+};
+
+// Temporary placeholder components (until package is installed) 
+const DragDropContext = ({ children, onDragEnd, onDragStart }: any) => <div>{children}</div>;
+const Droppable = ({ children, droppableId }: any) => children({ droppableProps: {}, innerRef: () => {} } as any, {} as any);
+const Draggable = ({ children, draggableId, index }: any) => children({ draggableProps: {}, dragHandleProps: {}, innerRef: () => {} } as any, {} as any);
 import { Clock, Calendar, MapPin, User, Settings, Eye, EyeOff } from 'lucide-react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';

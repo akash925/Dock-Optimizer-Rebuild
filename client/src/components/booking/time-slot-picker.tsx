@@ -1,7 +1,7 @@
 import React from "react";
 import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
-import { getUserTimeZone, getTimeZoneAbbreviation } from "@shared/timezone-service";
+import { getUserTimeZone, getTimeZoneAbbreviation, formatInUserTimeZone } from "@shared/timezone-service";
 import { formatInTimeZone } from "date-fns-tz";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -32,8 +32,9 @@ export function TimeSlotPicker({
   className,
   showRemainingSlots = true
 }: TimeSlotPickerProps) {
-  const { getTzAbbreviation, formatTimeInUserTimezone, getUserTimeZone } = useTimeZoneUtils();
   const userTimezone = getUserTimeZone();
+  const getTzAbbreviation = getTimeZoneAbbreviation;
+  const formatTimeInUserTimezone = formatInUserTimeZone;
   
   // Only log in development mode
   if (import.meta.env.MODE === 'development') {

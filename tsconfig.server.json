@@ -19,5 +19,5 @@
   },
 
   "include": ["server/**/*", "shared/**/*"],
-  "exclude": ["client", "scripts", "**/*.test.*"]
+  "exclude": ["client", "scripts", "**/*.test.ts?(x)", "**/__tests__/**"]
 }

@@ -1,7 +1,5 @@
 import React from 'react';
-import { formatInFacilityTimeZone, getTimeZoneAbbreviation } from '@/lib/date-utils';
-import { getUserTimeZone, formatInFacilityTimeZone } from '@shared/timezone-service';
-import { DEFAULT_TIMEZONE } from '@/lib/constants';
+import { getUserTimeZone, formatInFacilityTimeZone, getTimeZoneAbbreviation, DEFAULT_TIMEZONE } from '@shared/timezone-service';
 
 interface TimeDisplayProps {
   startTime: Date | string;
@@ -28,8 +26,8 @@ export function TimeDisplay({
   className = '',
   compact = false
 }: TimeDisplayProps) {
-  const { getUserTimeZone, getTzAbbreviation } = useTimeZoneUtils();
   const userTimezone = getUserTimeZone();
+  const getTzAbbreviation = getTimeZoneAbbreviation;
   
   if (!startTime) {
     return <span className={className}>Time not scheduled</span>;

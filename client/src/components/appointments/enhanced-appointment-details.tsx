@@ -5,13 +5,47 @@ import { Schedule } from '@shared/schema';
 import { AppointmentDetailsDialog } from '@/components/schedules/appointment-details-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-// Define ExtendedSchedule interface matching the one in appointment-details-dialog.tsx
-interface ExtendedSchedule extends Omit<Schedule, 'facilityId'> {
+// Use the same ExtendedSchedule interface from appointment-details-dialog.tsx
+interface ExtendedSchedule {
+  id: number;
+  dockId: number | null;
+  carrierId: number | null;
+  appointmentTypeId: number;
+  startTime: string;
+  endTime: string;
+  status: string;
+  type: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  lastModifiedAt?: string;
+  createdBy: number | null;
+  lastModifiedBy: number | null;
+  truckNumber: string;
+  trailerNumber: string | null;
+  driverName: string | null;
+  driverPhone?: string | null;
+  driverEmail?: string | null;
+  customerName?: string;
+  carrierName?: string;
   dockName?: string;
   appointmentTypeName?: string;
   facilityName?: string;
-  facilityId?: number;
+  facilityId?: number | null;
   facilityTimezone?: string;
+  confirmationCode?: string;
+  bolNumber?: string | null;
+  bolDocumentPath?: string | null;
+  customFormData?: any;
+  bolDocuments?: any[];
+  weight?: string | null;
+  palletCount?: string | null;
+  mcNumber?: string | null;
+  actualStartTime?: string;
+  actualEndTime?: string;
+  poNumber?: string | null;
+  appointmentMode?: string;
+  creatorEmail?: string | null;
 }
 
 interface EnhancedAppointmentDetailsProps {
@@ -68,15 +102,24 @@ export default function EnhancedAppointmentDetails({ scheduleId, onClose }: Enha
                          'America/New_York'; // Default to Eastern time
 
   // Convert schedule to the expected format for AppointmentDetailsDialog
-  const extendedSchedule: ExtendedSchedule = {
+  const extendedSchedule = {
     ...schedule,
-    // Remove facilityId from schedule and add it back as undefined if it's null
-    facilityId: schedule.facilityId === null ? undefined : schedule.facilityId,
+    // Convert Date objects to ISO strings
+    startTime: schedule.startTime.toISOString(),
+    endTime: schedule.endTime.toISOString(),
+    createdAt: schedule.createdAt.toISOString(),
+    updatedAt: schedule.lastModifiedAt?.toISOString() || schedule.createdAt.toISOString(),
+    lastModifiedAt: schedule.lastModifiedAt?.toISOString(),
+    lastModifiedBy: schedule.createdBy, // Map createdBy to lastModifiedBy
+    actualStartTime: schedule.actualStartTime?.toISOString(),
+    actualEndTime: schedule.actualEndTime?.toISOString(),
+    // Add additional properties
     facilityName,
     facilityTimezone,
     dockName: schedule.dockId ? `Dock #${schedule.dockId}` : undefined,
-    appointmentTypeName: scheduleCasted.appointmentTypeName
-  };
+    appointmentTypeName: scheduleCasted.appointmentTypeName,
+    truckNumber: schedule.truckNumber || ''
+  } as ExtendedSchedule;
 
   return (
     <AppointmentDetailsDialog

@@ -29,7 +29,8 @@
     "node_modules",
     "dist",
     "client",
-    "**/*.test.ts",
+    "**/*.test.ts?(x)",
+    "**/__tests__/**",
     "**/*.spec.ts"
   ]
 }

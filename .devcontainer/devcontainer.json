@@ -1,0 +1,15 @@
+{
+  "name": "Dock Optimizer Dev",
+  "dockerFile": "Dockerfile",
+  "context": "../",
+  "postCreateCommand": [
+    "doppler setup --project dock-optimizer --config development --method env --file .env.local",
+    "npx drizzle-kit push",
+    "npx drizzle-kit generate"
+  ],
+  "forwardPorts": [3000, 4000],
+  "remoteEnv": { "HOST": "0.0.0.0" },
+  "mounts": [
+    "source=${localWorkspaceFolder}/node_modules,target=/workspace/node_modules,type=volume"
+  ]
+} 

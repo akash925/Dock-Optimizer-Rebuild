@@ -15,7 +15,9 @@
     "start": "doppler run --config prd -- tsx server/index.ts",
     "preview": "doppler run -- vite preview",
     "test": "vitest run",
-    "lint": "eslint . --ext .ts,.tsx"
+    "lint": "eslint . --ext .ts,.tsx",
+    "drizzle:generate": "npx drizzle-kit generate",
+    "drizzle:push": "npx drizzle-kit push"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.840.0",
