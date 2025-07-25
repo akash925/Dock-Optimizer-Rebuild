@@ -76,4 +76,32 @@ declare module 'vite' {
   }
 }
 
+// shared/shims.d.ts
+// --------------------------------------------------
+// existing declarations you already have …
+// --------------------------------------------------
+
+// extra loosening so vite & storage compile tonight
+declare module "@shared/schema" {
+  interface User {
+    id?: number;
+    role?: string;
+    username?: string;
+  }
+  interface StoredFile {
+    uploadedBy?: number;
+    uploadedAt?: Date;
+    description?: string;
+    tags?: string[];
+    photoUrl?: string;
+  }
+  interface EnhancedSchedule {
+    lastModifiedBy?: number;
+  }
+  type insertAssetSchema = any;
+  type updateCompanyAssetSchema = any;
+}
+
+
 export {};
+

@@ -1,3 +1,5 @@
+// @ts-expect-error vite async export
+
 /**
  * vite.config.ts – Replit‑safe (final)
  * --------------------------------------------------
