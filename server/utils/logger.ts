@@ -86,10 +86,22 @@ class ProductionLogger {
     }
   }
 
-  debug(message: string, context?: string, data?: any, meta?: Partial<LogEntry>): void {
-    if (this.shouldLog(LogLevel.DEBUG)) {
-      this.output(this.formatLogEntry(LogLevel.DEBUG, message, context, data, meta));
+  debug(message: string, contextOrData?: string | any, data?: any, meta?: Partial<LogEntry>): void {
+    if (!this.shouldLog(LogLevel.DEBUG)) return;
+    // Handle both old and new calling patterns
+    let context: string | undefined;
+    let actualData: any;
+    
+    if (typeof contextOrData === 'string') {
+      context = contextOrData;
+      actualData = data;
+    } else {
+      context = undefined;
+      actualData = contextOrData;
     }
+    
+    const entry = this.formatLogEntry(LogLevel.DEBUG, message, context, actualData, meta);
+    this.output(entry);
   }
 
   // Convenience methods for common use cases

@@ -14,6 +14,7 @@
     "allowImportingTsExtensions": false,
 
     "skipLibCheck": true,
+    "noPropertyAccessFromIndexSignature": false,
     "esModuleInterop": true
   },
 

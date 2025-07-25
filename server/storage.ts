@@ -860,7 +860,7 @@ export class MemStorage implements IStorage {
       this.userPreferences.set(existing.id, updated);
       return updated;
     } else {
-      return await this.createUserPreferences({ userId, ...preferencesUpdate });
+      return await this.createUserPreferences({ userId, organizationId: 1, ...preferencesUpdate });
     }
   }
 }
@@ -887,7 +887,7 @@ export class DatabaseStorage implements IStorage {
     }
     
     // Initialize memory storage as fallback for methods not yet implemented with database
-    this.memStorage = new MemStorage();
+    this.memStorage = new MemStorage() as any;
   }
 
   // Real database operations using Drizzle ORM
@@ -956,7 +956,7 @@ export class DatabaseStorage implements IStorage {
   async updateUserModules(id: number, modules: string[]): Promise<boolean> {
     const result = await db
       .update(users)
-      .set({ modules: modules as any })
+      .set({ modules: JSON.stringify(modules) } as any)
       .where(eq(users.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
   }
@@ -1061,6 +1061,7 @@ export class DatabaseStorage implements IStorage {
             confirmationCode: newSchedule.confirmationCode,
             facilityName: (await this.getFacility(newSchedule.facilityId!))?.name,
             appointmentDate: newSchedule.startTime,
+            appointmentTime: newSchedule.startTime,
             customerName: newSchedule.customerName,
             timezone: tenant?.timezone || 'Etc/UTC',
             template: confirmationTemplate,
@@ -1235,14 +1236,14 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTenant(id: number): Promise<boolean> {
     const result = await db.delete(tenants).where(eq(tenants.id, id));
-    if (redis && result.rowCount > 0) {
+    if (redis && (result.rowCount || 0) > 0) {
       try {
         await redis.del(`tenant:${id}`);
       } catch (error) {
         console.warn(`[Storage] Redis cache invalidation failed for tenant:${id}:`, error);
       }
     }
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Dock operations with real database queries
