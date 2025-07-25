@@ -10,10 +10,8 @@ import { isAuthenticated } from '../../../types/express';
 // API routes for organization modules
 export const registerOrganizationModulesRoutes = (app: Express) => {
   // Public API endpoint to get tenant default hours by ID
-  // @ts-expect-error TS(2339): Property 'get' does not exist on type 'Express'.
   app.get('/api/tenants/:id/default-hours', async (req: Request, res: Response) => {
     if (!isAuthenticated(req)) {
-      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(401).json({ error: "Authentication required" });
     }
     try {
