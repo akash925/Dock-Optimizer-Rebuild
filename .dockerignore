@@ -10,3 +10,11 @@ uploads
 __pycache__
 coverage
 *.env
+.idea .vscode .history
+tests e2e cypress
+*.md  *.pdf  *.psd
+*.sqlite  *.db
+pnpm-store                # local store cache
+npm-debug.log*            # stray logs
+dist                       # always rebuilt
+coverage                   # test coverage
