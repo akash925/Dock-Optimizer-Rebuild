@@ -918,7 +918,7 @@ export const organizationsRoutes = (app: Express) => {
       // Format users with simple role names and add real email when possible
       const enhancedUsers = orgUsers.map((user) => {
         // Find matching user details
-        const userDetail = userDetails.find(u => u.id === user.userId);
+        const userDetail = userDetails.find((u: any) => u.id === user.userId);
         
         return {
           userId: user.userId,

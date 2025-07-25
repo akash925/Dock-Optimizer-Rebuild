@@ -69,7 +69,7 @@ export default defineConfig(async () => ({
     reportCompressedSize: false,
     rollupOptions: {
       output: {
-        manualChunks(id) {
+        manualChunks(id: string) {
           if (id.includes("node_modules")) {
             return id.split("node_modules/")[1].split("/")[0];
           }
