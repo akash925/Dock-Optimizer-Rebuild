@@ -1,7 +1,7 @@
 import { Express, Request, Response } from 'express';
 import { getStorage } from '../../../storage';
 import { z } from 'zod';
-import { TenantStatus, AvailableModule, activityLogs } from '@shared/schema';
+import { TenantStatus, AvailableModule, ActivityLogEvents } from '@shared/schema';
 import { db } from '../../../db';
 import { eq, sql } from 'drizzle-orm';
 import { users, tenants, organizationUsers, organizationModules, roles } from '@shared/schema';

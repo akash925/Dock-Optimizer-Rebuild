@@ -749,7 +749,7 @@ export type AssetStatus = (typeof AssetStatus)[keyof typeof AssetStatus];
 /* ─────────────────────── Activity-log codes (NEW) ──────────────────────── */
 
 /** Canonical list of activity-log event codes used by admin UI & reports.   */
-export const activityLogs = {
+export const ActivityLogEvents = {
   USER_CREATED:           "USER_CREATED",
   USER_UPDATED:           "USER_UPDATED",
   MODULE_ENABLED:         "MODULE_ENABLED",
@@ -760,7 +760,7 @@ export const activityLogs = {
   HOLIDAY_ADDED:          "HOLIDAY_ADDED",
   HOLIDAY_REMOVED:        "HOLIDAY_REMOVED",
 } as const;
-export type ActivityLog = keyof typeof activityLogs;
+export type ActivityLog = keyof typeof ActivityLogEvents;
 
 export type Tenant = typeof tenants.$inferSelect;
 export type InsertTenant = typeof tenants.$inferInsert;

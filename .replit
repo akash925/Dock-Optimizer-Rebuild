@@ -24,5 +24,13 @@ run = ["sh", "-c", "doppler run --config prd -- npx tsx server/index.ts"]
 build = ["sh", "-c", "npm install -g pnpm@10.12.1 && pnpm install --frozen-lockfile && pnpm run build:client && npx tsc -p tsconfig.server.json --noEmit || true && pnpm prune --prod && rm -rf node_modules/.cache"]
 
 [[ports]]
+localPort = 443
+externalPort = 3000
+
+[[ports]]
 localPort = 5001
 externalPort = 80
+
+[[ports]]
+localPort = 5173
+externalPort = 5173

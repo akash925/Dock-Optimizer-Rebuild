@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
+
 declare module "express-serve-static-core" {
   interface Request {
     // Standard Express properties
