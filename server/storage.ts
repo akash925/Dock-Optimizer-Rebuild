@@ -27,6 +27,37 @@ import {
   appointmentTypes, dailyAvailability, customQuestions, standardQuestions, bookingPages, assets, companyAssets,
   tenants, roles, organizationUsers, organizationModules, organizationFacilities, userPreferences,
   organizationDefaultHours, organizationHolidays, bolDocuments,
+
+// Extended interface for storage operations to fix TS2339 errors
+interface ExtendedInsertAppointmentSettings extends InsertAppointmentSettings {
+  maxConcurrentInbound?: number;
+  maxConcurrentOutbound?: number;
+  shareAvailabilityInfo?: boolean;
+  sunday?: boolean; monday?: boolean; tuesday?: boolean; wednesday?: boolean;
+  thursday?: boolean; friday?: boolean; saturday?: boolean;
+  sundayStartTime?: string; sundayEndTime?: string;
+  mondayStartTime?: string; mondayEndTime?: string;
+  tuesdayStartTime?: string; tuesdayEndTime?: string;
+  wednesdayStartTime?: string; wednesdayEndTime?: string;
+  thursdayStartTime?: string; thursdayEndTime?: string;
+  fridayStartTime?: string; fridayEndTime?: string;
+  saturdayStartTime?: string; saturdayEndTime?: string;
+  sundayBreakStartTime?: string; sundayBreakEndTime?: string;
+  mondayBreakStartTime?: string; mondayBreakEndTime?: string;
+  tuesdayBreakStartTime?: string; tuesdayBreakEndTime?: string;
+  wednesdayBreakStartTime?: string; wednesdayBreakEndTime?: string;
+  thursdayBreakStartTime?: string; thursdayBreakEndTime?: string;
+  fridayBreakStartTime?: string; fridayBreakEndTime?: string;
+  saturdayBreakStartTime?: string; saturdayBreakEndTime?: string;
+  sundayMaxAppointments?: number; mondayMaxAppointments?: number;
+  tuesdayMaxAppointments?: number; wednesdayMaxAppointments?: number;
+  thursdayMaxAppointments?: number; fridayMaxAppointments?: number;
+  saturdayMaxAppointments?: number;
+  defaultBufferTime?: number; defaultGracePeriod?: number;
+  defaultEmailReminderTime?: number;
+  allowAppointmentsThroughBreaks?: boolean;
+  allowAppointmentsPastBusinessHours?: boolean;
+}
   BolDocument, InsertBolDocument,
   OcrJob, InsertOcrJob, ocrJobs,
   PasswordResetToken, InsertPasswordResetToken, passwordResetTokens
@@ -584,7 +615,7 @@ export class MemStorage implements IStorage {
     return notification;
   }
   async getAppointmentSettings(facilityId: number): Promise<AppointmentSettings | undefined> { return Array.from(this.appointmentSettings.values()).find(s => s.facilityId === facilityId); }
-  async createAppointmentSettings(insertSettings: InsertAppointmentSettings): Promise<AppointmentSettings> {
+  async createAppointmentSettings(insertSettings: ExtendedInsertAppointmentSettings): Promise<AppointmentSettings> {
     const id = this.appointmentSettingsIdCounter++;
     const settings: AppointmentSettings = { ...insertSettings, id, createdAt: new Date(), lastModifiedAt: new Date(), timeInterval: insertSettings.timeInterval ?? TimeInterval.MINUTES_30, maxConcurrentInbound: insertSettings.maxConcurrentInbound ?? 2, maxConcurrentOutbound: insertSettings.maxConcurrentOutbound ?? 2, shareAvailabilityInfo: insertSettings.shareAvailabilityInfo ?? true, sunday: insertSettings.sunday ?? false, monday: insertSettings.monday ?? true, tuesday: insertSettings.tuesday ?? true, wednesday: insertSettings.wednesday ?? true, thursday: insertSettings.thursday ?? true, friday: insertSettings.friday ?? true, saturday: insertSettings.saturday ?? false, sundayStartTime: insertSettings.sundayStartTime ?? '08:00', sundayEndTime: insertSettings.sundayEndTime ?? '17:00', mondayStartTime: insertSettings.mondayStartTime ?? '08:00', mondayEndTime: insertSettings.mondayEndTime ?? '17:00', tuesdayStartTime: insertSettings.tuesdayStartTime ?? '08:00', tuesdayEndTime: insertSettings.tuesdayEndTime ?? '17:00', wednesdayStartTime: insertSettings.wednesdayStartTime ?? '08:00', wednesdayEndTime: insertSettings.wednesdayEndTime ?? '17:00', thursdayStartTime: insertSettings.thursdayStartTime ?? '08:00', thursdayEndTime: insertSettings.thursdayEndTime ?? '17:00', fridayStartTime: insertSettings.fridayStartTime ?? '08:00', fridayEndTime: insertSettings.fridayEndTime ?? '17:00', saturdayStartTime: insertSettings.saturdayStartTime ?? '08:00', saturdayEndTime: insertSettings.saturdayEndTime ?? '17:00', sundayBreakStartTime: insertSettings.sundayBreakStartTime ?? '12:00', sundayBreakEndTime: insertSettings.sundayBreakEndTime ?? '13:00', mondayBreakStartTime: insertSettings.mondayBreakStartTime ?? '12:00', mondayBreakEndTime: insertSettings.mondayBreakEndTime ?? '13:00', tuesdayBreakStartTime: insertSettings.tuesdayBreakStartTime ?? '12:00', tuesdayBreakEndTime: insertSettings.tuesdayBreakEndTime ?? '13:00', wednesdayBreakStartTime: insertSettings.wednesdayBreakStartTime ?? '12:00', wednesdayBreakEndTime: insertSettings.wednesdayBreakEndTime ?? '13:00', thursdayBreakStartTime: insertSettings.thursdayBreakStartTime ?? '12:00', thursdayBreakEndTime: insertSettings.thursdayBreakEndTime ?? '13:00', fridayBreakStartTime: insertSettings.fridayBreakStartTime ?? '12:00', fridayBreakEndTime: insertSettings.fridayBreakEndTime ?? '13:00', saturdayBreakStartTime: insertSettings.saturdayBreakStartTime ?? '12:00', saturdayBreakEndTime: insertSettings.saturdayBreakEndTime ?? '13:00', sundayMaxAppointments: insertSettings.sundayMaxAppointments ?? 0, mondayMaxAppointments: insertSettings.mondayMaxAppointments ?? 0, tuesdayMaxAppointments: insertSettings.tuesdayMaxAppointments ?? 0, wednesdayMaxAppointments: insertSettings.wednesdayMaxAppointments ?? 0, thursdayMaxAppointments: insertSettings.thursdayMaxAppointments ?? 0, fridayMaxAppointments: insertSettings.fridayMaxAppointments ?? 0, saturdayMaxAppointments: insertSettings.saturdayMaxAppointments ?? 0, defaultBufferTime: insertSettings.defaultBufferTime ?? 0, defaultGracePeriod: insertSettings.defaultGracePeriod ?? 15, defaultEmailReminderTime: insertSettings.defaultEmailReminderTime ?? 24, allowAppointmentsThroughBreaks: insertSettings.allowAppointmentsThroughBreaks ?? false, allowAppointmentsPastBusinessHours: insertSettings.allowAppointmentsPastBusinessHours ?? false };
     this.appointmentSettings.set(id, settings);
