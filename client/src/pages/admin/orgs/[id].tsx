@@ -63,6 +63,9 @@ import {
 import { Tenant, AvailableModule } from "@shared/schema";
 import adminApi, { OrganizationDetail } from "@/api/admin";
 
+// Quick type fix for ActivityLog
+type ActivityLog = any;
+
 // Form validation schemas
 const addUserSchema = z.object({
   userId: z.string().min(1, "User is required"),
