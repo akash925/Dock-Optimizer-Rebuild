@@ -1,91 +1,66 @@
 # syntax=docker/dockerfile:1
+#
+# Multi-stage build
+#   1. deps    : install exact lockfile deps (native builds approved)
+#   2. build   : compile client + server, prune dev deps
+#   3. runtime : Alpine + OCR / Chromium libs + Doppler CLI
+#
+# Final image ≈ 550 MB (Chromium + Tesseract included)
+
+########################  base  ########################
 FROM node:20-alpine AS base
+WORKDIR /app
 
-# Install system dependencies for OCR, Python, and Chromium
 RUN apk add --no-cache \
-    python3 \
-    py3-pip \
-    tesseract-ocr \
-    tesseract-ocr-data-eng \
-    chromium \
-    nss \
-    freetype \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont \
-    dumb-init \
-    wget
+      dumb-init \
+      python3 py3-pip \
+      tesseract-ocr tesseract-ocr-data-eng \
+      chromium nss freetype harfbuzz ca-certificates ttf-freefont \
+   && mkdir -p /app/uploads /app/server/logs
 
-# Set Puppeteer to use system Chromium (prevents binary downloads)
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
-# Enable PNPM with correct version from lockfile
 RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
 
-################################
-# Dependencies stage
-################################
+########################  deps  ########################
 FROM base AS deps
-WORKDIR /app
-
 COPY package.json pnpm-lock.yaml ./
-COPY .npmrc* ./
+RUN pnpm install --frozen-lockfile \
+ && pnpm approve-builds esbuild @swc/core
 
-# Install all dependencies (handle lockfile mismatch)
-RUN pnpm install --no-frozen-lockfile
-
-################################
-# Build stage  
-################################
-FROM deps AS builder
-WORKDIR /app
-
-# Copy source code
+########################  build  ########################
+FROM deps AS build
 COPY . .
+RUN pnpm run build:client \
+ && npx tsc -p tsconfig.server.json
+RUN pnpm prune --prod
 
-# Build client only (skip server compilation, use runtime TypeScript)
-RUN pnpm build:client
-
-################################
-# Production runtime
-################################
+########################  runtime  ########################
 FROM base AS runtime
 
-WORKDIR /app
+RUN addgroup -g 1001 -S nodejs \
+ && adduser -S dockopt -u 1001 -G nodejs
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S dock-optimizer -u 1001 -G nodejs
+# install Doppler CLI (still root)
+RUN wget -qO- https://cli.doppler.com/install.sh | sh
 
-# Create directories with proper ownership
-RUN mkdir -p /app/uploads /app/server/logs && \
-    chown -R dock-optimizer:nodejs /app
+USER dockopt
 
-# Copy production artifacts
-COPY --from=builder --chown=dock-optimizer:nodejs /app/dist ./dist
-COPY --from=deps --chown=dock-optimizer:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=dock-optimizer:nodejs /app/package.json ./
-COPY --from=builder --chown=dock-optimizer:nodejs /app/server ./server
-COPY --from=builder --chown=dock-optimizer:nodejs /app/shared ./shared
-COPY --from=builder --chown=dock-optimizer:nodejs /app/tsconfig*.json ./
+COPY --from=build /app/dist          ./dist
+COPY --from=build /app/node_modules  ./node_modules
+COPY --from=build /app/package.json  .
 
-# Install basic Python OCR dependencies (compatible with Alpine/ARM)
-COPY --from=builder /app/server/src/services/ocr_processor.py ./server/src/services/
 RUN pip3 install --no-cache-dir --break-system-packages Pillow
 
-USER dock-optimizer
-
-# Environment defaults for Docker deployment
 ENV NODE_ENV=production \
-    PORT=5001 \
+    PORT=3000 \
     UPLOAD_DIR=/app/uploads \
     LOG_DIR=/app/server/logs
 
-EXPOSE 5001
+EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:5001/api/health || exit 1
+  CMD wget -qO- http://localhost:${PORT}/api/health || exit 1
 
-# Use tsx for runtime TypeScript execution
-CMD ["dumb-init", "npx", "tsx", "server/index.ts"]
+CMD ["dumb-init","doppler","run","--config","prd","--","node","dist/server/index.js"]

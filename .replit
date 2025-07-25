@@ -15,13 +15,12 @@ run = ["pnpm", "start"] # workspace Run button ⬅︎
 
 [nix]
 channel = "stable-24_05"
-packages = ["atk", "doppler", "freetype", "libimagequant", "libjpeg", "libpng", "libvips", "libwebp", "nss", "pango", "poppler_utils", "nixpacks"]
+packages = ["atk", "doppler", "freetype", "libimagequant", "libjpeg", "libpng", "libvips", "libwebp", "nss", "pango", "poppler_utils"]
 
 # -----------------------------------------------------------------
 [deployment]
 deploymentTarget = "autoscale"
-build = ["sh", "-c", "pnpm install --frozen-lockfile && pnpm run build:client"]
-run = ["sh", "-c", 'sh -c "NODE_ENV=production ENVIRONMENT=production \        SKIP_INTERNAL_VITE=1 pnpm dlx tsx server/index.ts"']
+run = ["sh", "-c", "node dist/server/index.js"]
 
 [[ports]]
 localPort = 5001
