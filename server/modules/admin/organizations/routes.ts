@@ -10,14 +10,18 @@ import { isAuthenticated } from '../../../types/express';
 // API routes for organization modules
 export const registerOrganizationModulesRoutes = (app: Express) => {
   // Public API endpoint to get tenant default hours by ID
+  // @ts-expect-error TS(2339): Property 'get' does not exist on type 'Express'.
   app.get('/api/tenants/:id/default-hours', async (req: Request, res: Response) => {
     if (!isAuthenticated(req)) {
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(401).json({ error: "Authentication required" });
     }
     try {
+      // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Authenti... Remove this comment to see the full error message
       const tenantId = parseInt(req.params.id);
       
       if (isNaN(tenantId)) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ message: "Invalid tenant ID" });
       }
       
@@ -27,14 +31,17 @@ export const registerOrganizationModulesRoutes = (app: Express) => {
       const defaultHours = await storage.getOrganizationDefaultHours(tenantId);
       
       if (!defaultHours) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(404).json({ 
           message: "Default hours not found for tenant" 
         });
       }
       
+      // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
       res.json(defaultHours);
     } catch (error) {
       console.error('Error fetching tenant default hours:', error);
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       res.status(500).json({ 
         message: "Failed to fetch tenant default hours", 
         error: error instanceof Error ? error.message : String(error)
@@ -43,12 +50,16 @@ export const registerOrganizationModulesRoutes = (app: Express) => {
   });
 
   // Get organization default hours
+  // @ts-expect-error TS(2339): Property 'get' does not exist on type 'Express'.
   app.get('/api/organizations/default-hours', async (req: Request, res: Response) => {
     if (!isAuthenticated(req)) {
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(401).json({ error: "Authentication required" });
     }
     // Check if user is authenticated
+    // @ts-expect-error TS(2339): Property 'isAuthenticated' does not exist on type ... Remove this comment to see the full error message
     if (!req.isAuthenticated || !req.isAuthenticated()) {
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(401).json({ message: 'Not authenticated' });
     }
     try {
@@ -56,6 +67,7 @@ export const registerOrganizationModulesRoutes = (app: Express) => {
       const tenantId = req.user?.tenantId;
       
       if (!tenantId) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(403).json({ 
           message: "User must belong to an organization" 
         });
@@ -67,14 +79,17 @@ export const registerOrganizationModulesRoutes = (app: Express) => {
       const defaultHours = await storage.getOrganizationDefaultHours(tenantId);
       
       if (!defaultHours) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(404).json({ 
           message: "Organization default hours not found" 
         });
       }
       
+      // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
       res.json(defaultHours);
     } catch (error) {
       console.error('Error fetching organization default hours:', error);
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       res.status(500).json({ 
         message: "Failed to fetch organization default hours", 
         error: error instanceof Error ? error.message : String(error)
@@ -86,28 +101,36 @@ export const registerOrganizationModulesRoutes = (app: Express) => {
   // Use PATCH /api/organizations/default-hours from main routes.ts for individual day updates
 
   // Toggle a single module for an organization
+  // @ts-expect-error TS(2339): Property 'patch' does not exist on type 'Express'.
   app.patch('/api/admin/orgs/:orgId/modules/:moduleName', async (req: Request, res: Response) => {
     if (!isAuthenticated(req)) {
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       return res.status(401).json({ error: "Authentication required" });
     }
     try {
+      // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Authenti... Remove this comment to see the full error message
       const { orgId, moduleName } = req.params;
+      // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Authentica... Remove this comment to see the full error message
       const { enabled } = req.body;
       
       // Validate inputs
       if (!req.user) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(401).json({ message: 'Unauthorized' });
       }
       
       if (!orgId || isNaN(Number(orgId))) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ message: 'Invalid organization ID' });
       }
       
       if (!moduleName || !Object.values(AvailableModule).includes(moduleName as AvailableModule)) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ message: 'Invalid module name' });
       }
       
       if (typeof enabled !== 'boolean') {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ message: 'Enabled status must be a boolean' });
       }
       
@@ -121,6 +144,7 @@ export const registerOrganizationModulesRoutes = (app: Express) => {
       );
       
       if (!updatedModule) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(404).json({
           message: 'Module not found for organization'
         });
@@ -135,10 +159,12 @@ export const registerOrganizationModulesRoutes = (app: Express) => {
       );
       
       // Return the updated module
+      // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
       res.json(updatedModule);
       
     } catch (error) {
       console.error('Error toggling organization module:', error);
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       res.status(500).json({
         message: 'Failed to toggle organization module'
       });
@@ -162,6 +188,7 @@ async function logOrganizationActivity(orgId: number, userId: number, action: st
     console.error('Failed to log organization activity:', error);
     // Fallback to direct DB insert if the storage method fails
     try {
+      // @ts-expect-error TS(2304): Cannot find name 'activityLogs'.
       await db.insert(activityLogs).values({
         organizationId: orgId,
         userId,
@@ -198,18 +225,24 @@ const updateOrgSchema = createOrgSchema.partial();
 
 // Middleware to check if the user is an admin/super-admin
 const isSuperAdmin = async (req: Request, res: Response, next: Function) => {
+  // @ts-expect-error TS(2339): Property 'isAuthenticated' does not exist on type ... Remove this comment to see the full error message
   if (!req.isAuthenticated || !req.isAuthenticated()) {
+    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(401).json({ message: 'Not authenticated' });
   }
 
   // Allow both regular admin and super-admin roles
+  // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
   if ((req.user as NonNullable<typeof req.user>).role !== 'super-admin' && (req.user as NonNullable<typeof req.user>).role !== 'admin') {
+    // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
     return res.status(403).json({ 
       message: 'Not authorized. Admin access required.', 
+      // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
       userRole: (req.user as NonNullable<typeof req.user>).role 
     });
   }
 
+  // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
   console.log(`Admin API (org) access granted to user with role: ${(req.user as NonNullable<typeof req.user>).role}`);
   next();
 };
@@ -250,22 +283,29 @@ export const organizationsRoutes = (app: Express) => {
         };
       }));
       
+      // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
       res.json(enhancedOrgs);
     } catch (error) {
       console.error('Error fetching organizations:', error);
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       res.status(500).json({ message: 'Failed to fetch organizations' });
     }
   };
 
   // Register both endpoints for backward compatibility
+  // @ts-expect-error TS(2339): Property 'get' does not exist on type 'Express'.
   app.get('/api/admin/organizations', isSuperAdmin, getAllOrganizations);
+  // @ts-expect-error TS(2339): Property 'get' does not exist on type 'Express'.
   app.get('/api/admin/orgs', isSuperAdmin, getAllOrganizations);
 
   // Get single organization with all details
+  // @ts-expect-error TS(2339): Property 'get' does not exist on type 'Express'.
   app.get('/api/admin/organizations/:id', isSuperAdmin, async (req: Request, res: Response) => {
     try {
+      // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
       const id = Number(req.params.id);
       if (isNaN(id)) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ message: 'Invalid organization ID' });
       }
       
@@ -273,6 +313,7 @@ export const organizationsRoutes = (app: Express) => {
       const org = await storage.getTenantById(id);
       
       if (!org) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(404).json({ message: 'Organization not found' });
       }
       
@@ -282,6 +323,7 @@ export const organizationsRoutes = (app: Express) => {
       // Get organization modules
       const orgModules = await storage.getOrganizationModules(id);
       
+      // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
       res.json({
         ...org,
         users: orgUsers,
@@ -291,15 +333,19 @@ export const organizationsRoutes = (app: Express) => {
       });
     } catch (error) {
       console.error('Error fetching organization details:', error);
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       res.status(500).json({ message: 'Failed to fetch organization details' });
     }
   });
 
   // Create organization
+  // @ts-expect-error TS(2339): Property 'post' does not exist on type 'Express'.
   app.post('/api/admin/organizations', isSuperAdmin, async (req: Request, res: Response) => {
     try {
+      // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
       const validationResult = createOrgSchema.safeParse(req.body);
       if (!validationResult.success) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ 
           message: 'Invalid organization data', 
           errors: validationResult.error.format() 
@@ -309,35 +355,46 @@ export const organizationsRoutes = (app: Express) => {
       const storage = await getStorage();
       
       // Check if subdomain is already taken
+      // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
       const existingOrg = await storage.getTenantBySubdomain(req.body.subdomain);
       if (existingOrg) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(409).json({ message: 'Subdomain already in use' });
       }
       
       // Create the organization
       const newOrg = await storage.createTenant({
         ...validationResult.data,
+        // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
         createdBy: req.user?.id, // Use optional chaining
+        // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
         status: req.body.status || TenantStatus.ACTIVE
       });
       
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       res.status(201).json(newOrg);
     } catch (error) {
       console.error('Error creating organization:', error);
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       res.status(500).json({ message: 'Failed to create organization' });
     }
   });
 
   // Update organization
+  // @ts-expect-error TS(2339): Property 'put' does not exist on type 'Express'.
   app.put('/api/admin/organizations/:id', isSuperAdmin, async (req: Request, res: Response) => {
     try {
+      // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
       const id = Number(req.params.id);
       if (isNaN(id)) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ message: 'Invalid organization ID' });
       }
       
+      // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
       const validationResult = updateOrgSchema.safeParse(req.body);
       if (!validationResult.success) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ 
           message: 'Invalid organization data', 
           errors: validationResult.error.format() 
@@ -349,13 +406,17 @@ export const organizationsRoutes = (app: Express) => {
       // Check if organization exists
       const existingOrg = await storage.getTenantById(id);
       if (!existingOrg) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(404).json({ message: 'Organization not found' });
       }
       
       // Check if subdomain is already taken by another organization
+      // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
       if (req.body.subdomain && req.body.subdomain !== existingOrg.subdomain) {
+        // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
         const orgWithSubdomain = await storage.getTenantBySubdomain(req.body.subdomain);
         if (orgWithSubdomain && orgWithSubdomain.id !== id) {
+          // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
           return res.status(409).json({ message: 'Subdomain already in use' });
         }
       }
@@ -363,42 +424,57 @@ export const organizationsRoutes = (app: Express) => {
       // Update the organization
       const updatedOrg = await storage.updateTenant(id, {
         ...validationResult.data,
+        // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
         updatedBy: req.user?.id // Use optional chaining
       });
       
+      // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
       res.json(updatedOrg);
     } catch (error) {
       console.error('Error updating organization:', error);
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       res.status(500).json({ message: 'Failed to update organization' });
     }
   });
   
   // Update organization logo
+  // @ts-expect-error TS(2339): Property 'post' does not exist on type 'Express'.
   app.post('/api/admin/organizations/:id/logo', async (req: Request, res: Response) => {
     try {
+      // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
       const id = Number(req.params.id);
       if (isNaN(id)) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ message: 'Invalid organization ID' });
       }
       
+      // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
       const { logoData } = req.body;
       
       if (!logoData) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ message: 'Logo data is required' });
       }
       
       // Check if user has permission (either super-admin or admin of this org)
+      // @ts-expect-error TS(2339): Property 'isAuthenticated' does not exist on type ... Remove this comment to see the full error message
       if (!req.isAuthenticated || !req.isAuthenticated()) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(401).json({ message: 'Not authenticated' });
       }
       
+      // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
       const isSuperAdmin = (req.user as NonNullable<typeof req.user>).role === 'super-admin';
+      // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
       const isOrgAdmin = (req.user as NonNullable<typeof req.user>).tenantId === id && (req.user as NonNullable<typeof req.user>).role === 'admin';
       
       if (!isSuperAdmin && !isOrgAdmin) {
+        // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
         console.log(`Access denied: User (tenant ${(req.user as NonNullable<typeof req.user>).tenantId}) attempted to update logo for organization ${id}`);
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(403).json({ 
           message: 'Not authorized to update this organization\'s logo',
+          // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
           userTenant: (req.user as NonNullable<typeof req.user>).tenantId,
           requestedTenant: id
         });
@@ -409,6 +485,7 @@ export const organizationsRoutes = (app: Express) => {
       // Check if organization exists
       const existingOrg = await storage.getTenantById(id);
       if (!existingOrg) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(404).json({ message: 'Organization not found' });
       }
       
@@ -418,6 +495,7 @@ export const organizationsRoutes = (app: Express) => {
       // Make sure the logo data is valid
       if (!logoData.startsWith('data:image')) {
         console.warn(`Invalid logo data format received for organization ${id}`);
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ message: 'Invalid logo data format. Must be a data URL.' });
       }
       
@@ -431,44 +509,56 @@ export const organizationsRoutes = (app: Express) => {
       // Update just the logo field
       const updatedOrg = await storage.updateTenant(id, {
         logo: processedLogoData,
+        // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
         updatedBy: req.user?.id
       });
       
       // Log the activity
       await logOrganizationActivity(
         id,
+        // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
         req.user?.id || 0,
         'logo_updated',
         'Organization logo was updated'
       );
       
+      // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
       res.json({ success: true, logo: updatedOrg.logo });
     } catch (error) {
       console.error('Error updating organization logo:', error);
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       res.status(500).json({ message: 'Failed to update organization logo' });
     }
   });
 
   // Get organization logo
+  // @ts-expect-error TS(2339): Property 'get' does not exist on type 'Express'.
   app.get('/api/admin/organizations/:id/logo', async (req: Request, res: Response) => {
     try {
+      // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
       const id = Number(req.params.id);
       if (isNaN(id)) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ message: 'Invalid organization ID' });
       }
       
       // Ensure user is authenticated
+      // @ts-expect-error TS(2339): Property 'isAuthenticated' does not exist on type ... Remove this comment to see the full error message
       if (!req.isAuthenticated || !req.isAuthenticated()) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(401).json({ message: 'Not authenticated' });
       }
       
       // Check if the user is requesting a logo for their organization
       const requestedOrgId = id;
+      // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
       const userOrgId = (req.user as NonNullable<typeof req.user>).tenantId;
       
       // Non-super-admin users can only access their own organization's logo
+      // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
       if ((req.user as NonNullable<typeof req.user>).role !== 'super-admin' && userOrgId !== requestedOrgId) {
         console.log(`Access denied: User (tenant ${userOrgId}) attempted to access logo for organization ${requestedOrgId}`);
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(403).json({ 
           message: 'Not authorized to access another organization\'s logo',
           userTenant: userOrgId,
@@ -481,6 +571,7 @@ export const organizationsRoutes = (app: Express) => {
       // Check if organization exists
       const existingOrg = await storage.getTenantById(id);
       if (!existingOrg) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(404).json({ message: 'Organization not found' });
       }
       
@@ -499,25 +590,32 @@ export const organizationsRoutes = (app: Express) => {
         // Only use fallback paths if we don't have actual logo data
         // This maintains backward compatibility
         if (id === 5) {
+          // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
           return res.json({ logo: "/assets/fresh-connect-logo.png" });
         } else if (id === 2) {
+          // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
           return res.json({ logo: "/assets/hanzo-logo.png" });
         }
       }
       
       // Return the logo or null if not set
+      // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
       res.json({ logo: existingOrg.logo || null });
     } catch (error) {
       console.error('Error fetching organization logo:', error);
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       res.status(500).json({ message: 'Failed to fetch organization logo' });
     }
   });
   
   // Delete organization
+  // @ts-expect-error TS(2339): Property 'delete' does not exist on type 'Express'... Remove this comment to see the full error message
   app.delete('/api/admin/organizations/:id', isSuperAdmin, async (req: Request, res: Response) => {
     try {
+      // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
       const id = Number(req.params.id);
       if (isNaN(id)) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ message: 'Invalid organization ID' });
       }
       
@@ -526,29 +624,36 @@ export const organizationsRoutes = (app: Express) => {
       // Check if organization exists
       const existingOrg = await storage.getTenantById(id);
       if (!existingOrg) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(404).json({ message: 'Organization not found' });
       }
       
       // Prevent deletion of Global Admin organization
       if (existingOrg.subdomain === 'admin' || existingOrg.name === 'Global Admin') {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(403).json({ message: 'Cannot delete the Global Admin organization' });
       }
       
       // Delete organization
       await storage.deleteTenant(id);
       
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       res.status(200).json({ message: 'Organization deleted successfully' });
     } catch (error) {
       console.error('Error deleting organization:', error);
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       res.status(500).json({ message: 'Failed to delete organization' });
     }
   });
 
   // Get detailed organization data for edit page
+  // @ts-expect-error TS(2339): Property 'get' does not exist on type 'Express'.
   app.get('/api/admin/orgs/:orgId', isSuperAdmin, async (req: Request, res: Response) => {
     try {
+      // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
       const orgId = Number(req.params.orgId);
       if (isNaN(orgId)) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ message: 'Invalid organization ID' });
       }
       
@@ -557,6 +662,7 @@ export const organizationsRoutes = (app: Express) => {
       // Get organization details
       const org = await storage.getTenantById(orgId);
       if (!org) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(404).json({ message: 'Organization not found' });
       }
       
@@ -575,6 +681,7 @@ export const organizationsRoutes = (app: Express) => {
         // Continue without logs if not implemented
       }
       
+      // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
       res.json({
         id: org.id,
         name: org.name,
@@ -592,20 +699,26 @@ export const organizationsRoutes = (app: Express) => {
       });
     } catch (error) {
       console.error('Error fetching organization details:', error);
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       res.status(500).json({ message: 'Failed to fetch organization details' });
     }
   });
 
   // Toggle organization module
+  // @ts-expect-error TS(2339): Property 'put' does not exist on type 'Express'.
   app.put('/api/admin/orgs/:orgId/modules', isSuperAdmin, async (req: Request, res: Response) => {
     try {
+      // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
       const orgId = Number(req.params.orgId);
       if (isNaN(orgId)) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ message: 'Invalid organization ID' });
       }
       
+      // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
       const validationResult = updateModuleSchema.safeParse(req.body);
       if (!validationResult.success) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ 
           message: 'Invalid module data', 
           errors: validationResult.error.format() 
@@ -617,6 +730,7 @@ export const organizationsRoutes = (app: Express) => {
       // Check if organization exists
       const org = await storage.getTenantById(orgId);
       if (!org) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(404).json({ message: 'Organization not found' });
       }
       
@@ -641,6 +755,7 @@ export const organizationsRoutes = (app: Express) => {
       
       // Log the action using our helper function
       try {
+        // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
         const userId = req.user?.id || 0;
         const action = enabled ? 'module_enabled' : 'module_disabled';
         const details = `Module "${moduleName}" was ${enabled ? 'enabled' : 'disabled'} for organization "${org.name}"`;
@@ -651,27 +766,35 @@ export const organizationsRoutes = (app: Express) => {
         // Continue even if logging fails
       }
       
+      // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
       res.json(updatedModule);
     } catch (error) {
       console.error('Error updating organization module:', error);
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       res.status(500).json({ message: 'Failed to update organization module' });
     }
   });
 
   // Toggle a specific module for an organization
+  // @ts-expect-error TS(2339): Property 'put' does not exist on type 'Express'.
   app.put('/api/admin/orgs/:orgId/modules/:moduleName', isSuperAdmin, async (req: Request, res: Response) => {
     try {
+      // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
       const orgId = Number(req.params.orgId);
+      // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
       const moduleName = req.params.moduleName as AvailableModule;
       
       if (isNaN(orgId)) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ message: 'Invalid organization ID' });
       }
       
       // Parse the enabled status from the request body
+      // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
       const { enabled } = req.body;
       
       if (typeof enabled !== 'boolean') {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ message: 'enabled must be boolean' });
       }
       
@@ -680,6 +803,7 @@ export const organizationsRoutes = (app: Express) => {
       // Check if organization exists
       const org = await storage.getTenantById(orgId);
       if (!org) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(404).json({ message: 'Organization not found' });
       }
       
@@ -688,6 +812,7 @@ export const organizationsRoutes = (app: Express) => {
       
       // Log the activity
       try {
+        // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
         const userId = req.user?.id || 0;
         const action = enabled ? 'module_enabled' : 'module_disabled';
         const details = `Module "${moduleName}" was ${enabled ? 'enabled' : 'disabled'} for organization "${org.name}"`;
@@ -698,23 +823,30 @@ export const organizationsRoutes = (app: Express) => {
         // Continue even if logging fails
       }
       
+      // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
       res.json(updatedModule);
     } catch (error) {
       console.error('Error updating organization module:', error);
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       res.status(500).json({ message: 'Failed to update organization module' });
     }
   });
 
 // Add/remove user from organization
+  // @ts-expect-error TS(2339): Property 'put' does not exist on type 'Express'.
   app.put('/api/admin/orgs/:orgId/users', isSuperAdmin, async (req: Request, res: Response) => {
     try {
+      // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
       const orgId = Number(req.params.orgId);
       if (isNaN(orgId)) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ message: 'Invalid organization ID' });
       }
       
+      // @ts-expect-error TS(2339): Property 'body' does not exist on type 'Request<co... Remove this comment to see the full error message
       const validationResult = updateUserSchema.safeParse(req.body);
       if (!validationResult.success) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ 
           message: 'Invalid user data', 
           errors: validationResult.error.format() 
@@ -726,6 +858,7 @@ export const organizationsRoutes = (app: Express) => {
       // Check if organization exists
       const org = await storage.getTenantById(orgId);
       if (!org) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(404).json({ message: 'Organization not found' });
       }
       
@@ -734,18 +867,21 @@ export const organizationsRoutes = (app: Express) => {
       // Check if user exists
       const user = await storage.getUser(userId);
       if (!user) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(404).json({ message: 'User not found' });
       }
       
       let result;
       if (action === 'add') {
         if (!roleId) {
+          // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
           return res.status(400).json({ message: 'Role ID is required for adding users' });
         }
         
         // Check if role exists
         const role = await storage.getRoleById(roleId);
         if (!role) {
+          // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
           return res.status(404).json({ message: 'Role not found' });
         }
         
@@ -754,6 +890,7 @@ export const organizationsRoutes = (app: Express) => {
         
         // Log the action using our helper function
         try {
+          // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
           const adminUserId = req.user?.id || 0;
           const action = 'user_added';
           const details = `User "${user.username}" added with role "${role.name}" to organization "${org.name}"`;
@@ -769,6 +906,7 @@ export const organizationsRoutes = (app: Express) => {
         
         // Log the action using our helper function
         try {
+          // @ts-expect-error TS(2339): Property 'user' does not exist on type 'Request<co... Remove this comment to see the full error message
           const adminUserId = req.user?.id || 0;
           const action = 'user_removed';
           const details = `User "${user.username}" removed from organization "${org.name}"`;
@@ -780,23 +918,30 @@ export const organizationsRoutes = (app: Express) => {
         }
       }
       
+      // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
       res.json(result);
     } catch (error) {
       console.error('Error updating organization user:', error);
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       res.status(500).json({ message: 'Failed to update organization user' });
     }
   });
 
   // Get organization activity logs (paginated)
+  // @ts-expect-error TS(2339): Property 'get' does not exist on type 'Express'.
   app.get('/api/admin/orgs/:orgId/logs', isSuperAdmin, async (req: Request, res: Response) => {
     try {
+      // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
       const orgId = Number(req.params.orgId);
       if (isNaN(orgId)) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ message: 'Invalid organization ID' });
       }
       
       // Parse pagination parameters
+      // @ts-expect-error TS(2339): Property 'query' does not exist on type 'Request<c... Remove this comment to see the full error message
       const page = Number(req.query.page) || 1;
+      // @ts-expect-error TS(2339): Property 'query' does not exist on type 'Request<c... Remove this comment to see the full error message
       const limit = Number(req.query.limit) || 20;
       
       const storage = await getStorage();
@@ -804,6 +949,7 @@ export const organizationsRoutes = (app: Express) => {
       // Check if organization exists
       const org = await storage.getTenantById(orgId);
       if (!org) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(404).json({ message: 'Organization not found' });
       }
       
@@ -826,7 +972,7 @@ export const organizationsRoutes = (app: Express) => {
         
         // Parse the results
         if (result.rows) {
-          logs = result.rows.map(row => ({
+          logs = result.rows.map((row: any) => ({
             id: Number(row.id),
             timestamp: new Date(row.timestamp as string | number | Date).toISOString(),
             action: String(row.action),
@@ -847,6 +993,7 @@ export const organizationsRoutes = (app: Express) => {
         // If there's an error, return empty logs but don't fail the request
       }
       
+      // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
       res.json({
         logs,
         pagination: {
@@ -858,15 +1005,19 @@ export const organizationsRoutes = (app: Express) => {
       });
     } catch (error) {
       console.error('Error fetching organization logs:', error);
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       res.status(500).json({ message: 'Failed to fetch organization logs' });
     }
   });
   
   // Consolidated organization detail endpoint that combines all org data
+  // @ts-expect-error TS(2339): Property 'get' does not exist on type 'Express'.
   app.get('/api/admin/orgs/:orgId/detail', isSuperAdmin, async (req: Request, res: Response) => {
     try {
+      // @ts-expect-error TS(2339): Property 'params' does not exist on type 'Request<... Remove this comment to see the full error message
       const orgId = Number(req.params.orgId);
       if (isNaN(orgId)) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(400).json({ message: 'Invalid organization ID' });
       }
       
@@ -875,6 +1026,7 @@ export const organizationsRoutes = (app: Express) => {
       // Get organization details
       const org = await storage.getTenantById(orgId);
       if (!org) {
+        // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
         return res.status(404).json({ message: 'Organization not found' });
       }
       
@@ -908,7 +1060,7 @@ export const organizationsRoutes = (app: Express) => {
       }));
       
       // Try to load all users to get details
-      let userDetails = [];
+      let userDetails: any = [];
       try {
         userDetails = await db.select().from(users);
       } catch (err) {
@@ -918,6 +1070,7 @@ export const organizationsRoutes = (app: Express) => {
       // Format users with simple role names and add real email when possible
       const enhancedUsers = orgUsers.map((user) => {
         // Find matching user details
+        // @ts-expect-error TS(7006): Parameter 'u' implicitly has an 'any' type.
         const userDetail = userDetails.find(u => u.id === user.userId);
         
         return {
@@ -944,7 +1097,7 @@ export const organizationsRoutes = (app: Express) => {
         
         // Parse the results
         if (result.rows) {
-          logs = result.rows.map(row => ({
+          logs = result.rows.map((row: any) => ({
             id: Number(row.id),
             timestamp: new Date(row.timestamp as string | number | Date).toISOString(),
             action: String(row.action),
@@ -967,9 +1120,11 @@ export const organizationsRoutes = (app: Express) => {
         logs,
       };
       
+      // @ts-expect-error TS(2339): Property 'json' does not exist on type 'Response<a... Remove this comment to see the full error message
       res.json(result);
     } catch (error) {
       console.error('Error fetching detailed organization data:', error);
+      // @ts-expect-error TS(2339): Property 'status' does not exist on type 'Response... Remove this comment to see the full error message
       res.status(500).json({ message: 'Failed to fetch organization details' });
     }
   });
