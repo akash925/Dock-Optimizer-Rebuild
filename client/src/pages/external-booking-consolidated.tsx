@@ -295,7 +295,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
 
   const fetchAvailableTimes = async () => {
     if (!bookingData.date || !bookingData.appointmentTypeId || !bookingData.facilityId) return;
-    setIsLoadingTimes(true);
+    setIsLoading(true);
     try {
       const data = await api.get<any[]>(
         `/api/availability/slots?date=${bookingData.date}&appointmentTypeId=${bookingData.appointmentTypeId}&facilityId=${bookingData.facilityId}`
@@ -306,7 +306,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
       console.error('Error fetching available times:', error);
       setAvailableTimes([]);
     } finally {
-      setIsLoadingTimes(false);
+      setIsLoading(false);
     }
   };
 
