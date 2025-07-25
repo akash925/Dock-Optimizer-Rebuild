@@ -1,46 +1,37 @@
-# ──────────────── nixpacks.toml ────────────────
-# Lean, deterministic image for Replit Deploys
-# 1. Installs deps w/ frozen lockfile
-# 2. Allows only native binaries we truly need
-# 3. Builds client + server once, then strips dev deps
-# 4. Boots with plain Node from compiled output
+# ───────── nixpacks.toml ─────────
+# Multi-stage style build → tiny runtime layer
 
-# ————— INSTALL —————
 [phases.install]
 cmds = [
-  # install exactly what lockfile says
+  # stop Puppeteer & friends downloading 100-MB binaries
+  "export PUPPETEER_SKIP_DOWNLOAD=1",
   "pnpm install --frozen-lockfile",
-
-  # allow native post-install for esbuild + @swc/core only
   "pnpm approve-builds esbuild @swc/core"
 ]
 
-# ————— BUILD —————
 [phases.build]
-# Compile *everything* ahead-of-time, then prune
 cmds = [
-  # 1️⃣ React/Vite front-end
+  # client ⬇️
   "pnpm run build:client",
-  # 2️⃣ Express/ts-server → dist/server**
+  # server ⬇️
   "npx tsc -p tsconfig.server.json",
-  # 3️⃣ Remove dev + optional junk (cypress, puppeteer, tesseract, tsx…)
+  # throw dev deps overboard
   "pnpm prune --prod"
 ]
 
-# ————— START —————
-[phases.start]
-cmds = [
-  # Runs the compiled JS (no tsx, no dev tooling)
-  "node dist/server/index.js"
+[phases.build]
+dependsOn = ["install"]        # explicit, just for clarity
+
+# ───── Runtime: fresh, lean layer ─────
+[start]
+runImage = "gcr.io/distroless/nodejs20-debian11"  # ~55 MB
+onlyIncludeFiles = [
+  "dist",          # compiled server + static assets
+  "node_modules",  # *prod-only* deps after prune
+  "package.json"   # so Node can resolve exports
 ]
+cmd = "node dist/server/index.js"
 
-# ————— ENV —————
 [variables]
-# Replit will overwrite this in prod; keep fallback for local tests
 PORT = "3000"
-# Add any other required vars here or via Replit Secrets
-
-# ————— METADATA —————
-# Expected final image size: ≈ 240–300 MB
-# Make sure `npm run build:client` and `tsc -p tsconfig.server.json`
-# exit 0 locally before deploying.
+# ───────── end ─────────
