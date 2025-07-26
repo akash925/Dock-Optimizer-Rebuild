@@ -113,6 +113,7 @@ type FormValues = {
   appointmentType?: string;
   pickupOrDropoff?: "pickup" | "dropoff";
   bolUploaded?: boolean;
+  bolExtractedData?: any; // Add missing bolExtractedData property
   customerName?: string;
   contactName?: string;
   contactEmail?: string;
@@ -993,7 +994,10 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                     
                     <div className="space-y-2">
                       <FormLabel>Upload BOL (Optional)</FormLabel>
-                      <BolUpload onFileUpload={handleFileUpload} />
+                      <BolUpload 
+                        onBolProcessed={(data: any, fileUrl: string) => handleFileUpload(new File([], 'temp'))} 
+                        onProcessingStateChange={(isProcessing: boolean) => {}}
+                      />
                       <FormDescription>
                         Upload your Bill of Lading (BOL) document to expedite the check-in process
                       </FormDescription>
@@ -1158,8 +1162,8 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
                               <PopoverContent className="w-auto p-0" align="start">
                                 <Calendar
                                   mode="single"
-                                  selected={selectedDate}
-                                  onSelect={setSelectedDate}
+                                  selected={selectedDate || undefined}
+                                  onSelect={(date: Date | undefined) => setSelectedDate(date || null)}
                                   initialFocus
                                   disabled={(date: any) => {
                                     const today = new Date();

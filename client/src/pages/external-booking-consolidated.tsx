@@ -82,6 +82,7 @@ interface BookingDetails {
   timezone?: string;
   facilityId?: number;
   facilityName?: string;
+  facilityAddress?: string; // Add missing facilityAddress property
   appointmentTypeId?: number;
   appointmentTypeName?: string;
   driverName?: string;
@@ -248,11 +249,11 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
       
       // Fetch the appointment details by confirmation code
       api.get(`/api/schedules/confirmation/${confirmationParam}`)
-        .then(res => {
-          if (!res.ok) throw new Error("Failed to fetch appointment details");
-          return res.json();
+        .then((res: any) => {
+          if (!(res as any).ok) throw new Error("Failed to fetch appointment details");
+          return (res as any).json();
         })
-        .then(data => {
+        .then((data: any) => {
           console.log("Fetched appointment details for confirmation:", data);
           if (data && data.schedule) {
             setBookingDetails({

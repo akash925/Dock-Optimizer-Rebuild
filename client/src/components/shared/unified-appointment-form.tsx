@@ -208,7 +208,7 @@ export default function UnifiedAppointmentForm({
 
   // Standard questions hook
   const { 
-    standardQuestions, 
+    questions: standardQuestions, 
     isLoading: isLoadingStandardQuestions, 
     error: standardQuestionsError 
   } = useStandardQuestions({
@@ -853,7 +853,7 @@ export default function UnifiedAppointmentForm({
                   <h3 className="text-lg font-medium">Additional Information</h3>
                   <StandardQuestionsFormFields
                     form={truckInfoForm}
-                    standardQuestions={standardQuestions}
+                    questions={standardQuestions}
                     isLoading={isLoadingStandardQuestions}
                   />
                 </div>
@@ -1155,7 +1155,7 @@ export default function UnifiedAppointmentForm({
                   <h3 className="text-lg font-medium">Additional Information</h3>
                   <StandardQuestionsFormFields
                     form={truckInfoForm}
-                    standardQuestions={standardQuestions}
+                    questions={standardQuestions}
                     isLoading={isLoadingStandardQuestions}
                   />
                 </div>
