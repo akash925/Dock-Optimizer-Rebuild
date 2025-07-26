@@ -898,8 +898,8 @@ export const adminRoutes = (app: Express) => {
       const countQueryParams = queryParams.slice(0, paramIndex - 1);
       
       // Execute queries using Drizzle SQL syntax
-      const appointmentsResult = await db.execute(sql.raw(appointmentsQuery, queryParams));
-      const countResult = await db.execute(sql.raw(countQuery, countQueryParams));
+      const appointmentsResult = await db.execute((sql as any).raw(appointmentsQuery, queryParams));
+      const countResult = await db.execute((sql as any).raw(countQuery, countQueryParams));
       
       const appointments = appointmentsResult.rows;
       const total = parseInt(countResult.rows[0]?.total || '0');
@@ -992,7 +992,7 @@ export const adminRoutes = (app: Express) => {
         WHERE s.id = $1
       `;
       
-      const result = await db.execute(sql.raw(appointmentQuery, [appointmentId]));
+      const result = await db.execute((sql as any).raw(appointmentQuery, [appointmentId]));
       
       if (result.rows.length === 0) {
         return res.status(404).json({ message: 'Appointment not found' });
@@ -1009,7 +1009,7 @@ export const adminRoutes = (app: Express) => {
           WHERE appointment_id = $1
           ORDER BY field_key
         `;
-        const customFieldsResult = await db.execute(sql.raw(customFieldsQuery, [appointmentId]));
+        const customFieldsResult = await db.execute((sql as any).raw(customFieldsQuery, [appointmentId]));
         customFields = customFieldsResult.rows;
       } catch (error) {
         console.warn('Could not fetch custom fields:', error);
