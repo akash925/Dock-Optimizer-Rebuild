@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useMemo } from "react";
+import { createContext, ReactNode, useContext, useMemo, useEffect } from "react";
 import {
   useQuery,
   useMutation,
@@ -39,23 +39,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const {
     data: user,
-    error,
     isLoading,
-  } = useQuery<Omit<User, "password"> | null, Error>({
+    error,
+  } = useQuery({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !skipAuth,
     retry: false,
     refetchOnWindowFocus: !skipAuth,
-    onError: (error: any) => {
+    // Remove deprecated onError - handle errors in components if needed
+  });
+
+  // Handle errors in useEffect instead of deprecated onError
+  useEffect(() => {
+    if (error) {
       console.error("Error fetching user:", error);
       toast({
         title: "Error fetching user",
-        description: error.message,
+        description: (error as any).message,
         variant: "destructive",
       });
-    },
-  });
+    }
+  }, [error]);
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
@@ -120,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   // Ensure user is not undefined
-  const safeUser = user ?? null;
+  const safeUser = (user ?? null) as Omit<User, "password"> | null;
 
   return (
     <AuthContext.Provider

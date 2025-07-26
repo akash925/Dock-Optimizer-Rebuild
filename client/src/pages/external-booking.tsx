@@ -1264,7 +1264,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                     {/* Customer Name - Always Required */}
                     <FormField
                       control={form.control}
-                      name="customFields.customerName"
+                      name={"customFields.customerName" as any}
                       render={({
                         field
                       }: any) => (
@@ -1283,7 +1283,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                     {/* Email - Always Required */}
                     <FormField
                       control={form.control}
-                      name="customFields.email"
+                      name={"customFields.email" as any}
                       render={({
                         field
                       }: any) => (

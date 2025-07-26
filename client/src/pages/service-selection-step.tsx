@@ -130,7 +130,8 @@ export default function ServiceSelectionStep({ bookingPage }: { bookingPage: any
         
         // Store appointment types in booking data for reference elsewhere
         if (data.length > 0) {
-          updateBookingData({ appointmentTypes: data });
+          // Remove appointmentTypes from updateBookingData since it's not part of BookingFormData interface
+          // Data is already stored in the query cache for component use
         }
         
         return data;
@@ -333,7 +334,7 @@ ${data.notes ? `Notes: ${data.notes}` : ''}
     updateBookingData({ 
       facilityId: facilityId,
       facilityName: selectedFacility?.name || '',
-      appointmentTypeId: null 
+      appointmentTypeId: undefined // Change null to undefined to match expected type
     });
   };
   

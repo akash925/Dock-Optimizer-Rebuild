@@ -185,7 +185,7 @@ function AddToOrgDialog({ userId, onSuccess }: { userId: number, onSuccess: () =
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {orgs?.map((org: any) => (
+                      {(orgs as any[])?.map((org: any) => (
                         <SelectItem key={org.id} value={org.id.toString()}>
                           {org.name}
                         </SelectItem>
@@ -216,7 +216,7 @@ function AddToOrgDialog({ userId, onSuccess }: { userId: number, onSuccess: () =
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {roles?.map((role: any) => (
+                      {(roles as any[])?.map((role: any) => (
                         <SelectItem key={role.id} value={role.id.toString()}>
                           {role.name}
                         </SelectItem>

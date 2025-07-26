@@ -157,7 +157,7 @@ export default function AssetEditPage() {
         <AssetPhotoDropzone 
           onUpload={uploadPhotoMutation.mutateAsync}
           existing={asset.photoUrl}
-          assetId={assetId}
+          assetId={assetId ? Number(assetId) : undefined}
           tenantId={asset.tenantId}
         />
       </div>
@@ -180,7 +180,7 @@ export default function AssetEditPage() {
                       // Get organization's default barcode format
                       const barcodeFormat = localStorage.getItem('defaultBarcodeFormat') || "CODE128";
                       import('jsbarcode').then(({ default: JsBarcode }) => {
-                        JsBarcode(ref, asset.barcode, {
+                        JsBarcode(ref, asset.barcode || '', {
                           format: barcodeFormat,
                           width: 1.5,
                           height: 40,
@@ -232,7 +232,7 @@ export default function AssetEditPage() {
 
       {/* Barcode Generator Dialog */}
       <BarcodeGenerator
-        assetId={Number(assetId)}
+        assetId={assetId ? Number(assetId) : 0}
         assetName={asset.name}
         currentBarcode={asset.barcode}
         onSave={updateBarcodeMutation.mutateAsync}

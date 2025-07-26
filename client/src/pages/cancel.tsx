@@ -172,7 +172,7 @@ export default function CancelPage() {
     }
     
     if (facilitiesQuery.data && schedule.facilityId) {
-      const facility = facilitiesQuery.data.find((f: any) => f.id === schedule.facilityId);
+      const facility = (facilitiesQuery.data as any[]).find((f: any) => f.id === schedule.facilityId);
       if (facility) {
         return facility.name;
       }
@@ -193,7 +193,7 @@ export default function CancelPage() {
     }
     
     if (appointmentTypes.data && schedule.appointmentTypeId) {
-      const appointmentType = appointmentTypes.data.find((t: any) => t.id === schedule.appointmentTypeId);
+      const appointmentType = (appointmentTypes.data as any[]).find((t: any) => t.id === schedule.appointmentTypeId);
       if (appointmentType) {
         return appointmentType.name;
       }
