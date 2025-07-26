@@ -105,14 +105,16 @@ export default function OrganizationDetailPage() {
     queryKey: ['orgDetail', orgId],
     queryFn: () => adminApi.getOrgDetail(orgId),
     staleTime: 300000, // Cache for 5 minutes
-    onSuccess: (data: any) => {
-      console.log("Organization data:", data);
-      console.log("Modules data:", data?.modules || []);
-      if (data?.modules) {
-        setModules([...data.modules]);
-      }
-    },
   });
+  
+  // Handle organization data changes with useEffect instead of deprecated onSuccess
+  useEffect(() => {
+    if (organization?.modules) {
+      console.log("Organization data:", organization);
+      console.log("Modules data:", organization?.modules || []);
+      setModules([...organization.modules]);
+    }
+  }, [organization]);
   
   // Add an effect to log modules data when organization changes
   useEffect(() => {
@@ -149,14 +151,18 @@ export default function OrganizationDetailPage() {
   const [logsData, setLogsData] = useState<{ logs: ActivityLog[], pagination: any } | null>(null);
 
   // Fetch paginated logs using our API client
-  const { isLoading: logsLoading } = useQuery({
+  const { isLoading: logsLoading, data: logsResponse } = useQuery({
     queryKey: ['orgLogs', orgId, logsPage],
     queryFn: () => adminApi.getOrgLogs(orgId, logsPage),
     enabled: activeTab === 'logs',
-    onSuccess: (data: any) => {
-      setLogsData(data);
-    },
   });
+
+  // Handle logs data changes with useEffect instead of deprecated onSuccess
+  useEffect(() => {
+    if (logsResponse) {
+      setLogsData(logsResponse);
+    }
+  }, [logsResponse]);
 
   // Mutations
   const addUserMutation = useMutation({
@@ -586,7 +592,7 @@ export default function OrganizationDetailPage() {
                   </div>
                 ) : (
                   <>
-                    {(((organization as any)?.logs || [] && (organization as any)?.logs || [].length > 0) || (logsData?.logs && (logsData as any)?.logs || [].length > 0)) ? (
+                    {(logsData?.logs && logsData.logs.length > 0) ? (
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -596,7 +602,7 @@ export default function OrganizationDetailPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {(logsData?.logs || (organization as any)?.logs || [] || []).map((log: any) => <TableRow key={log.id || Math.random()}>
+                          {(logsData?.logs || []).map((log: any) => <TableRow key={log.id || Math.random()}>
                             <TableCell className="font-mono text-xs">
                               {log.timestamp ? new Date(log.timestamp).toLocaleString() : 'Unknown date'}
                             </TableCell>
@@ -619,8 +625,12 @@ export default function OrganizationDetailPage() {
                           <PaginationContent>
                             <PaginationItem>
                               <PaginationPrevious 
-                                onClick={() => handlePageChange(Math.max(1, logsPage - 1))}
-                                disabled={logsPage === 1}
+                                href="#"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handlePageChange(Math.max(1, logsPage - 1));
+                                }}
+                                className={logsPage === 1 ? 'pointer-events-none opacity-50' : ''}
                               />
                             </PaginationItem>
                             
@@ -645,7 +655,11 @@ export default function OrganizationDetailPage() {
                               return (
                                 <PaginationItem key={i}>
                                   <PaginationLink
-                                    onClick={() => handlePageChange(pageNum)}
+                                    href="#"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      handlePageChange(pageNum);
+                                    }}
                                     isActive={pageNum === logsPage}
                                   >
                                     {pageNum}
@@ -662,8 +676,12 @@ export default function OrganizationDetailPage() {
                             
                             <PaginationItem>
                               <PaginationNext 
-                                onClick={() => handlePageChange(Math.min(logsData?.pagination?.totalPages || 1, logsPage + 1))}
-                                disabled={logsPage === (logsData?.pagination?.totalPages || 1)}
+                                href="#"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handlePageChange(Math.min(logsData?.pagination?.totalPages || 1, logsPage + 1));
+                                }}
+                                className={logsPage === (logsData?.pagination?.totalPages || 1) ? 'pointer-events-none opacity-50' : ''}
                               />
                             </PaginationItem>
                           </PaginationContent>
