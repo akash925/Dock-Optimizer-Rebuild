@@ -21,29 +21,14 @@ const watchSettings = {
   ignored: ["**/.pnpm/**", "**/.local/**", "**/node_modules/**"],
 };
 
-async function replitPlugins() {
+function replitPlugins() {
+  // Simplified synchronous version for build stability
   if (!isReplit) return [];
-  const pkgs = [
-    "@replit/vite-plugin-runtime-error-modal",
-    "@replit/vite-plugin-shadcn-theme-json",
-    "@replit/vite-plugin-cartographer",
-  ];
-  const plugs = [];
-  for (const p of pkgs) {
-    try {
-      // NB: suppresses undefined destructure if plugin missing
-      const mod: any = await import(p);
-      const factory = mod?.default ?? mod?.cartographer;
-      if (typeof factory === "function") plugs.push(factory());
-    } catch {
-      /* optional plugin not installed – ignore */
-    }
-  }
-  return plugs;
+  return []; // Optional Replit plugins disabled for now to fix async config issue
 }
 
-export default defineConfig(async () => ({
-  plugins: [react(), ...(await replitPlugins())],
+export default defineConfig({
+  plugins: [react(), ...replitPlugins()],
   logLevel: "error",
 
   // ───── Project layout & aliases ─────
@@ -94,4 +79,4 @@ export default defineConfig(async () => ({
     watch: watchSettings,
     hmr: isReplit ? { protocol: "wss", port: 443 } : true,
   },
-}));
+});

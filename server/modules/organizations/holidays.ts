@@ -125,7 +125,7 @@ export async function getOrganizationHolidays(req: Request, res: Response) {
     }
     
     // Get holidays from organization metadata
-    const holidays = organization.metadata?.holidays || [];
+    const holidays = (organization.metadata as any)?.holidays || [];
     
     res.json(holidays);
   } catch (error) {
@@ -166,10 +166,10 @@ export async function updateOrganizationHolidays(req: Request, res: Response) {
     
     // Create or update metadata object with holidays
     const metadata = organization.metadata || {};
-    metadata.holidays = standardizedHolidays;
+    (metadata as any).holidays = standardizedHolidays;
     
     // Store last sync timestamp in metadata for annual sync tracking
-    metadata.holidaysLastSynced = new Date().toISOString();
+    (metadata as any).holidaysLastSynced = new Date().toISOString();
     
     // Update organization with new metadata
     await storage.updateTenant(organizationId, {
@@ -203,7 +203,7 @@ export async function syncOrganizationHolidays(req: Request, res: Response) {
     }
     
     // Get existing holidays
-    const existingHolidays: Holiday[] = organization.metadata?.holidays || [];
+    const existingHolidays: Holiday[] = (organization.metadata as any)?.holidays || [];
     
     // Get the current year
     const currentYear = new Date().getFullYear();

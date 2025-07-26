@@ -45,7 +45,7 @@ export class BolService {
           ]);
           console.log(`[BolService] PaddleOCR result:`, result);
         } catch (paddleError) {
-          console.log(`[BolService] PaddleOCR failed, falling back to Tesseract.js: ${paddleError.message}`);
+          console.log(`[BolService] PaddleOCR failed, falling back to Tesseract.js: ${(paddleError as any).message}`);
           
           // Fallback to Tesseract.js
           result = await Promise.race([
@@ -58,7 +58,7 @@ export class BolService {
         // Validate the result
         const validatedResult = validateOcrResult(result);
         if (validatedResult.isValid && validatedResult.data) {
-          console.log(`[BolService] ✅ OCR processing successful with ${validatedResult.data.ocrEngine || 'unknown engine'}`);
+          console.log(`[BolService] ✅ OCR processing successful with ${(validatedResult.data as any).ocrEngine || 'unknown engine'}`);
           return validatedResult.data;
         } else {
           throw new Error(`OCR validation failed: ${JSON.stringify(validatedResult.errors)}`);
@@ -66,16 +66,16 @@ export class BolService {
       } catch (error) {
         // Retry once if the first attempt failed
         if (retryCount < 1) {
-          console.log(`[BolService] OCR processing attempt failed, retrying: ${error.message}`);
+          console.log(`[BolService] OCR processing attempt failed, retrying: ${(error as any).message}`);
           return processWithRetry(retryCount + 1);
         }
         
         // Both attempts failed, return a failure result
-        console.log(`[BolService] ❌ OCR processing failed after retry: ${error.message}`);
+        console.log(`[BolService] ❌ OCR processing failed after retry: ${(error as any).message}`);
         return {
           success: false,
-          error: error.message || 'OCR processing failed after retry',
-          errorType: error.name || 'ProcessingError'
+          error: (error as any).message || 'OCR processing failed after retry',
+          errorType: (error as any).name || 'ProcessingError'
         };
       }
     };

@@ -42,7 +42,7 @@ function shouldSendReminder(
   }
 
   // Check if email reminder is configured for this appointment type
-  if (!appointmentType.emailReminderTime || appointmentType.emailReminderTime <= 0) {
+  if (!(appointmentType as any).emailReminderTime || (appointmentType as any).emailReminderTime <= 0) {
     return false;
   }
 
@@ -59,8 +59,8 @@ function shouldSendReminder(
   
   // Check if we're within the reminder window
   // Allow 1 hour of flexibility (e.g., if reminder is set for 24 hours, send between 25-24 hours before)
-  return hoursUntilAppointment <= appointmentType.emailReminderTime && 
-         hoursUntilAppointment > (appointmentType.emailReminderTime - 1);
+  return hoursUntilAppointment <= (appointmentType as any).emailReminderTime && 
+         hoursUntilAppointment > ((appointmentType as any).emailReminderTime - 1);
 }
 
 /**
