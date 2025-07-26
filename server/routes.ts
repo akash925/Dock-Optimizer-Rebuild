@@ -353,9 +353,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       try {
         if (schedule.driverEmail && updatedSchedule) {
-          const facility = schedule.facilityId ? await storage.getFacility(schedule.facilityId) : null;
-          const carrier = schedule.carrierId ? await storage.getCarrier(schedule.carrierId) : null;
-          const dock = schedule.dockId ? await storage.getDock(schedule.dockId) : null;
+          const facility = schedule.facilityId ? await storage.getFacility?.(schedule.facilityId) : null;
+          const carrier = schedule.carrierId ? await storage.getCarrier?.(schedule.carrierId) : null;
+          const dock = schedule.dockId ? await storage.getDock?.(schedule.dockId) : null;
 
           const enhancedSchedule: EnhancedSchedule = {
             ...schedule,
