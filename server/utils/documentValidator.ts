@@ -5,10 +5,10 @@
  * to ensure they meet minimum quality requirements for OCR
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 const { execSync } = require('child_process');
-const logger = require('../logger');
+import logger from '../logger';
 
 /**
  * Validates a PDF file to ensure it's properly formatted and has content
@@ -81,7 +81,7 @@ function validatePdf(filePath: any) {
     } catch (pdfInfoError) {
       // pdfinfo not available, but file has PDF signature and size seems reasonable
       // Continue with processing but log a warning
-      logger.warn(`Could not verify PDF page count for ${filePath}: ${pdfInfoError.message}`);
+      logger.warn(`Could not verify PDF page count for ${filePath}: ${(pdfInfoError as any).message}`);
       return { 
         isValid: true, 
         warning: 'Could not verify page count',
@@ -90,11 +90,11 @@ function validatePdf(filePath: any) {
     }
 
   } catch (error) {
-    logger.error(`Error validating PDF ${filePath}: ${error.message}`);
+    logger.error(`Error validating PDF ${filePath}: ${(error as any).message}`);
     return { 
       isValid: false, 
       error: 'Validation error', 
-      details: error.message 
+      details: (error as any).message 
     };
   }
 }
@@ -152,11 +152,11 @@ function validateImage(filePath: any) {
       format: ext.substring(1).toUpperCase() // Remove the dot
     };
   } catch (error) {
-    logger.error(`Error validating image ${filePath}: ${error.message}`);
+    logger.error(`Error validating image ${filePath}: ${(error as any).message}`);
     return { 
       isValid: false, 
       error: 'Validation error', 
-      details: error.message 
+      details: (error as any).message 
     };
   }
 }
