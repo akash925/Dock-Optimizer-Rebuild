@@ -468,7 +468,7 @@ export class MemStorage implements IStorage {
   async getUserByUsername(username: string): Promise<User | undefined> { return Array.from(this.users.values()).find(u => u.username === username); }
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userIdCounter++;
-    const user: User = { ...insertUser, id, createdAt: new Date(), tenantId: insertUser.tenantId ?? null };
+    const user: User = { ...insertUser, id, createdAt: new Date(), tenantId: insertUser.tenantId ?? null } as any;
     this.users.set(id, user);
     return user;
   }
@@ -524,7 +524,7 @@ export class MemStorage implements IStorage {
   async getScheduleByConfirmationCode(code: string): Promise<Schedule | undefined> { return undefined; }
   async createSchedule(insertSchedule: InsertSchedule): Promise<Schedule> {
     const id = this.scheduleIdCounter++;
-    const schedule: Schedule = { ...insertSchedule, id, tenantId: insertSchedule.tenantId ?? 1, createdAt: new Date(), lastModifiedAt: new Date(), createdBy: insertSchedule.createdBy ?? 1, lastModifiedBy: insertSchedule.createdBy, facilityId: insertSchedule.facilityId ?? null, dockId: insertSchedule.dockId ?? null, carrierId: insertSchedule.carrierId ?? null, appointmentTypeId: insertSchedule.appointmentTypeId ?? null, truckNumber: insertSchedule.truckNumber, trailerNumber: insertSchedule.trailerNumber ?? null, driverName: insertSchedule.driverName ?? null, driverPhone: insertSchedule.driverPhone ?? null, driverEmail: insertSchedule.driverEmail ?? null, customerName: insertSchedule.customerName ?? null, carrierName: insertSchedule.carrierName ?? null, mcNumber: insertSchedule.mcNumber ?? null, bolNumber: insertSchedule.bolNumber ?? null, poNumber: insertSchedule.poNumber ?? null, palletCount: insertSchedule.palletCount ?? null, weight: insertSchedule.weight ?? null, appointmentMode: insertSchedule.appointmentMode ?? 'trailer', notes: insertSchedule.notes ?? null, customFormData: insertSchedule.customFormData ?? null, creatorEmail: insertSchedule.creatorEmail ?? null, actualStartTime: insertSchedule.actualStartTime ? new Date(insertSchedule.actualStartTime) : null, actualEndTime: insertSchedule.actualEndTime ? new Date(insertSchedule.actualEndTime) : null, confirmationCode: insertSchedule.confirmationCode ?? null };
+    const schedule: Schedule = { ...insertSchedule, id, tenantId: insertSchedule.tenantId ?? 1, createdAt: new Date(), lastModifiedAt: new Date(), createdBy: insertSchedule.createdBy ?? 1, lastModifiedBy: insertSchedule.createdBy, facilityId: insertSchedule.facilityId ?? null, dockId: insertSchedule.dockId ?? null, carrierId: insertSchedule.carrierId ?? null, appointmentTypeId: insertSchedule.appointmentTypeId ?? null, truckNumber: insertSchedule.truckNumber, trailerNumber: insertSchedule.trailerNumber ?? null, driverName: insertSchedule.driverName ?? null, driverPhone: insertSchedule.driverPhone ?? null, driverEmail: insertSchedule.driverEmail ?? null, customerName: insertSchedule.customerName ?? null, carrierName: insertSchedule.carrierName ?? null, mcNumber: insertSchedule.mcNumber ?? null, bolNumber: insertSchedule.bolNumber ?? null, poNumber: insertSchedule.poNumber ?? null, palletCount: insertSchedule.palletCount ?? null, weight: insertSchedule.weight ?? null, appointmentMode: insertSchedule.appointmentMode ?? 'trailer', notes: insertSchedule.notes ?? null, customFormData: insertSchedule.customFormData ?? null, creatorEmail: insertSchedule.creatorEmail ?? null, actualStartTime: insertSchedule.actualStartTime ? new Date(insertSchedule.actualStartTime) : null, actualEndTime: insertSchedule.actualEndTime ? new Date(insertSchedule.actualEndTime) : null, confirmationCode: insertSchedule.confirmationCode ?? null } as any;
     this.schedules.set(id, schedule);
     
     // Send confirmation email
@@ -661,7 +661,7 @@ export class MemStorage implements IStorage {
   async getAppointmentTypesByFacility(facilityId: number): Promise<AppointmentType[]> { return Array.from(this.appointmentTypes.values()).filter(t => t.facilityId === facilityId); }
   async createAppointmentType(appointmentType: InsertAppointmentType): Promise<AppointmentType> {
     const id = this.appointmentTypeIdCounter++;
-    const newAppointmentType: AppointmentType = { ...appointmentType, id, createdAt: new Date(), lastModifiedAt: new Date(), description: appointmentType.description ?? null, maxAppointmentsPerDay: appointmentType.maxAppointmentsPerDay ?? null, tenantId: appointmentType.tenantId ?? null, type: appointmentType.type as 'INBOUND' | 'OUTBOUND', timezone: appointmentType.timezone ?? 'America/New_York' } as any;
+    const newAppointmentType: AppointmentType = { ...appointmentType, id, createdAt: new Date(), lastModifiedAt: new Date(), description: (appointmentType as any).description ?? null, maxAppointmentsPerDay: (appointmentType as any).maxAppointmentsPerDay ?? null, tenantId: appointmentType.tenantId ?? null, type: (appointmentType as any).type as 'INBOUND' | 'OUTBOUND', timezone: (appointmentType as any).timezone ?? 'America/New_York' } as any;
     this.appointmentTypes.set(id, newAppointmentType);
     return newAppointmentType;
   }
