@@ -2523,7 +2523,7 @@ export class DatabaseStorage implements IStorage {
     // Clean up any existing unused tokens for this user
     await db
       .update(passwordResetTokens)
-      .set({ used: true, usedAt: new Date() })
+      .set({ used: true })
       .where(and(
         eq(passwordResetTokens.userId, userId),
         eq(passwordResetTokens.used, false)
@@ -2558,7 +2558,7 @@ export class DatabaseStorage implements IStorage {
   async markPasswordResetTokenAsUsed(tokenId: number): Promise<void> {
     await db
       .update(passwordResetTokens)
-      .set({ used: true, usedAt: new Date() })
+      .set({ used: true })
       .where(eq(passwordResetTokens.id, tokenId));
   }
 
