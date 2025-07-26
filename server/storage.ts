@@ -850,7 +850,7 @@ export class MemStorage implements IStorage {
     const updatedModules: OrganizationModule[] = [];
     modules.forEach(module => {
       const id = this.organizationModuleIdCounter++;
-      const newModule: OrganizationModule = { ...module, id, createdAt: new Date() };
+      const newModule: OrganizationModule = { ...module, id, createdAt: new Date() } as any;
       this.organizationModules.set(id, newModule);
       updatedModules.push(newModule);
     });
@@ -889,11 +889,11 @@ export class MemStorage implements IStorage {
       userId: preferences.userId,
       organizationId: preferences.organizationId || 0,
       emailNotificationsEnabled: preferences.emailNotificationsEnabled ?? true,
-      emailScheduleChanges: preferences.emailScheduleChanges ?? true,
-      emailTruckArrivals: preferences.emailTruckArrivals ?? true,
-      emailDockAssignments: preferences.emailDockAssignments ?? true,
-      emailWeeklyReports: preferences.emailWeeklyReports ?? false,
-      pushNotificationsEnabled: preferences.pushNotificationsEnabled ?? true,
+      emailScheduleChanges: (preferences as any).emailScheduleChanges ?? true,
+      emailTruckArrivals: (preferences as any).emailTruckArrivals ?? true,
+      emailDockAssignments: (preferences as any).emailDockAssignments ?? true,
+      emailWeeklyReports: (preferences as any).emailWeeklyReports ?? false,
+      pushNotificationsEnabled: (preferences as any).pushNotificationsEnabled ?? true,
       createdAt: new Date(),
       updatedAt: null
     };
@@ -1077,7 +1077,7 @@ export class DatabaseStorage implements IStorage {
 
   async createSchedule(insertSchedule: InsertSchedule): Promise<Schedule> {
     if (insertSchedule.appointmentTypeId && insertSchedule.startTime) {
-      const appointmentType = await db.query.appointmentTypes.findFirst({
+      const appointmentType = await (db.query as any).appointmentTypes.findFirst({
         where: eq(appointmentTypes.id, insertSchedule.appointmentTypeId),
       });
       if (appointmentType) {
@@ -1346,7 +1346,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDock(id: number): Promise<boolean> {
     const result = await db.delete(docks).where(eq(docks.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Add missing methods with real database queries
@@ -1455,7 +1455,7 @@ export class DatabaseStorage implements IStorage {
   async deleteAppointmentType(id: number): Promise<boolean> {
     try {
       const result = await db.delete(appointmentTypes).where(eq(appointmentTypes.id, id));
-      return result.rowCount > 0;
+      return (result.rowCount ?? 0) > 0;
     } catch (error) {
       console.error('Error deleting appointment type:', error);
       return false;
@@ -1515,7 +1515,7 @@ export class DatabaseStorage implements IStorage {
   async deleteBookingPage(id: number): Promise<boolean> {
     logger.debug('[DatabaseStorage] deleteBookingPage called with id:', { id });
     const result = await db.delete(bookingPages).where(eq(bookingPages.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
   async getStandardQuestions() { return this.memStorage.getStandardQuestions(); }
   async createStandardQuestion(question: any) { return this.memStorage.createStandardQuestion(question); }
