@@ -586,7 +586,7 @@ export default function OrganizationDetailPage() {
                   </div>
                 ) : (
                   <>
-                    {((organization.logs && organization.logs.length > 0) || (logsData?.logs && logsData.logs.length > 0)) ? (
+                    {(((organization as any)?.logs || [] && (organization as any)?.logs || [].length > 0) || (logsData?.logs && (logsData as any)?.logs || [].length > 0)) ? (
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -596,7 +596,7 @@ export default function OrganizationDetailPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {(logsData?.logs || organization.logs || []).map((log: any) => <TableRow key={log.id || Math.random()}>
+                          {(logsData?.logs || (organization as any)?.logs || [] || []).map((log: any) => <TableRow key={log.id || Math.random()}>
                             <TableCell className="font-mono text-xs">
                               {log.timestamp ? new Date(log.timestamp).toLocaleString() : 'Unknown date'}
                             </TableCell>

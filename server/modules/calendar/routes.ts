@@ -197,13 +197,13 @@ router.post('/booking-pages/book/:slug', async (req: Request, res: Response) => 
       
       // Emit schedule created event
       eventSystem.emit('schedule:created', {
-        schedule: enhancedSchedule,
+        schedule: enhancedSchedule as any,
         tenantId: (appointmentData as any).tenantId || 1
       });
       
       // Also emit appointment confirmed event for notifications
       eventSystem.emit('appointment:confirmed', {
-        schedule: enhancedSchedule,
+        schedule: enhancedSchedule as any,
         confirmationCode: confirmationCode,
         tenantId: (appointmentData as any).tenantId || 1
       });
@@ -382,13 +382,13 @@ router.post('/schedules/external', async (req: any, res: any) => {
       
       // Emit schedule created event
       eventSystem.emit('schedule:created', {
-        schedule: enhancedSchedule,
+        schedule: enhancedSchedule as any,
         tenantId: appointment.tenantId || 1
       });
       
       // Also emit appointment:created event for notifications
       eventSystem.emit('appointment:created', {
-        schedule: enhancedSchedule,
+        schedule: enhancedSchedule as any,
         tenantId: appointment.tenantId || 1
       });
       

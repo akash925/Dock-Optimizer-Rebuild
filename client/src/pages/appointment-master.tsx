@@ -96,10 +96,10 @@ const useUpdateStandardQuestion = () => {
   return useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
       const response = await api.put(`/api/standard-questions/${id}`, data);
-      if (!response.ok) {
+      if (!(response as any).ok) {
         throw new Error('Failed to update standard question');
       }
-      return response.json();
+      return (response as any).json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/standard-questions'] });
@@ -622,11 +622,11 @@ export default function AppointmentMaster() {
       }
       
       const res = await api[method](url, payload);
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
+      if (!(res as any).ok) {
+        const errorData = await (res as any).json().catch(() => null);
         throw new Error(errorData?.message || 'Failed to save custom field');
       }
-      const newField = await res.json();
+      const newField = await (res as any).json();
       
       // Convert DB format to component format
       console.log("[AppointmentMaster] Received saved question from API:", newField);
@@ -884,10 +884,10 @@ export default function AppointmentMaster() {
     try {
       console.log(`[AppointmentMaster] Loading custom questions for appointment type ${appointmentTypeId}`);
       const response = await api.get(`/api/custom-questions/${appointmentTypeId}`);
-      if (!response.ok) {
+      if (!(response as any).ok) {
         throw new Error('Failed to fetch custom questions');
       }
-      const questions = await response.json();
+      const questions = await (response as any).json();
       console.log(`[AppointmentMaster] Loaded ${questions.length} custom questions:`, questions);
       
       // Convert API format to component format with improved property handling
