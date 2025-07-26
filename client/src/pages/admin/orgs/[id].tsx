@@ -116,8 +116,8 @@ export default function OrganizationDetailPage() {
   
   // Add an effect to log modules data when organization changes
   useEffect(() => {
-    if (organization?.modules) {
-      console.log("Current modules state:", organization.modules);
+    if ((organization as any)?.modules) {
+      console.log("Current modules state:", (organization as any).modules);
     }
   }, [organization]);
 
@@ -350,12 +350,12 @@ export default function OrganizationDetailPage() {
               <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Button>
             <div>
-              <h1 className="text-2xl font-bold">{organization.name}</h1>
+              <h1 className="text-2xl font-bold">{(organization as any).name}</h1>
               <div className="text-sm text-muted-foreground flex items-center">
-                <span>Subdomain: {organization.subdomain}</span>
+                <span>Subdomain: {(organization as any).subdomain}</span>
                 <span className="mx-2">•</span>
-                <Badge variant={organization.status === 'ACTIVE' ? "default" : "secondary"}>
-                  {organization.status}
+                <Badge variant={(organization as any).status === 'ACTIVE' ? "default" : "secondary"}>
+                  {(organization as any).status}
                 </Badge>
               </div>
             </div>
