@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { TenantStatus, AvailableModule, ActivityLogEvents } from '@shared/schema';
 import { db } from '../../../db';
 import { eq, sql } from 'drizzle-orm';
-import { users, tenants, organizationUsers, organizationModules, roles } from '@shared/schema';
+import { users, tenants, organizationUsers, organizationModules, roles, activityLogs } from '@shared/schema';
 import { isAuthenticated } from '../../../types/express';
 
 // API routes for organization modules
@@ -442,7 +442,7 @@ export const organizationsRoutes = (app: Express) => {
         'Organization logo was updated'
       );
       
-      res.json({ success: true, logo: updatedOrg.logo });
+      res.json({ success: true, logo: updatedOrg?.logo });
     } catch (error) {
       console.error('Error updating organization logo:', error);
       res.status(500).json({ message: 'Failed to update organization logo' });
@@ -890,15 +890,15 @@ export const organizationsRoutes = (app: Express) => {
         const now = new Date();
         // Add default modules for UI display using correct AvailableModule values
         modules = [
-          { moduleName: "doorManager", enabled: true, id: 1, createdAt: now, organizationId: orgId },
-          { moduleName: "appointments", enabled: true, id: 2, createdAt: now, organizationId: orgId },
-          { moduleName: "userManagement", enabled: false, id: 3, createdAt: now, organizationId: orgId },
-          { moduleName: "companyAssets", enabled: false, id: 4, createdAt: now, organizationId: orgId },
-          { moduleName: "analytics", enabled: false, id: 5, createdAt: now, organizationId: orgId },
-          { moduleName: "emailNotifications", enabled: true, id: 6, createdAt: now, organizationId: orgId },
-          { moduleName: "bookingPages", enabled: true, id: 8, createdAt: now, organizationId: orgId },
-          { moduleName: "facilityManagement", enabled: true, id: 9, createdAt: now, organizationId: orgId },
-        ];
+          { moduleName: "doorManager", enabled: true, id: 1, createdAt: now, organizationId: orgId, updatedAt: null },
+          { moduleName: "appointments", enabled: true, id: 2, createdAt: now, organizationId: orgId, updatedAt: null },
+          { moduleName: "userManagement", enabled: false, id: 3, createdAt: now, organizationId: orgId, updatedAt: null },
+          { moduleName: "companyAssets", enabled: false, id: 4, createdAt: now, organizationId: orgId, updatedAt: null },
+          { moduleName: "analytics", enabled: false, id: 5, createdAt: now, organizationId: orgId, updatedAt: null },
+          { moduleName: "emailNotifications", enabled: true, id: 6, createdAt: now, organizationId: orgId, updatedAt: null },
+          { moduleName: "bookingPages", enabled: true, id: 8, createdAt: now, organizationId: orgId, updatedAt: null },
+          { moduleName: "facilityManagement", enabled: true, id: 9, createdAt: now, organizationId: orgId, updatedAt: null },
+        ] as any;
       }
       
       // Simplify the module structure for the frontend to avoid TypeScript errors

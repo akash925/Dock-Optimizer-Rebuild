@@ -1418,7 +1418,7 @@ export class DatabaseStorage implements IStorage {
     let query = db.select().from(appointmentTypes).where(eq(appointmentTypes.facilityId, facilityId));
     
     if (tenantId) {
-      query = query.where(and(eq(appointmentTypes.facilityId, facilityId), eq(appointmentTypes.tenantId, tenantId)));
+      query = (query as any).where(and(eq(appointmentTypes.facilityId, facilityId), eq(appointmentTypes.tenantId, tenantId)));
     }
     
     return await query;
@@ -1931,12 +1931,12 @@ export class DatabaseStorage implements IStorage {
     try {
       let query = db.select({
         id: organizationHolidays.id,
-        tenantId: organizationHolidays.tenantId,
-        name: organizationHolidays.name,
-        date: organizationHolidays.date,
-        isRecurring: organizationHolidays.isRecurring,
+        tenantId: (organizationHolidays as any).tenantId,
+        name: (organizationHolidays as any).name,
+        date: (organizationHolidays as any).date,
+        isRecurring: (organizationHolidays as any).isRecurring,
         createdAt: organizationHolidays.createdAt,
-        updatedAt: organizationHolidays.updatedAt
+        updatedAt: (organizationHolidays as any).updatedAt
       }).from(organizationHolidays);
       
       // If tenantId is provided, filter by organization, otherwise return all (super-admin view)

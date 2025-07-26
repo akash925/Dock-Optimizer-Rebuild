@@ -698,7 +698,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log(`[QuestionsAPI] Saving standard questions for appointment type ${appointmentTypeId}:`, req.body);
-      const questions = await storage.saveStandardQuestionsForAppointmentType(appointmentTypeId, req.body.questions || []);
+      const questions = await storage.saveStandardQuestionsForAppointmentType?.(appointmentTypeId, req.body.questions || []) || [];
       
       console.log(`[QuestionsAPI] Saved ${questions.length} standard questions`);
       res.json({ success: true, questions });
@@ -869,7 +869,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log('DEBUG: /api/carriers endpoint called');
-      const carriers = await storage.getCarriers(user.tenantId);
+      const carriers = await storage.getCarriers?.(user.tenantId) || [];
       console.log('DEBUG: /api/carriers returning', carriers.length, 'carriers');
       res.json(carriers);
     } catch (error) {
@@ -1053,7 +1053,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       const user = req.user as User;
-      const preferences = await storage.updateUserPreferences(user.id, req.body);
+      const preferences = await storage.updateUserPreferences?.(user.id, req.body);
       res.json(preferences);
     } catch (error) {
       console.error('Error updating user preferences:', error);
