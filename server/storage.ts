@@ -2462,7 +2462,7 @@ export class DatabaseStorage implements IStorage {
   async updateStandardQuestion(id: number, standardQuestion: Partial<StandardQuestion>): Promise<StandardQuestion | undefined> {
     try {
       const [updated] = await db.update(standardQuestions)
-        .set({ ...standardQuestion, lastModifiedAt: new Date() })
+        .set({ ...standardQuestion })
         .where(eq(standardQuestions.id, id))
         .returning();
       return updated;
