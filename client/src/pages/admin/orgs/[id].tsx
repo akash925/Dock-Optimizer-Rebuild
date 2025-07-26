@@ -488,8 +488,8 @@ export default function OrganizationDetailPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {organization.users && organization.users.length > 0 ? (
-                      organization.users.map((user: any) => <TableRow key={user.userId}>
+                    {(organization as any).users && (organization as any).users.length > 0 ? (
+                      (organization as any).users.map((user: any) => <TableRow key={user.userId}>
                         <TableCell className="font-medium">
                           {user.firstName} {user.lastName}
                         </TableCell>
@@ -543,9 +543,9 @@ export default function OrganizationDetailPage() {
                       </div>
                     )}
                     
-                    {organization?.modules && organization.modules.length > 0 ? (
+                    {(organization as any)?.modules && (organization as any).modules.length > 0 ? (
                       <>
-                        {organization.modules.map((module: any) => <div key={module.moduleName} className="flex items-center justify-between py-2 border-b">
+                        {(organization as any).modules.map((module: any) => <div key={module.moduleName} className="flex items-center justify-between py-2 border-b">
                           <Label htmlFor={`module-${module.moduleName}`} className="flex-1 font-medium">
                             {getModuleDisplayName(module.moduleName)}
                           </Label>
