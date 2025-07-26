@@ -107,7 +107,7 @@ export function BookingWizardContent({
 
   // Local state for UI management
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(initialDate || null);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialDate || undefined);
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
@@ -203,7 +203,7 @@ export function BookingWizardContent({
     updateBookingData({ facilityId: id });
     // Reset appointment type when facility changes
     form.setValue('appointmentTypeId', undefined as any);
-    updateBookingData({ appointmentTypeId: null });
+    updateBookingData({ appointmentTypeId: undefined });
   };
 
   // Handle form submission for each step
@@ -244,7 +244,7 @@ export function BookingWizardContent({
           carrierName: bookingData.carrierName,
           driverName: bookingData.driverName,
           driverPhone: bookingData.driverPhone,
-          driverEmail: bookingData.driverEmail || bookingData.email,
+          driverEmail: bookingData.email || "", // Use email field since driverEmail doesn't exist in BookingFormData
           mcNumber: bookingData.mcNumber || "",
           truckNumber: bookingData.truckNumber,
           trailerNumber: bookingData.trailerNumber || "",
@@ -451,11 +451,11 @@ export function BookingWizardContent({
                 <Calendar
                   mode="single"
                   selected={selectedDate}
-                  onSelect={(date: any) => {
+                  onSelect={(date: Date | undefined) => {
                     setSelectedDate(date);
                     if (date) {
                       // When date is selected, we'll update the booking data
-                      updateBookingData({ selectedDate: date });
+                      updateBookingData({ date: date }); // Use 'date' property instead of 'selectedDate'
                       
                       // In a real implementation, we would fetch available times here
                       setIsCheckingAvailability(true);
@@ -511,23 +511,26 @@ export function BookingWizardContent({
                         
                         // When time is selected, set the start/end times in booking data
                         if (selectedDate) {
-                          const [hour, minute] = time.match(/(\d+):(\d+)/)[0].split(':');
-                          const isPM = time.includes('PM');
-                          let hourNum = parseInt(hour, 10);
-                          if (isPM && hourNum < 12) hourNum += 12;
-                          if (!isPM && hourNum === 12) hourNum = 0;
-                          
-                          const startDate = new Date(selectedDate);
-                          startDate.setHours(hourNum, parseInt(minute, 10), 0, 0);
-                          
-                          // Assume appointments are 1 hour long by default
-                          const endDate = new Date(startDate);
-                          endDate.setHours(endDate.getHours() + 1);
-                          
-                          updateBookingData({
-                            startTime: startDate,
-                            endTime: endDate,
-                          });
+                          const timeMatch = time.match(/(\d+):(\d+)/);
+                          if (timeMatch) {
+                            const [hour, minute] = timeMatch[0].split(':');
+                            const isPM = time.includes('PM');
+                            let hourNum = parseInt(hour, 10);
+                            if (isPM && hourNum < 12) hourNum += 12;
+                            if (!isPM && hourNum === 12) hourNum = 0;
+                            
+                            const startDate = new Date(selectedDate);
+                            startDate.setHours(hourNum, parseInt(minute, 10), 0, 0);
+                            
+                            // Assume appointments are 1 hour long by default
+                            const endDate = new Date(startDate);
+                            endDate.setHours(endDate.getHours() + 1);
+                            
+                            updateBookingData({
+                              startTime: startDate,
+                              endTime: endDate,
+                            });
+                          }
                         }
                       }}
                       className="justify-center"
