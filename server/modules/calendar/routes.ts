@@ -14,9 +14,9 @@ async function generateOrgConfirmationCode(tenantId?: number): Promise<string> {
 
 // Add authentication middleware with proper typing
 import { Request, Response, NextFunction } from 'express';
-import { AuthenticatedRequest } from '../../middleware/auth';
+// import { AuthenticatedRequest } from '../../middleware/auth';
 
-const isAuthenticated = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+const isAuthenticated = (req: any, res: Response, next: NextFunction) => {
   if (req.isAuthenticated && req.isAuthenticated()) {
     return next();
   }

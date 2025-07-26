@@ -1002,7 +1002,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUser(id: number): Promise<boolean> {
     const result = await db.delete(users).where(eq(users.id, id));
-    return result.rowCount ? result.rowCount > 0 : false;
+    return result.rowCount ? (result.rowCount ?? 0) > 0 : false;
   }
 
   async updateUserModules(id: number, modules: string[]): Promise<boolean> {
@@ -1010,7 +1010,7 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({ modules: JSON.stringify(modules) } as any)
       .where(eq(users.id, id));
-    return result.rowCount ? result.rowCount > 0 : false;
+    return result.rowCount ? (result.rowCount ?? 0) > 0 : false;
   }
 
   // Schedule operations with real database queries
@@ -1172,7 +1172,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db.delete(schedules).where(eq(schedules.id, id));
 
     // Invalidate cache if deletion was successful
-    if (result.rowCount && result.rowCount > 0 && scheduleToDelete) {
+    if (result.rowCount && (result.rowCount ?? 0) > 0 && scheduleToDelete) {
       const scheduleDate = new Date(scheduleToDelete.startTime).toISOString().split('T')[0];
       invalidateAvailabilityCache({
         date: scheduleDate,
@@ -1182,7 +1182,7 @@ export class DatabaseStorage implements IStorage {
       });
     }
 
-    return result.rowCount ? result.rowCount > 0 : false;
+    return result.rowCount ? (result.rowCount ?? 0) > 0 : false;
   }
 
   // Facility operations with real database queries
@@ -1560,7 +1560,7 @@ export class DatabaseStorage implements IStorage {
       
       // Apply all conditions
       if (conditions.length > 0) {
-        query = query.where(and(...conditions));
+        query = (query as any).where(and(...conditions));
       }
       
       logger.debug(`[Storage] Executing company assets query with ${conditions.length} conditions for tenant ${filters.tenantId}`);
@@ -1596,6 +1596,16 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error fetching company asset by id:', error);
       return undefined;
+    }
+  }
+
+  async deleteCompanyAsset(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(companyAssets).where(eq(companyAssets.id, id));
+      return (result.rowCount ?? 0) > 0;
+    } catch (error) {
+      console.error('Error deleting company asset:', error);
+      return false;
     }
   }
 
@@ -1941,7 +1951,7 @@ export class DatabaseStorage implements IStorage {
       
       // If tenantId is provided, filter by organization, otherwise return all (super-admin view)
       if (tenantId !== undefined) {
-        query = query.where(eq((organizationHolidays as any).tenantId, tenantId));
+        query = (query as any).where(eq((organizationHolidays as any).tenantId, tenantId));
       }
       
       const holidays = await query.orderBy((organizationHolidays as any).date);
@@ -1999,7 +2009,7 @@ export class DatabaseStorage implements IStorage {
     try {
       const result = await db.delete(organizationHolidays)
         .where(eq(organizationHolidays.id, holidayId));
-      return result.rowCount > 0;
+      return (result.rowCount ?? 0) > 0;
     } catch (error) {
       console.error('Error deleting organization holiday:', error);
       return false;
@@ -2072,15 +2082,15 @@ export class DatabaseStorage implements IStorage {
       
       // Ensure proper field mapping for database insertion
       const dbData = {
-        label: customQuestion.label || "Untitled Question",
-        type: customQuestion.type || "text",
-        isRequired: Boolean(customQuestion.isRequired || false), // Use the correct field name for schema
-        placeholder: customQuestion.placeholder || null,
-        options: customQuestion.options || null,
-        defaultValue: customQuestion.defaultValue || null,
-        order: customQuestion.order || 1,
-        appointmentTypeId: customQuestion.appointmentTypeId,
-        applicableType: customQuestion.applicableType || "both",
+        label: (customQuestion as any).label || "Untitled Question",
+        type: (customQuestion as any).type || "text",
+        isRequired: Boolean((customQuestion as any).isRequired || false), // Use the correct field name for schema
+        placeholder: (customQuestion as any).placeholder || null,
+        options: (customQuestion as any).options || null,
+        defaultValue: (customQuestion as any).defaultValue || null,
+        order: (customQuestion as any).order || 1,
+        appointmentTypeId: (customQuestion as any).appointmentTypeId,
+        applicableType: (customQuestion as any).applicableType || "both",
         createdAt: new Date(),
         lastModifiedAt: new Date()
       };
@@ -2135,17 +2145,17 @@ export class DatabaseStorage implements IStorage {
         // Map database field names back to frontend field names
         return {
           id: updated.id,
-          label: updated.label,
-          type: updated.type,
-          isRequired: updated.is_required || false,  // Map is_required back to isRequired for frontend
-          placeholder: updated.placeholder,
-          options: updated.options,
-          defaultValue: updated.defaultValue,
-          order: updated.order,
-          appointmentTypeId: updated.appointmentTypeId,
-          applicableType: updated.applicableType,
+          label: (updated as any).label,
+          type: (updated as any).type,
+          isRequired: (updated as any).is_required || false,  // Map is_required back to isRequired for frontend
+          placeholder: (updated as any).placeholder,
+          options: (updated as any).options,
+          defaultValue: (updated as any).defaultValue,
+          order: (updated as any).order,
+          appointmentTypeId: (updated as any).appointmentTypeId,
+          applicableType: (updated as any).applicableType,
           createdAt: updated.createdAt,
-          lastModifiedAt: updated.lastModifiedAt,
+          lastModifiedAt: (updated as any).lastModifiedAt,
         };
       }
       
@@ -2159,7 +2169,7 @@ export class DatabaseStorage implements IStorage {
   async deleteCustomQuestion(id: number): Promise<boolean> {
     try {
       const result = await db.delete(customQuestions).where(eq(customQuestions.id, id));
-      return result.rowCount > 0;
+      return (result.rowCount ?? 0) > 0;
     } catch (error) {
       console.error('Error deleting custom question:', error);
       return false;
@@ -2250,7 +2260,7 @@ export class DatabaseStorage implements IStorage {
   async removeUserFromOrganization(userId: number, organizationId: number): Promise<boolean> {
     const result = await db.delete(organizationUsers)
       .where(and(eq(organizationUsers.userId, userId), eq(organizationUsers.organizationId, organizationId)));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
   // Organization module management with proper database implementations
   async updateOrganizationModules(organizationId: number, modules: InsertOrganizationModule[]): Promise<OrganizationModule[]> {
@@ -2311,7 +2321,7 @@ export class DatabaseStorage implements IStorage {
   
   async deleteBolDocument(id: number): Promise<boolean> {
     const result = await db.delete(bolDocuments).where(eq(bolDocuments.id, id));
-    return result.rowCount ? result.rowCount > 0 : false;
+    return result.rowCount ? (result.rowCount ?? 0) > 0 : false;
   }
   // Organization holidays are implemented above with proper database queries
 

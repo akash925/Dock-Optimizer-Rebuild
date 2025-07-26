@@ -136,7 +136,7 @@ class DatabaseOptimizer {
       `);
 
       logger.info('DatabaseOptimizer', 'Table statistics analyzed', {
-        tablesAnalyzed: tableStats.length
+        tablesAnalyzed: ((tableStats as any).rows?.length ?? 0)
       });
     } catch (error) {
       logger.warn('DatabaseOptimizer', 'Failed to analyze table statistics', error);
@@ -207,7 +207,7 @@ class DatabaseOptimizer {
         conditions.push(sql`s.facility_id = ${facilityId}`);
       }
 
-      if (conditions.length > 0) {
+      if (((conditions as any).rows?.length ?? 0) > 0) {
         query = sql`${query} AND ${sql.join(conditions, sql` AND `)}`;
       }
 
@@ -218,7 +218,7 @@ class DatabaseOptimizer {
 
       this.recordQueryMetrics({
         queryTime: executionTime,
-        rowsAffected: result.length,
+        rowsAffected: ((result as any).rows?.length ?? 0),
         queryType: 'SELECT',
         tableName: 'schedules',
         tenantId
@@ -227,13 +227,13 @@ class DatabaseOptimizer {
       if (executionTime > 1000) { // Log slow queries
         logger.warn('DatabaseOptimizer', 'Slow calendar query detected', {
           executionTime: `${executionTime.toFixed(2)}ms`,
-          rowCount: result.length,
+          rowCount: ((result as any).rows?.length ?? 0),
           tenantId,
           facilityId
         });
       }
 
-      return result;
+      return (result as any).rows || [];
     } catch (error) {
       logger.error('DatabaseOptimizer', 'Failed to execute optimized schedule query', error);
       throw error;
@@ -280,7 +280,7 @@ class DatabaseOptimizer {
 
       this.recordQueryMetrics({
         queryTime: executionTime,
-        rowsAffected: result.length,
+        rowsAffected: ((result as any).rows?.length ?? 0),
         queryType: 'SELECT',
         tableName: 'notifications',
       });
@@ -341,8 +341,8 @@ class DatabaseOptimizer {
 
     // Analyze query patterns
     const scheduleQueries = this.queryMetrics.filter(m => m.tableName === 'schedules');
-    const avgScheduleQueryTime = scheduleQueries.length > 0
-      ? scheduleQueries.reduce((sum, m) => sum + m.queryTime, 0) / scheduleQueries.length
+    const avgScheduleQueryTime = ((scheduleQueries as any).rows?.length ?? 0) > 0
+      ? scheduleQueries.reduce((sum, m) => sum + m.queryTime, 0) / ((scheduleQueries as any).rows?.length ?? 0)
       : 0;
 
     if (avgScheduleQueryTime > 300) {
