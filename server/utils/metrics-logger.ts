@@ -5,10 +5,10 @@
  * to help identify bottlenecks and optimize the OCR processing pipeline.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 const { pool } = require('../db');
-const logger = require('../logger');
+import logger from '../logger';
 
 // In-memory metrics store for aggregation
 const metricsStore = {
@@ -60,18 +60,18 @@ function recordDocumentProcessingMetrics(metrics: any) {
     
     // Track document types
     if (documentType) {
-      metricsStore.documentTypes[documentType] = (metricsStore.documentTypes[documentType] || 0) + 1;
+      (metricsStore.documentTypes as any)[documentType] = ((metricsStore.documentTypes as any)[documentType] || 0) + 1;
     }
     
     // Track document sizes in ranges
     if (documentSize) {
       const sizeRange = getSizeRange(documentSize);
-      metricsStore.documentSizes[sizeRange] = (metricsStore.documentSizes[sizeRange] || 0) + 1;
+      (metricsStore.documentSizes as any)[sizeRange] = ((metricsStore.documentSizes as any)[sizeRange] || 0) + 1;
     }
     
     // Track error types
     if (errorType) {
-      metricsStore.errorTypes[errorType] = (metricsStore.errorTypes[errorType] || 0) + 1;
+      (metricsStore.errorTypes as any)[errorType] = ((metricsStore.errorTypes as any)[errorType] || 0) + 1;
     }
     
     // Log to database for persistent storage and analysis
