@@ -8,6 +8,13 @@
     "node": ">=20.0.0 <=22.0.0"
   },
   "scripts": {
+    "build:client": "vite build",
+    "build:server": "npx tsc -p tsconfig.server.json",
+    "build": "pnpm run build:client && pnpm run build:server",
+    "dev:client": "vite",
+    "dev:server": "tsx watch server/index.ts",
+    "dev": "concurrently \"pnpm run dev:client\" \"pnpm run dev:server\"",
+    "start": "node dist/index.js",
     "ts:bootstrap": "pnpm add -D ts-migrate ts-autofix eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin ts-node",
     "ts:migrate": "ts-migrate-full .",
     "ts:autofix": "ts-autofix --apply --project tsconfig.server.json",
