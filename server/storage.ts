@@ -677,7 +677,7 @@ export class MemStorage implements IStorage {
   async getDailyAvailabilityByAppointmentType(appointmentTypeId: number): Promise<DailyAvailability[]> { return Array.from(this.dailyAvailability.values()).filter(a => a.appointmentTypeId === appointmentTypeId); }
   async createDailyAvailability(insertDailyAvailability: InsertDailyAvailability): Promise<DailyAvailability> {
     const id = this.dailyAvailabilityIdCounter++;
-    const dailyAvailability: DailyAvailability = { ...insertDailyAvailability, id, createdAt: new Date(), isAvailable: insertDailyAvailability.isAvailable ?? true, maxAppointments: insertDailyAvailability.maxAppointments ?? 0, startTime: insertDailyAvailability.startTime ?? '08:00', endTime: insertDailyAvailability.endTime ?? '17:00', breakStartTime: insertDailyAvailability.breakStartTime ?? '12:00', breakEndTime: insertDailyAvailability.breakEndTime ?? '13:00' } as any;
+    const dailyAvailability: DailyAvailability = { ...insertDailyAvailability, id, createdAt: new Date(), isAvailable: (insertDailyAvailability as any).isAvailable ?? true, maxAppointments: (insertDailyAvailability as any).maxAppointments ?? 0, startTime: insertDailyAvailability.startTime ?? '08:00', endTime: insertDailyAvailability.endTime ?? '17:00', breakStartTime: (insertDailyAvailability as any).breakStartTime ?? '12:00', breakEndTime: (insertDailyAvailability as any).breakEndTime ?? '13:00' } as any;
     this.dailyAvailability.set(id, dailyAvailability);
     return dailyAvailability;
   }
@@ -693,7 +693,7 @@ export class MemStorage implements IStorage {
   async getCustomQuestionsByAppointmentType(appointmentTypeId: number): Promise<CustomQuestion[]> { return Array.from(this.customQuestions.values()).filter(q => q.appointmentTypeId === appointmentTypeId); }
   async createCustomQuestion(customQuestion: InsertCustomQuestion): Promise<CustomQuestion> {
     const id = this.customQuestionIdCounter++;
-    const newCustomQuestion: CustomQuestion = { ...customQuestion, id, createdAt: new Date(), lastModifiedAt: new Date(), placeholder: customQuestion.placeholder ?? null, options: customQuestion.options ?? null, defaultValue: customQuestion.defaultValue ?? null, appointmentTypeId: customQuestion.appointmentTypeId ?? null, type: customQuestion.type as any, isRequired: customQuestion.isRequired ?? false, applicableType: customQuestion.applicableType as any ?? 'both' };
+    const newCustomQuestion: CustomQuestion = { ...customQuestion, id, createdAt: new Date(), lastModifiedAt: new Date(), placeholder: (customQuestion as any).placeholder ?? null, options: (customQuestion as any).options ?? null, defaultValue: (customQuestion as any).defaultValue ?? null, appointmentTypeId: (customQuestion as any).appointmentTypeId ?? null, type: customQuestion.type as any, isRequired: (customQuestion as any).isRequired ?? false, applicableType: (customQuestion as any).applicableType as any ?? 'both' } as any;
     this.customQuestions.set(id, newCustomQuestion);
     return newCustomQuestion;
   }
@@ -709,12 +709,12 @@ export class MemStorage implements IStorage {
   async getStandardQuestionsByAppointmentType(appointmentTypeId: number): Promise<StandardQuestion[]> { return Array.from(this.standardQuestions.values()).filter(q => q.appointmentTypeId === appointmentTypeId); }
   async createStandardQuestion(insertStandardQuestion: InsertStandardQuestion): Promise<StandardQuestion> {
     const id = this.standardQuestionIdCounter++;
-    const standardQuestion: StandardQuestion = { ...insertStandardQuestion, id, createdAt: new Date(), fieldType: insertStandardQuestion.fieldType as any, included: insertStandardQuestion.included ?? true, required: insertStandardQuestion.required ?? false, orderPosition: insertStandardQuestion.orderPosition ?? 0 };
+    const standardQuestion: StandardQuestion = { ...insertStandardQuestion, id, createdAt: new Date(), fieldType: insertStandardQuestion.fieldType as any, included: insertStandardQuestion.included ?? true, required: insertStandardQuestion.required ?? false, orderPosition: insertStandardQuestion.orderPosition ?? 0 } as any;
     this.standardQuestions.set(id, standardQuestion);
     return standardQuestion;
   }
   async createStandardQuestionWithId(question: InsertStandardQuestion & { id: number }): Promise<StandardQuestion> {
-    const newQuestion: StandardQuestion = { ...question, createdAt: new Date(), fieldType: question.fieldType as any, included: question.included ?? true, required: question.required ?? false, orderPosition: question.orderPosition ?? 0 };
+    const newQuestion: StandardQuestion = { ...question, createdAt: new Date(), fieldType: question.fieldType as any, included: question.included ?? true, required: question.required ?? false, orderPosition: question.orderPosition ?? 0 } as any;
     this.standardQuestions.set(question.id, newQuestion);
     return newQuestion;
   }
@@ -729,7 +729,7 @@ export class MemStorage implements IStorage {
   // Booking Page operations - removed delegations to use DatabaseStorage implementations
   async createBookingPage(insertBookingPage: InsertBookingPage): Promise<BookingPage> {
     const id = this.bookingPageIdCounter++;
-    const bookingPage: BookingPage = { ...insertBookingPage, id, createdAt: new Date(), lastModifiedAt: new Date(), lastModifiedBy: insertBookingPage.createdBy, description: insertBookingPage.description ?? null, welcomeMessage: insertBookingPage.welcomeMessage ?? null, confirmationMessage: insertBookingPage.confirmationMessage ?? null, excludedAppointmentTypes: insertBookingPage.excludedAppointmentTypes ?? null, customLogo: insertBookingPage.customLogo ?? null, tenantId: insertBookingPage.tenantId ?? null, isActive: insertBookingPage.isActive ?? true, primaryColor: insertBookingPage.primaryColor ?? '#4CAF50', useOrganizationLogo: insertBookingPage.useOrganizationLogo ?? false };
+    const bookingPage: BookingPage = { ...insertBookingPage, id, createdAt: new Date(), lastModifiedAt: new Date(), lastModifiedBy: insertBookingPage.createdBy, description: (insertBookingPage as any).description ?? null, welcomeMessage: (insertBookingPage as any).welcomeMessage ?? null, confirmationMessage: (insertBookingPage as any).confirmationMessage ?? null, excludedAppointmentTypes: (insertBookingPage as any).excludedAppointmentTypes ?? null, customLogo: (insertBookingPage as any).customLogo ?? null, tenantId: insertBookingPage.tenantId ?? null, isActive: (insertBookingPage as any).isActive ?? true, primaryColor: insertBookingPage.primaryColor ?? '#4CAF50', useOrganizationLogo: (insertBookingPage as any).useOrganizationLogo ?? false } as any;
     this.bookingPages.set(id, bookingPage);
     return bookingPage;
   }
