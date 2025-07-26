@@ -12,7 +12,7 @@ router.get("/booking-pages/slug/:slug", async (req: Request, res: Response) => {
 
   try {
     // Query the basic booking page data
-    const page = await db.query.bookingPages.findFirst({
+    const page = await (db.query as any).bookingPages.findFirst({
       where: eq(bookingPages.slug, slug),
     });
 
@@ -162,7 +162,7 @@ router.post("/booking-pages/:slug/book", async (req: Request, res: Response) => 
     console.log(`[BookingSubmission] Processing booking for page ${slug}:`, bookingData);
     
     // Get the booking page to verify it exists and is active
-    const bookingPage = await db.query.bookingPages.findFirst({
+    const bookingPage = await (db.query as any).bookingPages.findFirst({
       where: eq(bookingPages.slug, slug),
     });
     
@@ -226,7 +226,7 @@ router.post("/booking-pages/:slug/book", async (req: Request, res: Response) => 
       bolDocumentPath: bookingData.bolDocumentPath || null,
       parsedOcrText: bookingData.parsedOcrText || null,
       confirmationCode: `${bookingPage.slug.toUpperCase()}-${Date.now().toString().slice(-6)}`
-    });
+    } as any);
     
     console.log(`[BookingSubmission] Created appointment ${appointment.id} with confirmation code ${appointment.confirmationCode}`);
     
