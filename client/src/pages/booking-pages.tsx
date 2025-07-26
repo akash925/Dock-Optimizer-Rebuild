@@ -40,6 +40,9 @@ export default function BookingPages() {
     retry: false
   });
 
+  // Type assertion for bookingPages
+  const typedBookingPages = (bookingPages as BookingPage[]) || [];
+
   // Mutation to delete booking page
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -105,7 +108,7 @@ export default function BookingPages() {
   const handleToggleActive = (bookingPage: BookingPage) => {
     toggleActiveMutation.mutate({
       id: bookingPage.id,
-      isActive: !bookingPage.isActive
+      isActive: !(bookingPage as any)?.isActive || false
     });
   };
 
@@ -160,7 +163,7 @@ export default function BookingPages() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {bookingPages && bookingPages.filter((page: any) => page.isActive).length > 0 ? (
+              {typedBookingPages && typedBookingPages.filter((page: any) => (page as any)?.isActive || false).length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -172,8 +175,8 @@ export default function BookingPages() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {bookingPages
-                      .filter((page: any) => page.isActive)
+                    {typedBookingPages
+                      .filter((page: any) => (page as any)?.isActive || false)
                       .map((page: any) => <TableRow key={page.id}>
                       <TableCell className="font-medium">{page.name}</TableCell>
                       <TableCell>{page.slug}</TableCell>
@@ -181,12 +184,12 @@ export default function BookingPages() {
                       <TableCell>
                         <div className="flex items-center">
                           <Switch
-                            checked={page.isActive}
+                            checked={(page as any)?.isActive || false}
                             onCheckedChange={() => handleToggleActive(page)}
                             id={`active-switch-${page.id}`}
                           />
                           <Label htmlFor={`active-switch-${page.id}`} className="ml-2">
-                            {page.isActive ? (
+                            {(page as any)?.isActive || false ? (
                               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                                 <Check className="h-3 w-3 mr-1" /> Active
                               </Badge>
@@ -247,7 +250,7 @@ export default function BookingPages() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {bookingPages && bookingPages.length > 0 ? (
+              {typedBookingPages && typedBookingPages.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -259,19 +262,19 @@ export default function BookingPages() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {bookingPages.map((page: any) => <TableRow key={page.id}>
+                    {typedBookingPages.map((page: any) => <TableRow key={page.id}>
                       <TableCell className="font-medium">{page.name}</TableCell>
                       <TableCell>{page.slug}</TableCell>
                       <TableCell>{page.title}</TableCell>
                       <TableCell>
                         <div className="flex items-center">
                           <Switch
-                            checked={page.isActive}
+                            checked={(page as any)?.isActive || false}
                             onCheckedChange={() => handleToggleActive(page)}
                             id={`all-active-switch-${page.id}`}
                           />
                           <Label htmlFor={`all-active-switch-${page.id}`} className="ml-2">
-                            {page.isActive ? (
+                            {(page as any)?.isActive || false ? (
                               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                                 <Check className="h-3 w-3 mr-1" /> Active
                               </Badge>

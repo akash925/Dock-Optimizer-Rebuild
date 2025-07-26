@@ -9,8 +9,7 @@ import { getUserTimeZone, getTimeZoneAbbreviation, formatForDualTimeZoneDisplay 
 import { Schedule } from "@shared/schema";
 import { EnhancedSchedule, canReschedule } from "@/lib/schedule-helpers";
 import { 
-  useAppointmentAvailability, 
-  AvailabilitySlot 
+  useAppointmentAvailability
 } from "@/hooks/use-appointment-availability-fixed";
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,7 +34,6 @@ export default function ReschedulePage() {
   const [, navigate] = useLocation();
   const [match, params] = useRoute("/reschedule"); // Just to check if we're on the right route
   const { toast } = useToast();
-  const { formatTimeRangeForDualZones } = useTimeZoneUtils();
   
   // Get the confirmation code from URL query parameters
   const searchParams = new URLSearchParams(window.location.search);
@@ -44,7 +42,7 @@ export default function ReschedulePage() {
   // State for the wizard
   const [currentStep, setCurrentStep] = useState(STEPS.LOADING);
   const [schedule, setSchedule] = useState<EnhancedSchedule | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
   const [facilityTimezone, setFacilityTimezone] = useState<string>("America/New_York");
   const [appointmentTypeId, setAppointmentTypeId] = useState<number | null>(null);
@@ -81,7 +79,7 @@ export default function ReschedulePage() {
   
   // Use the enhanced appointment availability hook for improved slot data
   const {
-    availabilitySlots,
+    availableTimeSlots,
     isLoading: isLoadingAvailability,
     error: availabilityError
   } = useAppointmentAvailability({
@@ -181,9 +179,12 @@ export default function ReschedulePage() {
     const end = new Date(schedule.endTime);
     const dateStr = format(start, "EEEE, MMMM d, yyyy");
     
-    // Get the time ranges in both user and facility timezones
-    const { userTimeRange, facilityTimeRange, userZoneAbbr, facilityZoneAbbr } = 
-      formatTimeRangeForDualZones(start, end, facilityTimezone);
+          // Get the time ranges in both user and facility timezones
+      const timeDisplay = formatForDualTimeZoneDisplay(start, facilityTimezone, 'h:mm a');
+      const userTimeRange = timeDisplay.userTime;
+      const facilityTimeRange = timeDisplay.facilityTime;
+      const userZoneAbbr = getTimeZoneAbbreviation(getUserTimeZone());
+      const facilityZoneAbbr = getTimeZoneAbbreviation(facilityTimezone);
     
     return (
       <div className="space-y-1">
@@ -300,9 +301,8 @@ export default function ReschedulePage() {
                 </p>
                 <DatePicker
                   date={selectedDate}
-                  onSelect={setSelectedDate}
+                  onDateChange={setSelectedDate}
                   disablePastDates
-                  className="w-full"
                 />
               </div>
               
@@ -353,7 +353,7 @@ export default function ReschedulePage() {
                   <div className="flex justify-center py-8">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : availabilitySlots.length === 0 ? (
+                ) : availableTimeSlots.length === 0 ? (
                   <div className="text-center py-8 border border-dashed rounded-md">
                     <CalendarClock className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
                     <p className="text-muted-foreground">
@@ -362,7 +362,7 @@ export default function ReschedulePage() {
                   </div>
                 ) : (
                   <TimeSlotPicker
-                    slots={availabilitySlots}
+                    slots={availableTimeSlots}
                     selectedTime={selectedTimeSlot}
                     onSelectTime={setSelectedTimeSlot}
                     timezone={facilityTimezone}
