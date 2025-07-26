@@ -2115,7 +2115,7 @@ export class DatabaseStorage implements IStorage {
         applicableType: (newQuestion as any).applicableType,
         createdAt: newQuestion.createdAt,
         lastModifiedAt: (newQuestion as any).lastModifiedAt,
-      };
+      } as any;
     } catch (error) {
       console.error('[DatabaseStorage] Error creating custom question:', error);
       throw error;
