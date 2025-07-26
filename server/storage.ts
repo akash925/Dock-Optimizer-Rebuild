@@ -2156,7 +2156,7 @@ export class DatabaseStorage implements IStorage {
           applicableType: (updated as any).applicableType,
           createdAt: updated.createdAt,
           lastModifiedAt: (updated as any).lastModifiedAt,
-        };
+        } as any;
       }
       
       return undefined;
