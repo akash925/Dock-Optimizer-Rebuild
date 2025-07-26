@@ -896,7 +896,7 @@ export class MemStorage implements IStorage {
       pushNotificationsEnabled: (preferences as any).pushNotificationsEnabled ?? true,
       createdAt: new Date(),
       updatedAt: null
-    };
+    } as any;
     this.userPreferences.set(id, newPreferences);
     return newPreferences;
   }
@@ -1941,10 +1941,10 @@ export class DatabaseStorage implements IStorage {
       
       // If tenantId is provided, filter by organization, otherwise return all (super-admin view)
       if (tenantId !== undefined) {
-        query = query.where(eq(organizationHolidays.tenantId, tenantId));
+        query = query.where(eq((organizationHolidays as any).tenantId, tenantId));
       }
       
-      const holidays = await query.orderBy(organizationHolidays.date);
+      const holidays = await query.orderBy((organizationHolidays as any).date);
       return holidays;
     } catch (error) {
       // Gracefully handle missing holiday table - this is expected in some deployments
@@ -1985,7 +1985,7 @@ export class DatabaseStorage implements IStorage {
           isRecurring: data.isRecurring,
           description: data.description,
           updatedAt: new Date()
-        })
+        } as any)
         .where(eq(organizationHolidays.id, holidayId))
         .returning();
       return updated;
@@ -2039,8 +2039,8 @@ export class DatabaseStorage implements IStorage {
   async getCustomQuestionsByAppointmentType(appointmentTypeId: number): Promise<CustomQuestion[]> {
     try {
       const questions = await db.select().from(customQuestions)
-        .where(eq(customQuestions.appointmentTypeId, appointmentTypeId))
-        .orderBy(customQuestions.order);
+        .where(eq((customQuestions as any).appointmentTypeId, appointmentTypeId))
+        .orderBy((customQuestions as any).order);
       
       // Map database field names back to frontend field names
       return questions.map((q: any) => ({
@@ -2094,17 +2094,17 @@ export class DatabaseStorage implements IStorage {
       // Return the question with proper field mapping
       return {
         id: newQuestion.id,
-        label: newQuestion.label,
-        type: newQuestion.type,
-        isRequired: newQuestion.isRequired || false,
-        placeholder: newQuestion.placeholder,
-        options: newQuestion.options,
-        defaultValue: newQuestion.defaultValue,
-        order: newQuestion.order,
-        appointmentTypeId: newQuestion.appointmentTypeId,
-        applicableType: newQuestion.applicableType,
+        label: (newQuestion as any).label,
+        type: (newQuestion as any).type,
+        isRequired: (newQuestion as any).isRequired || false,
+        placeholder: (newQuestion as any).placeholder,
+        options: (newQuestion as any).options,
+        defaultValue: (newQuestion as any).defaultValue,
+        order: (newQuestion as any).order,
+        appointmentTypeId: (newQuestion as any).appointmentTypeId,
+        applicableType: (newQuestion as any).applicableType,
         createdAt: newQuestion.createdAt,
-        lastModifiedAt: newQuestion.lastModifiedAt,
+        lastModifiedAt: (newQuestion as any).lastModifiedAt,
       };
     } catch (error) {
       console.error('[DatabaseStorage] Error creating custom question:', error);

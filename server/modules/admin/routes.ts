@@ -178,7 +178,7 @@ export const adminRoutes = (app: Express) => {
       if (validatedData.contactEmail && validatedData.primaryContact) {
         try {
           // Import the hashPassword function from auth
-          const { hashPassword } = await import('../../auth');
+          const { hashPassword } = await import('../../auth') as any;
           
           // Create a default password (contactEmail + name parts combined)
           const nameParts = validatedData.primaryContact.split(' ');
@@ -902,7 +902,7 @@ export const adminRoutes = (app: Express) => {
       const countResult = await db.execute((sql as any).raw(countQuery, countQueryParams));
       
       const appointments = appointmentsResult.rows;
-      const total = parseInt(countResult.rows[0]?.total || '0');
+      const total = parseInt((countResult.rows[0] as any)?.total || '0');
       const totalPages = Math.ceil(total / Number(limit));
       
       console.log(`[Admin] Found ${appointments.length} appointments (${total} total)`);
@@ -1001,7 +1001,7 @@ export const adminRoutes = (app: Express) => {
       const appointment = result.rows[0];
       
       // Get any custom field data for this appointment
-      let customFields = [];
+      let customFields: any[] = [];
       try {
         const customFieldsQuery = `
           SELECT field_key, field_value, field_type
