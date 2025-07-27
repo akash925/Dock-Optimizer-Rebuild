@@ -1,36 +1,24 @@
 {
+  "extends": "./tsconfig.json",
+
   "compilerOptions": {
-    "target": "es2022",
-    "module": "ESNext",
-    "lib": ["es2022"],
-    "outDir": "./dist",
-    "rootDir": "./",
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "strict": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
     "noEmit": false,
-    "declaration": true,
-    "sourceMap": true,
-    "baseUrl": ".",
-    "paths": {
-      "@shared/*": ["./shared/*"]
-    }
+    "noEmitOnError": false,
+    "outDir": "dist/server",
+
+    "module": "ES2022",
+    "moduleResolution": "Node",
+    "target": "ES2020",
+
+    /* 👇 override the inherited true value */
+    "allowImportingTsExtensions": false,
+
+    "skipLibCheck": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "esModuleInterop": true,
+    "types": ["node", "vite/client"]
   },
-  "include": [
-    "server/**/*",
-    "shared/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "client",
-    "**/*.test.ts?(x)",
-    "**/__tests__/**",
-    "**/*.spec.ts"
-  ]
+
+  "include": ["server/**/*", "shared/**/*"],
+  "exclude": ["client", "scripts", "**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx", "**/__tests__/**", "**/tests/**"]
 }

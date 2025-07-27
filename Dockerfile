@@ -33,7 +33,7 @@ RUN pnpm install --frozen-lockfile \
 FROM deps AS build
 COPY . .
 RUN pnpm run build:client \
- && npx tsc -p tsconfig.server.json
+ && npx tsc -p tsconfig.build.json
 RUN pnpm prune --prod
 
 ########################  runtime  ########################
