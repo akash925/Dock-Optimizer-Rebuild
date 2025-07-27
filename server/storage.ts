@@ -1535,9 +1535,9 @@ export class DatabaseStorage implements IStorage {
     const result = await db.delete(bookingPages).where(eq(bookingPages.id, id));
     return (result.rowCount ?? 0) > 0;
   }
-  async getStandardQuestions() { return this.memStorage.getStandardQuestions(); }
-  async createStandardQuestion(question: any) { return this.memStorage.createStandardQuestion(question); }
-  async createStandardQuestionWithId(id: number, question: any) { return this.memStorage.createStandardQuestionWithId(id, question); }
+  async getStandardQuestions() { return this.memStorage?.getStandardQuestions?.() || []; }
+  async createStandardQuestion(question: any) { return this.memStorage?.createStandardQuestion?.(question) || {} as any; }
+  async createStandardQuestionWithId(id: number, question: any) { return this.memStorage?.createStandardQuestionWithId?.(id, question) || {} as any; }
   // updateStandardQuestion method moved to DatabaseStorage implementation
   async deleteStandardQuestion(id: number) { return this.memStorage.deleteStandardQuestion(id); }
   async getCompanyAssets(filters?: any): Promise<any[]> {
