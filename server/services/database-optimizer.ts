@@ -285,7 +285,7 @@ class DatabaseOptimizer {
         tableName: 'notifications',
       });
 
-      return result;
+      return result as any; // Type assertion for QueryResult compatibility
     } catch (error) {
       logger.error('DatabaseOptimizer', 'Failed to execute optimized notification query', error);
       throw error;
