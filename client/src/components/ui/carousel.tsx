@@ -1,4 +1,5 @@
 import * as React from "react"
+// @ts-ignore - embla-carousel-react package doesn't have TypeScript declarations
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react"

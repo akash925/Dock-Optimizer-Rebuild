@@ -47,7 +47,7 @@ function recordDocumentProcessingMetrics(metrics: any) {
     
     // Record in-memory metrics
     if (processingTime) {
-      metricsStore.processingTimes.push(processingTime);
+      (metricsStore.processingTimes as any[]).push(processingTime);
     }
     
     // Track success rates
@@ -139,7 +139,7 @@ async function logMetricsToDatabase(metrics: any) {
     
   } catch (error) {
     // If table doesn't exist, create it
-    if (error.code === '42P01') { // PostgreSQL error code for undefined_table
+    if ((error as any).code === '42P01') { // PostgreSQL error code for undefined_table
       try {
         await createMetricsTable();
         // Try inserting again

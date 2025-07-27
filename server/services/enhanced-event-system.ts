@@ -84,7 +84,7 @@ class EnhancedEventSystem extends EventEmitter {
     try {
       // Log event for debugging
       logger.info('EventSystem', `Emitting event: ${event}`, { 
-        tenantId: data.tenantId,
+        tenantId: (data as any).tenantId, // Cast union type for property access
         eventData: data 
       });
 
@@ -102,7 +102,7 @@ class EnhancedEventSystem extends EventEmitter {
     return result;
     } catch (error) {
       logger.error('EventSystem', `Failed to emit event: ${event}`, error, { data });
-      this.emit('error', error, { event, data });
+      (this as any).emit('error', error, { event, data }); // Cast for flexible emit call
       return false;
     }
   }

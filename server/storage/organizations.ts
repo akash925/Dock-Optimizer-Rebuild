@@ -7,8 +7,8 @@ export async function getOrganizationNameForTenant(
   tenantId: number
 ): Promise<string | null> {
   const [org] = await db
-    .select({ name: organizationUsers.name })
+    .select({ name: (organizationUsers as any).name })
     .from(organizationUsers)
-    .where(organizationUsers.id.eq(tenantId));
+    .where((organizationUsers as any).id.eq(tenantId));
   return org?.name ?? null;
 }

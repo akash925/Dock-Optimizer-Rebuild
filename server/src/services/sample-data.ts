@@ -155,7 +155,7 @@ export class SampleDataService {
         duration: 60 + (i * 30), // 60, 90, 120 minutes
         bufferTime: 15,
         maxConcurrent: 2 + i,
-        type: i % 2 === 0 ? AppointmentType.INBOUND : AppointmentType.OUTBOUND,
+        type: i % 2 === 0 ? 'INBOUND' : 'OUTBOUND', // Replace type references with string literals
         facilityId: facilityId,
         tenantId: tenantId,
         isActive: true

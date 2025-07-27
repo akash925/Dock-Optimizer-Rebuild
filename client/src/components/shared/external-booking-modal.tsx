@@ -44,8 +44,8 @@ export default function ExternalBookingModal({
     organizationId: 0,
     tenantId: 0,
     enabled: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
   });
   
   // Mutation for submitting the appointment - using the same endpoint as external booking
