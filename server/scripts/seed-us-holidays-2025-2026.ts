@@ -62,8 +62,8 @@ async function seedHolidays() {
       
       for (const holiday of US_FEDERAL_HOLIDAYS) {
         try {
-          const holidayData: InsertOrganizationHoliday = {
-            tenantId: tenant.id,
+          const holidayData = {
+            organizationId: tenant.id,
             name: holiday.name,
             date: holiday.date,
             description: holiday.description,
@@ -82,7 +82,7 @@ async function seedHolidays() {
             continue;
           }
           
-          await storage.createOrganizationHoliday(tenant.id, holidayData);
+          await storage.createOrganizationHoliday(tenant.id, holidayData as any); // Schema mismatch in seed data
           console.log(`  ✅ Created ${holiday.name} (${holiday.date})`);
           tenantHolidaysCreated++;
           
