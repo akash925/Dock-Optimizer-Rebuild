@@ -1370,7 +1370,7 @@ export default function FacilityMaster() {
         <DockManagementDialog
           isOpen={isDockManagementDialogOpen}
           onClose={() => setIsDockManagementDialogOpen(false)}
-          facility={currentFacility}
+          facility={currentFacility as any} // Type assertion for facility props compatibility
         />
       )}
     </div>
