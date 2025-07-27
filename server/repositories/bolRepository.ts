@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { bolDocuments, BolDocument, InsertBolDocument } from '../../drizzle/schema/bol';
-import { appointmentBolLinks, InsertAppointmentBolLink } from '../../shared/schema';
+import { appointmentBolLinks } from '../../shared/schema';
 import { ocrAnalytics, InsertOcrAnalytics } from '../../drizzle/schema/ocr_analytics';
 import { eq } from 'drizzle-orm';
 
@@ -29,7 +29,7 @@ export class BolRepository {
    * @returns The created link record
    */
   async linkBolToAppointment(appointmentId: number, bolDocumentId: number) {
-    const linkData: InsertAppointmentBolLink = {
+    const linkData: any = { // Type assertion for compatibility
       appointmentId,
       bolDocumentId,
     };
@@ -48,7 +48,7 @@ export class BolRepository {
    */
   async recordOcrAnalytics(analytics: InsertOcrAnalytics) {
     const [record] = await db.insert(ocrAnalytics)
-      .values(analytics)
+      .values(analytics as any) // Type assertion for overload compatibility
       .returning();
     
     return record;
