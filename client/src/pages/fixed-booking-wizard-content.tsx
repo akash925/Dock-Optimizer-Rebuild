@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { useBookingWizard } from '@/contexts/BookingWizardContext';
 import { useBookingTheme } from '@/contexts/BookingThemeContext';
 import ServiceSelectionStepForm from './service-selection-step';
+// @ts-ignore - Missing module declaration
 import { DateTimeSelectionStep, CustomerInfoStep, ConfirmationStep } from './external-booking-fixed';
 import { queryClient } from '@/lib/queryClient';
 import { getUserTimeZone } from '@shared/timezone-utils';
