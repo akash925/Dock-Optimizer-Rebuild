@@ -157,7 +157,7 @@ router.put("/docks/:id", isAuthenticated, async (req: Request, res: Response) =>
     const tenantId = user?.tenantId;
     
     // Get the dock to verify facility ownership
-    const existingDock = await storage.getDock(dockId);
+    const existingDock = await storage.getDock?.(dockId);
     if (!existingDock) {
       return res.status(404).json({ error: "Dock not found" });
     }
@@ -185,7 +185,7 @@ router.delete("/docks/:id", isAuthenticated, async (req: Request, res: Response)
     const tenantId = user?.tenantId;
     
     // Get the dock to verify facility ownership
-    const existingDock = await storage.getDock(dockId);
+    const existingDock = await storage.getDock?.(dockId);
     if (!existingDock) {
       return res.status(404).json({ error: "Dock not found" });
     }
