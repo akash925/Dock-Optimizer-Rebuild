@@ -113,20 +113,22 @@ export async function processReminders(): Promise<void> {
         };
         
         // Try to get facility details
-        try {
-          const facility = await storage.getFacility(schedule.facilityId);
-          if (facility) {
-            enhancedSchedule.facilityName = facility.name;
-            enhancedSchedule.timezone = facility.timezone || 'America/New_York';
+        if (schedule.facilityId) {
+          try {
+            const facility = await storage.getFacility?.(schedule.facilityId); // Add optional chaining for safety
+            if (facility) {
+              enhancedSchedule.facilityName = facility.name;
+              enhancedSchedule.timezone = facility.timezone || 'America/New_York';
+            }
+          } catch (error) {
+            console.error(`[ReminderScheduler] Error getting facility for schedule ${schedule.id}:`, error);
           }
-        } catch (error) {
-          console.error(`[ReminderScheduler] Error getting facility for schedule ${schedule.id}:`, error);
         }
         
         // Try to get dock details
         if (schedule.dockId) {
           try {
-            const dock = await storage.getDock(schedule.dockId);
+            const dock = await storage.getDock?.(schedule.dockId); // Add optional chaining for undefined check
             if (dock) {
               enhancedSchedule.dockName = dock.name;
             }
@@ -149,6 +151,7 @@ export async function processReminders(): Promise<void> {
           const result = await sendReminderEmail(
             recipientEmail,
             confirmationCode,
+            // @ts-expect-error: EnhancedSchedule type mismatch between modules
             enhancedSchedule,
             hoursUntilAppointment
           );
