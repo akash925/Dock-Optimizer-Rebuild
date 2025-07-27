@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 
+// @ts-ignore - express-serve-static-core module not found
 declare module "express-serve-static-core" {
   interface Request {
     // Standard Express properties
