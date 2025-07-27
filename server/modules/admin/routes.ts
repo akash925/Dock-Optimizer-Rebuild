@@ -470,7 +470,7 @@ export const adminRoutes = (app: Express) => {
           const superAdminCount = await Promise.all(adminOrgUsers.map(async (ou) => {
             const r = await storage.getRole(ou.roleId);
             return r && r.name === 'super-admin' ? 1 : 0;
-          })).then(counts => counts.reduce((sum, count) => sum + count, 0) as number);
+          })).then(counts => (counts as number[]).reduce((sum, count) => sum + count, 0));
           
           if (superAdminCount <= 1) {
             return res.status(403).json({ 
@@ -1077,7 +1077,7 @@ export const adminRoutes = (app: Express) => {
 
       // Get the existing asset to check if it exists
       const storage = await getStorage();
-      const existingAsset = await storage.getCompanyAssetById(assetId);
+      const existingAsset = await storage.getCompanyAsset(assetId); // Fixed method name
       if (!existingAsset) {
         return res.status(404).json({ error: 'Asset not found' });
       }
@@ -1119,7 +1119,7 @@ export const adminRoutes = (app: Express) => {
 
       // Check if asset exists
       const storage = await getStorage();
-      const existingAsset = await storage.getCompanyAssetById(assetId);
+      const existingAsset = await storage.getCompanyAsset(assetId); // Fixed method name
       if (!existingAsset) {
         return res.status(404).json({ error: 'Asset not found' });
       }
