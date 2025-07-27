@@ -67,7 +67,7 @@ export async function seedUSFederalHolidays(orgIds: number[]): Promise<void> {
           // Try with description field first (for newer schema)
           await db.insert(organizationHolidays)
             .values({
-              tenantId: orgId,
+              organizationId: orgId, // Fixed: use organizationId instead of tenantId
               name: holiday.name,
               date: holiday.date,
               description: `US Federal Holiday - ${holiday.name} ${holiday.year}`,
@@ -85,7 +85,7 @@ export async function seedUSFederalHolidays(orgIds: number[]): Promise<void> {
             try {
               await db.insert(organizationHolidays)
                 .values({
-                  tenantId: orgId,
+                  organizationId: orgId, // Fixed: use organizationId instead of tenantId
                   name: holiday.name,
                   date: holiday.date,
                   isRecurring: true,
