@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 
+// @ts-expect-error: AuthenticatedRequest interface extension mismatch
 export interface AuthenticatedRequest extends Request {
   user?: {
     id: number;
