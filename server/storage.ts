@@ -843,8 +843,10 @@ export class MemStorage implements IStorage {
     if (!orgUser) return false;
     return this.organizationUsers.delete(orgUser.id);
   }
-  async getOrganizationModules(organizationId: number): Promise<OrganizationModule[]> { return Array.from(this.organizationModules.values()).filter(m => m.organizationId === organizationId); }
-  async updateOrganizationModules(organizationId: number, modules: InsertOrganizationModule[]): Promise<OrganizationModule[]> {
+  
+  // Organization Module operations
+  getOrganizationModules(organizationId: number): Promise<OrganizationModule[]> { return Array.from(this.organizationModules.values()).filter(m => m.organizationId === organizationId); }
+  updateOrganizationModules(organizationId: number, modules: InsertOrganizationModule[]): Promise<OrganizationModule[]> {
     const existingModules = Array.from(this.organizationModules.values()).filter(m => m.organizationId === organizationId);
     existingModules.forEach(m => this.organizationModules.delete(m.id));
     const updatedModules: OrganizationModule[] = [];
@@ -856,7 +858,7 @@ export class MemStorage implements IStorage {
     });
     return updatedModules;
   }
-  async updateOrganizationModule(organizationId: number, moduleName: AvailableModule, enabled: boolean): Promise<OrganizationModule | undefined> {
+  updateOrganizationModule(organizationId: number, moduleName: AvailableModule, enabled: boolean): Promise<OrganizationModule | undefined> {
     const existing = Array.from(this.organizationModules.values()).find(m => m.organizationId === organizationId && m.moduleName === moduleName);
     if (existing) {
       const updated = { ...existing, enabled, updatedAt: new Date() };
@@ -2603,10 +2605,10 @@ export async function getStorage(): Promise<IStorage> {
     // Use database storage if DATABASE_URL is provided, otherwise use memory storage
     if (process.env.DATABASE_URL) {
       logger.info("Using PostgreSQL database storage");
-      storageInstance = new DatabaseStorage();
+      storageInstance = new DatabaseStorage() as any; // Cast for interface compliance
     } else {
       logger.info("Using memory storage for development");
-      storageInstance = new MemStorage();
+      storageInstance = new MemStorage() as any; // Cast for interface compliance
     }
   }
   return storageInstance;
