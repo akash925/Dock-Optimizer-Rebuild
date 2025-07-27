@@ -16,7 +16,7 @@
     "skipLibCheck": true,
     "noPropertyAccessFromIndexSignature": false,
     "esModuleInterop": true,
-    "types": ["node", "vite/client"]
+    "types": []
   },
 
   "include": ["server/**/*", "shared/**/*"],
