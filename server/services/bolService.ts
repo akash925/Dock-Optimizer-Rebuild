@@ -1,5 +1,7 @@
 import { BolRepository } from '../repositories/bolRepository';
+// @ts-ignore - OCR connector module doesn't have TypeScript declarations
 import { processImageFile } from '../ocr/ocr_connector.mjs';
+// @ts-ignore - Tesseract processor module doesn't have TypeScript declarations
 import { processImageWithTesseract } from '../ocr/tesseract-processor.mjs';
 import { validateOcrResult, ValidatedOcrResult } from '../utils/ocrValidator';
 import { InsertBolDocument } from '../../drizzle/schema/bol';
