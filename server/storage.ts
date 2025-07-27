@@ -795,12 +795,13 @@ export class MemStorage implements IStorage {
     return updatedTenant;
   }
   async deleteTenant(id: number): Promise<boolean> { return this.tenants.delete(id); }
-  async getOrganizationDefaultHours(orgId: number): Promise<DefaultHours | null> {
-    const tenant = await this.getTenantById(orgId);
+  async getOrganizationDefaultHours(tenantId: number): Promise<DefaultHours[] | null> {
+    const tenant = await this.getTenantById(tenantId);
     if (!tenant || !tenant.settings || !(tenant.settings as any).defaultHours) {
       return null;
     }
-    return (tenant.settings as any).defaultHours as DefaultHours;
+    const hours = (tenant.settings as any).defaultHours as DefaultHours;
+    return hours ? [hours] : null;
   }
   async updateOrganizationDefaultHours(orgId: number, defaultHours: DefaultHours): Promise<boolean> {
     const tenant = await this.getTenantById(orgId);
@@ -1930,7 +1931,7 @@ export class DatabaseStorage implements IStorage {
         // Create new record
         const [created] = await db.insert(organizationDefaultHours)
           .values({
-            tenantId,
+            organizationId: tenantId,
             dayOfWeek: data.dayOfWeek,
             isOpen: data.isOpen,
             openTime: data.openTime,
@@ -1981,9 +1982,9 @@ export class DatabaseStorage implements IStorage {
 
   async createOrganizationHoliday(data: any): Promise<any> {
     try {
-      const [created] = await db.insert(organizationHolidays)
+      const [created] = await (db.insert(organizationHolidays) as any)
         .values({
-          tenantId: data.tenantId,
+          organizationId: data.tenantId,
           name: data.name,
           date: data.date,
           isRecurring: data.isRecurring,
