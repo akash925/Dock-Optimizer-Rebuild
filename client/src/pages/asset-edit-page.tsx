@@ -158,7 +158,7 @@ export default function AssetEditPage() {
           onUpload={uploadPhotoMutation.mutateAsync}
           existing={asset.photoUrl}
           assetId={assetId ? Number(assetId) : undefined}
-          tenantId={asset.tenantId}
+          tenantId={asset.tenantId ?? undefined}
         />
       </div>
       
