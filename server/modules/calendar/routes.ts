@@ -244,7 +244,7 @@ router.post('/booking-pages/book/:slug', async (req: Request, res: Response) => 
         const emailResult = await sendConfirmationEmail(
           extractedEmail,
           confirmationCode,
-          enhancedSchedule
+          enhancedSchedule as any // Type assertion for EnhancedSchedule compatibility
         );
         
         if (emailResult) {
