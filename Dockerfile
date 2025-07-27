@@ -64,4 +64,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD wget -qO- http://localhost:${PORT}/api/health || exit 1
 
-CMD ["dumb-init","doppler","run","--config","prd","--","node","dist/server/index.js"]
+CMD ["dumb-init","doppler","run","--config","prd","--","node","dist/server/server/index.js"]
