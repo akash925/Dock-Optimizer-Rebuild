@@ -35,12 +35,12 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
 import { eq, and, gte, lte, or, ilike, SQL, sql, inArray } from "drizzle-orm";
-import { db, pool, safeQuery } from "./db";
+import { db, pool, safeQuery } from "./db.js";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { getRedis } from './src/utils/redis';
-import { logger } from "./utils/logger";
-import { emailService } from './services/email';
+import { logger } from "./utils/logger.js";
+import { emailService } from './services/email.js';
 import crypto from "crypto";
 import connectRedis from 'connect-redis';
 

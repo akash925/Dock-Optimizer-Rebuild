@@ -7,7 +7,7 @@
 
 import { Server } from 'http';
 import { IStorage } from '../storage';
-import { SecureWebSocketHandler } from './secure-handler';
+import { SecureWebSocketHandler } from './secure-handler.js';
 
 let wsHandler: SecureWebSocketHandler | null = null;
 

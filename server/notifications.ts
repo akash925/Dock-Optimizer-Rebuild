@@ -7,7 +7,7 @@ import { generateQRCodeSVG as generateQRCode } from './endpoints/qr-codes';
 // Import shared timezone utilities
 import { getTimeZoneAbbreviation, getTimeZoneName } from '../shared/timezone-utils';
 // Import storage to get organization settings
-import { getStorage } from './storage';
+import { getStorage } from './storage.js';
 
 /**
  * Check if email service is configured and ready to send emails
@@ -292,7 +292,7 @@ export function generateICalEvent(
   return icalContent;
 }
 
-import logger from './logger';
+import logger from './logger.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -478,7 +478,7 @@ ${msg.text}
 /**
  * Format a date for a specific timezone with enhanced error handling and debugging
  */
-import { formatWithTZ, formatForEmail } from './utils/dateTime';
+import { formatWithTZ, formatForEmail } from './utils/dateTime.js';
 
 function formatDateForTimezone(date: Date, timezone: string, formatStr: string): string {
   try {

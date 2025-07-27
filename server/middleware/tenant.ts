@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { tenantService } from '../modules/tenants/service';
-import { reportRateLimitError } from './rate-limit-protection';
+import { reportRateLimitError } from './rate-limit-protection.js';
 
 // In-memory cache for tenant lookups (5 minute TTL)
 const tenantCache = new Map<string, { tenant: any; expires: number }>();
