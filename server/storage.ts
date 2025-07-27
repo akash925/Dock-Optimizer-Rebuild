@@ -1537,7 +1537,7 @@ export class DatabaseStorage implements IStorage {
   }
   async getStandardQuestions() { return this.memStorage?.getStandardQuestions?.() || []; }
   async createStandardQuestion(question: any) { return this.memStorage?.createStandardQuestion?.(question) || {} as any; }
-  async createStandardQuestionWithId(id: number, question: any) { return this.memStorage?.createStandardQuestionWithId?.(id, question) || {} as any; }
+  async createStandardQuestionWithId(question: InsertStandardQuestion & { id: number }) { return this.memStorage?.createStandardQuestionWithId?.(question) || {} as any; }
   // updateStandardQuestion method moved to DatabaseStorage implementation
   async deleteStandardQuestion(id: number) { return this.memStorage.deleteStandardQuestion(id); }
   async getCompanyAssets(filters?: any): Promise<any[]> {
