@@ -81,7 +81,7 @@ function validatePdf(filePath: any) {
     } catch (pdfInfoError) {
       // pdfinfo not available, but file has PDF signature and size seems reasonable
       // Continue with processing but log a warning
-      logger.warn(`Could not verify PDF page count for ${filePath}: ${(pdfInfoError as any).message}`);
+      logger.warn('DocumentValidator', `Could not verify PDF page count for ${filePath}`, pdfInfoError);
       return { 
         isValid: true, 
         warning: 'Could not verify page count',
@@ -90,7 +90,7 @@ function validatePdf(filePath: any) {
     }
 
   } catch (error) {
-    logger.error(`Error validating PDF ${filePath}: ${(error as any).message}`);
+    logger.error('DocumentValidator', `Error validating PDF ${filePath}`, error);
     return { 
       isValid: false, 
       error: 'Validation error', 
@@ -152,7 +152,7 @@ function validateImage(filePath: any) {
       format: ext.substring(1).toUpperCase() // Remove the dot
     };
   } catch (error) {
-    logger.error(`Error validating image ${filePath}: ${(error as any).message}`);
+    logger.error('DocumentValidator', `Error validating image ${filePath}`, error);
     return { 
       isValid: false, 
       error: 'Validation error', 
