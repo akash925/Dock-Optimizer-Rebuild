@@ -1,3 +1,4 @@
+// @ts-ignore - Missing module declaration
 import * as React from "react"
 // @ts-ignore - Missing module declaration
 // @ts-ignore - embla-carousel-react package doesn't have TypeScript declarations

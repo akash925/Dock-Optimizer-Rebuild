@@ -39,14 +39,13 @@ export default function ExternalBookingModal({
     id: 0,
     slug: 'internal',
     name: 'Internal Booking',
-    title: 'Create Appointment',
     description: 'Create or edit an appointment',
     organizationId: 0,
     tenantId: 0,
     enabled: true,
     createdAt: new Date(),
     updatedAt: new Date(),
-  });
+  } as any); // Type assertion for mock booking page
   
   // Mutation for submitting the appointment - using the same endpoint as external booking
   const appointmentMutation = useMutation({
