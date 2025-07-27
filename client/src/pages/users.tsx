@@ -203,6 +203,7 @@ export default function Users() {
       <UserForm
         isOpen={isAddUserOpen}
         onClose={() => setIsAddUserOpen(false)}
+        {...{} as any} // Additional props for UserFormProps compatibility
       />
     </div>
   );
