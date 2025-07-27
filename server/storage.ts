@@ -914,7 +914,7 @@ export class MemStorage implements IStorage {
     return newPreferences;
   }
 
-  async updateUserPreferences(userId: number, preferencesUpdate: Partial<UserPreferences>): Promise<UserPreferences> {
+  async updateUserPreferences(userId: number, organizationId: number, preferencesUpdate: Partial<UserPreferences>): Promise<UserPreferences> {
     const existing = await this.getUserPreferences(userId);
     if (existing) {
       const updated = { 
@@ -1475,8 +1475,8 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getSystemSettings() { return this.memStorage.getSystemSettings(); }
-  async updateSystemSettings(settings: any) { return this.memStorage.updateSystemSettings(settings); }
+  async getSystemSettings() { return this.memStorage?.getSystemSettings?.(); }
+  async updateSystemSettings(settings: any) { return this.memStorage?.updateSystemSettings?.(settings); }
   async getBookingPages(): Promise<BookingPage[]> {
     logger.debug('[DatabaseStorage] getBookingPages called');
     try {
