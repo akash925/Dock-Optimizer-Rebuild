@@ -168,8 +168,8 @@ describe('WebSocket Broker - Real-time Appointment Notifications', () => {
         appointmentTypeName: 'Standard Appointment',
         timezone: 'America/New_York',
         confirmationCode: 'DEF456',
-        tenantId: 3,
-      };
+        organizationId: 3,
+      } as any;
 
       const tenantId = 3;
 
@@ -214,8 +214,8 @@ describe('WebSocket Broker - Real-time Appointment Notifications', () => {
         appointmentTypeName: 'Standard Appointment',
         timezone: 'America/New_York',
         confirmationCode: 'CONF123',
-        tenantId: 4,
-      };
+        organizationId: 4,
+      } as any;
 
       const tenantId = 4;
       const confirmationCode = 'CONF123';
@@ -260,8 +260,8 @@ describe('WebSocket Broker - Real-time Appointment Notifications', () => {
         appointmentTypeName: 'Standard Appointment',
         timezone: 'America/New_York',
         confirmationCode: 'ERR123',
-        tenantId: 5,
-      };
+        organizationId: 5,
+      } as any;
 
       // Mock WebSocket notification to throw an error
       mockQueueWebSocketNotification.mockRejectedValueOnce(new Error('WebSocket queue error'));
@@ -300,8 +300,8 @@ describe('WebSocket Broker - Real-time Appointment Notifications', () => {
         appointmentTypeName: 'Standard Appointment',
         timezone: 'America/New_York',
         confirmationCode: 'T1-123',
-        tenantId: 1,
-      };
+        organizationId: 1,
+      } as any;
 
       const tenant2Schedule: EnhancedSchedule = {
         id: 129,
@@ -319,8 +319,8 @@ describe('WebSocket Broker - Real-time Appointment Notifications', () => {
         appointmentTypeName: 'Standard Appointment',
         timezone: 'America/New_York',
         confirmationCode: 'T2-123',
-        tenantId: 2,
-      };
+        organizationId: 2,
+      } as any;
 
       // Emit events for different tenants
       eventSystem.emit('appointment:created', { 
