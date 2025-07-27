@@ -1,26 +1,26 @@
 import type { Express, Request, Response } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
-import { getStorage } from "./storage";
-import { setupAuth } from "./auth";
+import { getStorage } from "./storage.js";
+import { setupAuth } from "./auth.js";
 import path from "path";
 import multer from "multer";
 import fs from "fs";
 // WebSocket server is now handled in server/index.ts using the secure handler
-import { db } from "./db";
-import fileRoutes from "./routes/files";
-import { blobStorageService } from "./services/blob-storage";
-import { registerQrCodeRoutes } from "./endpoints/qr-codes";
-import { adminRoutes } from "./modules/admin/routes";
-import { EnhancedSchedule, sendCheckoutEmail, sendRescheduleEmail } from "./notifications";
+import { db } from "./db.js";
+import fileRoutes from "./routes/files.js";
+import { blobStorageService } from "./services/blob-storage.js";
+import { registerQrCodeRoutes } from "./endpoints/qr-codes.js";
+import { adminRoutes } from "./modules/admin/routes.js";
+import { EnhancedSchedule, sendCheckoutEmail, sendRescheduleEmail } from "./notifications.js";
 import { User } from "@shared/schema";
-import { calculateAvailabilitySlots } from "./src/services/availability";
-import { broadcastScheduleUpdate } from "./websocket/index";
-import { mediaService } from './services/MediaService';
-import { isAuthenticated, isAdmin } from './middleware/auth';
+import { calculateAvailabilitySlots } from "./src/services/availability.js";
+import { broadcastScheduleUpdate } from "./websocket/index.js";
+import { mediaService } from './services/MediaService.js';
+import { isAuthenticated, isAdmin } from './middleware/auth.js';
 import { z } from 'zod';
-import { validate } from './middleware/validation';
-import { checkRedisHealth } from './redis';
+import { validate } from './middleware/validation.js';
+import { checkRedisHealth } from './redis.js';
 
 const availabilityQuerySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),

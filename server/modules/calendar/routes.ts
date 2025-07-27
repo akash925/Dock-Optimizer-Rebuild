@@ -1,5 +1,5 @@
 import express from 'express';
-import * as controllers from './index';
+import * as controllers from './index.js';
 import { getStorage } from '../../storage';
 import { generateConfirmationCode, getOrganizationConfirmationPrefix } from '../../utils';
 

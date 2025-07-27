@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { tenantService } from '../modules/tenants/service';
+import { tenantService } from '../modules/tenants/service.js';
 import { reportRateLimitError } from './rate-limit-protection.js';
 
 // In-memory cache for tenant lookups (5 minute TTL)

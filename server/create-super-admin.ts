@@ -1,4 +1,4 @@
-import { getStorage } from "./storage";
+import { getStorage } from "./storage.js";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { TenantStatus, AvailableModule } from "@shared/schema";

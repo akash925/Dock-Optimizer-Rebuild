@@ -5,7 +5,7 @@
  * based on the emailReminderTime setting in each appointment type.
  */
 
-import { getStorage } from './storage';
+import { getStorage } from './storage.js';
 import { sendReminderEmail } from './notifications';
 import { Schedule, AppointmentType } from '@shared/schema';
 

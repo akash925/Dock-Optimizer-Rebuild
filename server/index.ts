@@ -9,13 +9,13 @@ import express, { Request, Response, NextFunction } from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
-import { tenantMiddleware } from "./middleware/tenant";
-import { initializeWebSocket } from "./websocket/index";
-import bookingPublicRouter from "./routes/public/booking";
-import healthRouter from "./routes/health";
-import { validateEnvironment, config } from "./config/environment";
+import { registerRoutes } from "./routes.js";
+import { setupVite, serveStatic, log } from "./vite.js";
+import { tenantMiddleware } from "./middleware/tenant.js";
+import { initializeWebSocket } from "./websocket/index.js";
+import bookingPublicRouter from "./routes/public/booking.js";
+import healthRouter from "./routes/health.js";
+import { validateEnvironment, config } from "./config/environment.js";
 
 // ────────────────────────────────────────────────────────────────────────────
 // 1.  Environment sanity checks and configuration
