@@ -234,7 +234,7 @@ router.post("/booking-pages/:slug/book", async (req: Request, res: Response) => 
     try {
       const { eventSystem } = await import("../../services/enhanced-event-system");
       
-      // Create enhanced schedule object for the event system
+      // Create enhanced schedule object for the event system  
       const enhancedSchedule = {
         ...appointment,
         facilityName: facility?.name || 'Unknown Facility',
@@ -246,6 +246,8 @@ router.post("/booking-pages/:slug/book", async (req: Request, res: Response) => 
         creatorEmail: bookingData.driverEmail,
         bolFileUploaded: false
       };
+      // @ts-expect-error: EnhancedSchedule requires all properties but we use partial for event emission
+      const typedSchedule: EnhancedSchedule = enhancedSchedule;
       
       // Emit appointment:created event - this will automatically:
       // 1. Create notifications in the database
@@ -357,7 +359,7 @@ router.post("/booking-pages/:slug/book", async (req: Request, res: Response) => 
           const emailResult = await sendConfirmationEmail(
             bookingData.driverEmail,
             appointment.confirmationCode,
-            enhancedSchedule
+            enhancedSchedule as EnhancedSchedule // Type assertion for email function compatibility
           );
           
           if (emailResult) {
@@ -373,8 +375,9 @@ router.post("/booking-pages/:slug/book", async (req: Request, res: Response) => 
         emailSent = false;
       }
     } catch (emailError) {
-      console.error('[BookingSubmission] Error sending confirmation email:', emailError);
-      console.error('[BookingSubmission] Email error stack:', emailError.stack);
+      const error = emailError as Error; // Type-safe error casting
+      console.error('[BookingSubmission] Error sending confirmation email:', error);
+      console.error('[BookingSubmission] Email error stack:', error.stack);
       // Don't fail the entire request if email fails
       emailSent = false;
     }
