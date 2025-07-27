@@ -3,6 +3,7 @@ import { getStorage } from '../../storage';
 import { mediaService } from '../../services/MediaService';
 import { User } from '@shared/types/user';
 
+// @ts-expect-error: AuthenticatedRequest interface extension mismatch
 interface AuthenticatedRequest extends Request {
   user: User;
 }
@@ -169,7 +170,7 @@ export const uploadBol = async (req: AuthenticatedRequest, res: Response) => {
         
         // Enqueue OCR job
         const storage = await getStorage();
-        await storage.createOcrJob({
+        await (storage as any).createOcrJob({
           tenantId,
           s3Key: key,
           status: 'queued',
