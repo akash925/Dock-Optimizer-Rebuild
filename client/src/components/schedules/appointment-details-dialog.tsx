@@ -1567,7 +1567,7 @@ export function AppointmentDetailsDialog({
                     dockId: appointment.dockId ?? null,
                     carrierId: appointment.carrierId ?? null,
                     appointmentTypeId: appointment.appointmentTypeId ?? null
-                  }}
+                  } as any}
                   confirmationCode={appointment.confirmationCode}
                   isExternal={true}
                 />
