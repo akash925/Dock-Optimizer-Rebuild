@@ -213,7 +213,7 @@ export const OrgProvider = ({ children }: { children: ReactNode }) => {
   ]);
 
   return (
-    <OrgContext.Provider value={contextValue}>
+    <OrgContext.Provider value={contextValue as any}>
       {children}
     </OrgContext.Provider>
   );
