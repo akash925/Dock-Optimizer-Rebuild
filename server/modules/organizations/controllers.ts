@@ -50,14 +50,13 @@ export const updateCurrentOrganization = async (req: Request, res: Response) => 
     const storage = await getStorage();
     const updatedOrganization = await storage.updateOrganization(tenantId, {
       name,
-      description,
       contactEmail,
       contactPhone,
       address,
       timezone,
       lastModifiedBy: userId,
       lastModifiedAt: new Date()
-    });
+    } as any);
 
     if (!updatedOrganization) {
       return res.status(404).json({ error: 'Organization not found or update failed' });
@@ -210,7 +209,7 @@ export const createHoliday = async (req: Request, res: Response) => {
       isRecurring: isRecurring || false,
       description: description || '',
       createdBy: userId
-    });
+    } as any);
 
     return res.status(201).json(holiday);
   } catch (error) {
@@ -249,7 +248,7 @@ export const updateHoliday = async (req: Request, res: Response) => {
       isRecurring,
       description,
       updatedBy: userId
-    });
+    } as any);
 
     if (!updatedHoliday) {
       return res.status(404).json({ error: 'Holiday not found or update failed' });
@@ -281,7 +280,7 @@ export const deleteHoliday = async (req: Request, res: Response) => {
     console.log(`DEBUG: [Organizations] Deleting holiday ${holidayId}`);
 
     const storage = await getStorage();
-    const success = await storage.deleteOrganizationHoliday(holidayId, tenantId);
+    const success = await storage.deleteOrganizationHoliday(holidayId);
 
     if (!success) {
       return res.status(404).json({ error: 'Holiday not found or delete failed' });
