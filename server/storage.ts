@@ -392,7 +392,7 @@ export interface IStorage {
 }
 
 // In-Memory Storage Implementation
-export class MemStorage implements IStorage {
+export class MemStorage {
   private users: Map<number, User> = new Map();
   private docks: Map<number, Dock> = new Map();
   private schedules: Map<number, Schedule> = new Map();
