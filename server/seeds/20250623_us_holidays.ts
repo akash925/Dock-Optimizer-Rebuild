@@ -74,7 +74,7 @@ export async function seedUSFederalHolidays(orgIds: number[]): Promise<void> {
               isRecurring: true,
               createdAt: new Date(),
               updatedAt: new Date(),
-            })
+            } as any)
             .onConflictDoNothing(); // Handle duplicate entries gracefully
           
           totalInserted++;
@@ -91,7 +91,7 @@ export async function seedUSFederalHolidays(orgIds: number[]): Promise<void> {
                   isRecurring: true,
                   createdAt: new Date(),
                   updatedAt: new Date(),
-                })
+                } as any)
                 .onConflictDoNothing();
               
               totalInserted++;
