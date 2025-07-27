@@ -76,7 +76,7 @@ export const createTenant = async (req: Request, res: Response) => {
     
     // Create tenant
     const newTenant = await tenantService.createTenant(
-      tenantData, 
+      tenantData as any, // Type assertion for tenant creation data
       initialModules as AvailableModule[]
     );
     
@@ -110,7 +110,7 @@ export const updateTenant = async (req: Request, res: Response) => {
       });
     }
     
-    const updatedTenant = await tenantService.updateTenant(id, result.data);
+    const updatedTenant = await tenantService.updateTenant(id, result.data as any); // Type assertion for update data
     
     if (!updatedTenant) {
       return res.status(404).json({ message: 'Tenant not found' });
