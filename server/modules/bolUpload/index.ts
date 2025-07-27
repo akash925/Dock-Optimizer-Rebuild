@@ -5,9 +5,9 @@ import { isAuthenticated, validateTenant } from '../../middleware/auth';
 const router = Router();
 
 // BOL upload endpoints with tenant validation
-router.post('/presign', isAuthenticated, validateTenant, controllers.presignBolUpload);
-router.post('/upload', isAuthenticated, validateTenant, controllers.uploadBol);  
-router.post('/confirm', isAuthenticated, validateTenant, controllers.confirmBolUpload);
+router.post('/presign', isAuthenticated as any, validateTenant as any, controllers.presignBolUpload as any);
+router.post('/upload', isAuthenticated as any, validateTenant as any, controllers.uploadBol as any);  
+router.post('/confirm', isAuthenticated as any, validateTenant as any, controllers.confirmBolUpload as any);
 
 // Export router
 export default router; 
