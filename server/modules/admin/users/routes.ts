@@ -156,7 +156,7 @@ router.get("/:userId", async (req: Request, res: Response) => {
       GROUP BY u.id
     `;
     
-    const results = await db.execute(userQuery);
+    const results = (await db.execute(userQuery)) as any;
     
     if (results.length === 0) {
       return res.status(404).json({ message: "User not found" });
