@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build:client": "vite build",
-    "build:server": "npx tsc -p tsconfig.server.json",
+    "build:server": "npx tsc -p tsconfig.build.json",
     "build": "pnpm run build:client && pnpm run build:server",
     "dev:client": "vite",
     "dev:server": "tsx watch server/index.ts",
