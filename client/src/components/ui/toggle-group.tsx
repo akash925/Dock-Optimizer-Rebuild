@@ -1,4 +1,5 @@
 import * as React from "react"
+// @ts-ignore - Missing module declaration
 import * as ToggleGroupPrimitive from "@radix-ui/react-toggle-group"
 import { type VariantProps } from "class-variance-authority"
 
