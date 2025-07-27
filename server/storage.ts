@@ -2087,7 +2087,7 @@ export class DatabaseStorage implements IStorage {
         applicableType: q.applicableType,
         createdAt: q.createdAt,
         lastModifiedAt: q.lastModifiedAt
-      }));
+      })) as any;
     } catch (error) {
       console.error('Error fetching custom questions by appointment type:', error);
       return [];
