@@ -914,7 +914,12 @@ export class MemStorage implements IStorage {
     return newPreferences;
   }
 
-  async updateUserPreferences(userId: number, organizationId: number, preferencesUpdate: Partial<UserPreferences>): Promise<UserPreferences> {
+  async updateUserPreferences(
+    userId: number, 
+    preferencesOrOrgId: Partial<UserPreferences> | number, 
+    preferences?: Partial<UserPreferences>
+  ): Promise<UserPreferences> {
+    const preferencesUpdate = typeof preferencesOrOrgId === 'number' ? preferences! : preferencesOrOrgId;
     const existing = await this.getUserPreferences(userId);
     if (existing) {
       const updated = { 
@@ -2353,7 +2358,12 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateUserPreferences(userId: number, preferencesUpdate: Partial<UserPreferences>): Promise<UserPreferences> {
+  async updateUserPreferences(
+    userId: number, 
+    preferencesOrOrgId: Partial<UserPreferences> | number, 
+    preferences?: Partial<UserPreferences>
+  ): Promise<UserPreferences> {
+    const preferencesUpdate = typeof preferencesOrOrgId === 'number' ? preferences! : preferencesOrOrgId;
     try {
       // Check if preferences exist
       const existing = await this.getUserPreferences(userId);
