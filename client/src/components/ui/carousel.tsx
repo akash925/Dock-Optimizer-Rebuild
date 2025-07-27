@@ -1,11 +1,9 @@
-// @ts-ignore - Missing module declaration
 import * as React from "react"
-// @ts-ignore - Missing module declaration
-// @ts-ignore - embla-carousel-react package doesn't have TypeScript declarations
-import useEmblaCarousel, {
-  type UseEmblaCarouselType,
-} from "embla-carousel-react"
+// @ts-ignore
+import useEmblaCarousel from "embla-carousel-react"
 import { ArrowLeft, ArrowRight } from "lucide-react"
+
+type UseEmblaCarouselType = any // Type definition for missing embla types
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
