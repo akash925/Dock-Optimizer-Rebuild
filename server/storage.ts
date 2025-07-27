@@ -1883,7 +1883,7 @@ export class DatabaseStorage implements IStorage {
       return hours as DefaultHours[];
     } catch (error) {
       // Gracefully handle missing table - this is expected in some deployments
-      if (error.code === '42P01') { // Table does not exist
+      if ((error as any)?.code === '42P01') { // Table does not exist
         logger.debug(`[DatabaseStorage] organization_default_hours table does not exist - using defaults for tenant ${tenantId}`);
         return []; // Return empty array to trigger default hours logic
       }
@@ -2622,5 +2622,5 @@ export async function getStorage(): Promise<IStorage> {
       storageInstance = new MemStorage() as any; // Cast for interface compliance
     }
   }
-  return storageInstance;
+  return storageInstance!;
 }
