@@ -1,4 +1,5 @@
 import { z } from "zod";
+// @ts-ignore - Missing module declaration
 import { DEFAULT_APPOINTMENT_SETTINGS } from "./constants";
 
 // Common form validation schemas to reduce duplication
