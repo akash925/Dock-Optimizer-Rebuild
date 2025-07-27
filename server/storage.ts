@@ -845,20 +845,23 @@ export class MemStorage implements IStorage {
   }
   
   // Organization Module operations
-  getOrganizationModules(organizationId: number): Promise<OrganizationModule[]> { return Array.from(this.organizationModules.values()).filter(m => m.organizationId === organizationId); }
-  updateOrganizationModules(organizationId: number, modules: InsertOrganizationModule[]): Promise<OrganizationModule[]> {
+  async getOrganizationModules(organizationId: number): Promise<OrganizationModule[]> { 
+    return Array.from(this.organizationModules.values()).filter(m => m.organizationId === organizationId); 
+  }
+  async updateOrganizationModules(organizationId: number, modules: InsertOrganizationModule[]): Promise<OrganizationModule[]> {
     const existingModules = Array.from(this.organizationModules.values()).filter(m => m.organizationId === organizationId);
     existingModules.forEach(m => this.organizationModules.delete(m.id));
     const updatedModules: OrganizationModule[] = [];
     modules.forEach(module => {
       const id = this.organizationModuleIdCounter++;
-      const newModule: OrganizationModule = { ...module, id, createdAt: new Date() } as any;
+      // @ts-expect-error: Type assertion needed for OrganizationModule creation from InsertOrganizationModule
+      const newModule: OrganizationModule = { ...module, id, createdAt: new Date() };
       this.organizationModules.set(id, newModule);
       updatedModules.push(newModule);
     });
     return updatedModules;
   }
-  updateOrganizationModule(organizationId: number, moduleName: AvailableModule, enabled: boolean): Promise<OrganizationModule | undefined> {
+  async updateOrganizationModule(organizationId: number, moduleName: AvailableModule, enabled: boolean): Promise<OrganizationModule | undefined> {
     const existing = Array.from(this.organizationModules.values()).find(m => m.organizationId === organizationId && m.moduleName === moduleName);
     if (existing) {
       const updated = { ...existing, enabled, updatedAt: new Date() };
@@ -866,7 +869,14 @@ export class MemStorage implements IStorage {
       return updated;
     } else {
       const id = this.organizationModuleIdCounter++;
-      const newModule: OrganizationModule = { id, organizationId, moduleName, enabled, createdAt: new Date(), updatedAt: new Date() };
+      const newModule: OrganizationModule = {
+        id,
+        organizationId,
+        moduleName,
+        enabled,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
       this.organizationModules.set(id, newModule);
       return newModule;
     }
