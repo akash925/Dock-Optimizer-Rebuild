@@ -480,7 +480,7 @@ export class CompanyAssetsService implements AssetService {
         const fileId = fileName.split('.')[0]; // Remove extension to get file ID
         
         try {
-          await blobStorageService.deleteFile(fileId, asset.tenantId);
+          await blobStorageService.deleteFile(fileId, asset.tenantId ?? undefined);
           console.log(`Successfully deleted asset photo from blob storage: ${fileId}`);
         } catch (error) {
           console.error(`Error deleting photo from blob storage ${fileId}:`, error);
