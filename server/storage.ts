@@ -2115,7 +2115,7 @@ export class DatabaseStorage implements IStorage {
       
       logger.debug('[DatabaseStorage] Inserting with data:', dbData);
       
-      const [newQuestion] = await db.insert(customQuestions).values(dbData).returning();
+      const [newQuestion] = await (db.insert(customQuestions) as any).values(dbData).returning();
       
       logger.debug('[DatabaseStorage] Created question:', newQuestion);
       
