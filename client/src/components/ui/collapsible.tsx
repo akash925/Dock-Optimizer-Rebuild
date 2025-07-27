@@ -1,5 +1,5 @@
-import * as CollapsiblePrimitive from "@radix-ui/react-collapsible"
 // @ts-ignore - Missing module declaration
+import * as CollapsiblePrimitive from "@radix-ui/react-collapsible"
 
 const Collapsible = CollapsiblePrimitive.Root
 
