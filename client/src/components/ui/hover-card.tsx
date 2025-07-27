@@ -1,4 +1,5 @@
 import * as React from "react"
+// @ts-ignore - Missing module declaration
 import * as HoverCardPrimitive from "@radix-ui/react-hover-card"
 
 import { cn } from "@/lib/utils"

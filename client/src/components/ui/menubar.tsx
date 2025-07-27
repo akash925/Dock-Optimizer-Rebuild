@@ -1,4 +1,5 @@
 import * as React from "react"
+// @ts-ignore - Missing module declaration
 import * as MenubarPrimitive from "@radix-ui/react-menubar"
 import { Check, ChevronRight, Circle } from "lucide-react"
 
