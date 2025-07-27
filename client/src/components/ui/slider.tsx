@@ -1,4 +1,5 @@
 import * as React from "react"
+// @ts-ignore - Missing module declaration
 import * as SliderPrimitive from "@radix-ui/react-slider"
 
 import { cn } from "@/lib/utils"
