@@ -1014,6 +1014,7 @@ function extractTextFromFilename(filename: string): string {
  * @param file - The file to compress
  * @returns The compressed file (or original if compression is not supported)
  */
+// @ts-ignore - Missing module declaration
 import imageCompression from 'browser-image-compression';
 
 export async function compressFile(file: File): Promise<File> {
