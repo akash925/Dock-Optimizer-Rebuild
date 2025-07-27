@@ -1,6 +1,6 @@
-import { db, safeQuery } from "../db";
-import { getStorage } from "../storage";
-import { logger } from "../utils/logger";
+import { db, safeQuery } from "../db.js.js.js";
+import { getStorage } from "../storage.js.js.js";
+import { logger } from "../utils/logger.js.js.js";
 import { users } from "@shared/schema";
 import { sql, isNull } from "drizzle-orm";
 

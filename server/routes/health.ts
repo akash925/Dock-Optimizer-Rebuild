@@ -4,7 +4,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { getHealthStatus } from '../config/environment';
+import { getHealthStatus } from '../config/environment.js';
 
 const router = Router();
 

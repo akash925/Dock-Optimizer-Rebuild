@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { snakeToCamel } from '../../../shared/utils/object-mapper';
+import { snakeToCamel } from '../../../shared/utils/object-mapper.js';
 
 // Base schema for appointment type questions with database structure (snake_case)
 const AppointmentTypeQuestionDbSchema = z.object({

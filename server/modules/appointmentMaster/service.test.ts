@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
-import { AppointmentMasterService } from './service';
-import { getStorage } from '../../storage';
-import { CustomQuestion } from '../../../shared/schema';
+import { AppointmentMasterService } from './service.js';
+import { getStorage } from '../../storage.js';
+import { CustomQuestion } from '../../../shared/schema.js';
 
 // Mock the storage module
 vi.mock('../../storage', () => ({

@@ -1,16 +1,16 @@
 import { Queue, Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
-import { getRedis, getBullMQRedisUrl } from '../src/utils/redis';
-import { getStorage } from '../storage';
-import { broadcastToTenant } from '../websocket';
+import { getRedis, getBullMQRedisUrl } from '../src/utils/redis.js';
+import { getStorage } from '../storage.js';
+import { broadcastToTenant } from '../websocket.js';
 import { 
   sendConfirmationEmail, 
   sendReminderEmail, 
   sendRescheduleEmail, 
   sendCancellationEmail,
   EnhancedSchedule 
-} from '../notifications';
-import { logger } from '../utils/logger';
+} from '../notifications.js';
+import { logger } from '../utils/logger.js';
 
 // Get Redis connection from centralized utility
 const redis = getRedis();

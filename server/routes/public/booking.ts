@@ -1,8 +1,8 @@
 import { Router, Request, Response } from "express";
-import { db } from "../../db.js";
+import { db } from "../../db.js.js.js.js";
 import { eq, inArray } from "drizzle-orm";
-import { bookingPages, facilities, appointmentTypes, standardQuestions } from "../../../shared/schema.js";
-import { safeToString } from "../../lib/utils.js"; 
+import { bookingPages, facilities, appointmentTypes, standardQuestions } from "../../../shared/schema.js.js.js.js";
+import { safeToString } from "../../lib/utils.js.js.js.js"; 
 
 const router = Router();
 

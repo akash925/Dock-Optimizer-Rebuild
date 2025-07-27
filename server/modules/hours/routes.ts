@@ -1,6 +1,6 @@
 import { Express, Request, Response } from 'express';
-import { getStorage } from '../../storage';
-import { isAuthenticated } from '../../types/express';
+import { getStorage } from '../../storage.js';
+import { isAuthenticated } from '../../types/express.js';
 
 export const registerHoursRoutes = (app: Express) => {
   // New endpoint for organization hours with better default handling

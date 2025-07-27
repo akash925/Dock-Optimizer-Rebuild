@@ -1,7 +1,7 @@
 import express from 'express';
-import * as controllers from './index.js';
-import { getStorage } from '../../storage';
-import { generateConfirmationCode, getOrganizationConfirmationPrefix } from '../../utils';
+import * as controllers from './index.js.js';
+import { getStorage } from '../../storage.js';
+import { generateConfirmationCode, getOrganizationConfirmationPrefix } from '../../utils.js';
 
 // Generate confirmation code with organization prefix
 async function generateOrgConfirmationCode(tenantId?: number): Promise<string> {
@@ -14,7 +14,7 @@ async function generateOrgConfirmationCode(tenantId?: number): Promise<string> {
 
 // Add authentication middleware with proper typing
 import { Request, Response, NextFunction } from 'express';
-// import { AuthenticatedRequest } from '../../middleware/auth';
+// import { AuthenticatedRequest } from '../../middleware/auth.js';
 
 const isAuthenticated = (req: any, res: Response, next: NextFunction) => {
   if (req.isAuthenticated && req.isAuthenticated()) {

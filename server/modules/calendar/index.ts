@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import { getStorage } from '../../storage';
+import { getStorage } from '../../storage.js';
 import { format, addDays } from 'date-fns';
 import express from 'express';
-import routes, { calendarRouter } from './routes.js';
+import routes, { calendarRouter } from './routes.js.js';
 
 // Get all schedules with timezone support
 export async function getSchedules(req: Request, res: Response) {

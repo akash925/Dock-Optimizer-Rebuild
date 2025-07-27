@@ -2,7 +2,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 // import Database, { type Database as SqliteDatabase } from 'better-sqlite3';
 type SqliteDatabase = any;
 let Database: any;
-import * as schema from '../../shared/schema';
+import * as schema from '../../shared/schema.js';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import path from 'path';
 import fs from 'fs';

@@ -1,11 +1,11 @@
-import { BolRepository } from '../repositories/bolRepository';
+import { BolRepository } from '../repositories/bolRepository.js';
 // @ts-ignore - OCR connector module doesn't have TypeScript declarations
-import { processImageFile } from '../ocr/ocr_connector.mjs';
+import { processImageFile } from '../ocr/ocr_connector.mjs.js';
 // @ts-ignore - Tesseract processor module doesn't have TypeScript declarations
-import { processImageWithTesseract } from '../ocr/tesseract-processor.mjs';
-import { validateOcrResult, ValidatedOcrResult } from '../utils/ocrValidator';
-import { InsertBolDocument } from '../../drizzle/schema/bol';
-import { InsertOcrAnalytics } from '../../drizzle/schema/ocr_analytics';
+import { processImageWithTesseract } from '../ocr/tesseract-processor.mjs.js';
+import { validateOcrResult, ValidatedOcrResult } from '../utils/ocrValidator.js';
+import { InsertBolDocument } from '../../drizzle/schema/bol.js';
+import { InsertOcrAnalytics } from '../../drizzle/schema/ocr_analytics.js';
 // Type for error logging
 
 // Define configurable timeout for OCR processing in milliseconds

@@ -4,11 +4,11 @@ import multer from 'multer';
 interface RequestWithFile extends Request {
   file?: Express.Multer.File;
 }
-import { companyAssetsService } from './service.js';
+import { companyAssetsService } from './service.js.js';
 import { insertAssetSchema, insertCompanyAssetSchema, updateCompanyAssetSchema, AssetCategory } from '@shared/schema';
 import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
-import { serializeCompanyAsset, serializeCompanyAssets } from './serializer.js';
+import { serializeCompanyAsset, serializeCompanyAssets } from './serializer.js.js';
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { S3Client } from '@aws-sdk/client-s3';
 import crypto from 'crypto';

@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
-import { organizationHolidays, tenants, facilities, appointmentTypes } from '../../shared/schema';
+import { organizationHolidays, tenants, facilities, appointmentTypes } from '../../shared/schema.js';
 import { count, eq } from 'drizzle-orm';
-import { seedUSFederalHolidays } from '../seeds/20250623_us_holidays';
+import { seedUSFederalHolidays } from '../seeds/20250623_us_holidays.js';
 
 // Test database connection
 const sql = neon(process.env.DATABASE_URL!);

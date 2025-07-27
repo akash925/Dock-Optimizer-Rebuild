@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { db } from "../db";
+import { db } from "../db.js.js.js";
 import { eq } from "drizzle-orm";
 import { bookingPages } from "@shared/schema";
 

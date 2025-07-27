@@ -2,10 +2,10 @@ import { isValid, format, addDays, parseISO, getDay, addMinutes, differenceInCal
 import { formatInTimeZone as tzFormat, toZonedTime } from 'date-fns-tz';
 import { eq, and, gte, lt, or } from 'drizzle-orm';
 import { schedules, appointmentTypes, facilities, docks, organizationFacilities } from '@shared/schema';
-import type { IStorage } from '../../storage';
+import type { IStorage } from '../../storage.js';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import { db } from '../../db';
-import { getRedisInstance } from '../../redis';
+import { db } from '../../db.js';
+import { getRedisInstance } from '../../redis.js';
 
 const redis = getRedisInstance();
 const AVAILABILITY_CACHE_TTL = 300; // 5 minutes

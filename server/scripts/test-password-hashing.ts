@@ -1,4 +1,4 @@
-import { getStorage } from "../storage";
+import { getStorage } from "../storage.js.js.js";
 import bcrypt from 'bcryptjs';
 
 async function testPasswordHashing() {

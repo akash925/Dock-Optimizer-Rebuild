@@ -10,8 +10,8 @@ vi.mock('../storage', () => ({
   getStorage: vi.fn()
 }));
 
-import { mockSend, resetMocks } from '../../__mocks__/@aws-sdk/client-s3';
-import { getStorage } from '../storage';
+import { mockSend, resetMocks } from '../../__mocks__/@aws-sdk/client-s3.js';
+import { getStorage } from '../storage.js';
 
 describe('BOL Upload with Tenant ID', () => {
   let app: express.Application;

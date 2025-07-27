@@ -1,7 +1,7 @@
-import { db } from '../db';
-import { bolDocuments, BolDocument, InsertBolDocument } from '../../drizzle/schema/bol';
-import { appointmentBolLinks } from '../../shared/schema';
-import { ocrAnalytics, InsertOcrAnalytics } from '../../drizzle/schema/ocr_analytics';
+import { db } from '../db.js';
+import { bolDocuments, BolDocument, InsertBolDocument } from '../../drizzle/schema/bol.js';
+import { appointmentBolLinks } from '../../shared/schema.js';
+import { ocrAnalytics, InsertOcrAnalytics } from '../../drizzle/schema/ocr_analytics.js';
 import { eq } from 'drizzle-orm';
 
 /**

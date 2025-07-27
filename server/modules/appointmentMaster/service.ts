@@ -1,7 +1,7 @@
-import { getStorage, IStorage } from '../../storage';
-import { CustomQuestion } from '../../../shared/schema';
-import { camelToSnake, snakeToCamel, transformDbToFrontend, transformFrontendToDb } from '../../../shared/utils/object-mapper';
-import { validateAppointmentTypeQuestionsArray, validateCreateAppointmentTypeQuestion } from './validators';
+import { getStorage, IStorage } from '../../storage.js';
+import { CustomQuestion } from '../../../shared/schema.js';
+import { camelToSnake, snakeToCamel, transformDbToFrontend, transformFrontendToDb } from '../../../shared/utils/object-mapper.js';
+import { validateAppointmentTypeQuestionsArray, validateCreateAppointmentTypeQuestion } from './validators.js';
 
 export class AppointmentMasterService {
   private storage: IStorage | null = null;

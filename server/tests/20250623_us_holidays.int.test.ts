@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import { organizationHolidays, tenants } from '../../shared/schema';
+import { organizationHolidays, tenants } from '../../shared/schema.js';
 import { eq, and, count } from 'drizzle-orm';
-import { db } from '../db';
-import { seedUSFederalHolidays } from '../seeds/20250623_us_holidays';
+import { db } from '../db.js';
+import { seedUSFederalHolidays } from '../seeds/20250623_us_holidays.js';
 
 // Mock the seed function since we'll test its behavior without actually running it
 vi.mock('../seeds/20250623_us_holidays', () => ({

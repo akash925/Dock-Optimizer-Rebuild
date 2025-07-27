@@ -1,4 +1,4 @@
-import { db } from '../../db';
+import { db } from '../../db.js';
 import { tenants, featureFlags } from '@shared/schema';
 import { AvailableModule } from '@shared/types/modules';
 import { eq, and } from 'drizzle-orm';

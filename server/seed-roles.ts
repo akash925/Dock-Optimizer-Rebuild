@@ -1,4 +1,4 @@
-import { getStorage } from "./storage.js";
+import { getStorage } from "./storage.js.js.js";
 import { RoleName } from "@shared/schema";
 
 // Export the function for use in running directly

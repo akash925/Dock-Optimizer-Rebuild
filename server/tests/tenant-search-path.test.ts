@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { setTenantSearchPath, resetSearchPath, getCurrentSearchPath } from '../utils/setTenantSearchPath';
+import { setTenantSearchPath, resetSearchPath, getCurrentSearchPath } from '../utils/setTenantSearchPath.js';
 
 // Mock the database module with proper type safety
 const mockExecute = vi.fn();

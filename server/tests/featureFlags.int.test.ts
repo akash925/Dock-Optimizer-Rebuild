@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { db } from '../db';
-import { FeatureFlagService } from '../modules/featureFlags/service';
-import { organizationModules } from '../../shared/schema';
+import { db } from '../db.js';
+import { FeatureFlagService } from '../modules/featureFlags/service.js';
+import { organizationModules } from '../../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
-import { mockStorage } from './__mocks__/storage';
-import { cleanupTestData } from '../test-utils/test-helpers';
+import { mockStorage } from './__mocks__/storage.js';
+import { cleanupTestData } from '../test-utils/test-helpers.js';
 
 // Mock the storage
 vi.mock('../storage', () => ({

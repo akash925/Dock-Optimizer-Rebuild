@@ -1,6 +1,6 @@
 import express, { Request, Response, Express } from 'express';
-import { getOrganizationHolidays, updateOrganizationHolidays, syncOrganizationHolidays } from './holidays';
-import { getStorage } from '../../storage';
+import { getOrganizationHolidays, updateOrganizationHolidays, syncOrganizationHolidays } from './holidays.js';
+import { getStorage } from '../../storage.js';
 import { 
   getCurrentOrganization, 
   updateCurrentOrganization, 
@@ -14,8 +14,8 @@ import {
   updateOrganizationModule,
   getOrganizationSettings,
   updateOrganizationSettings
-} from './controllers';
-import { isAuthenticated } from '../../middleware/auth';
+} from './controllers.js';
+import { isAuthenticated } from '../../middleware/auth.js';
 
 /**
  * Get the organization ID for a facility

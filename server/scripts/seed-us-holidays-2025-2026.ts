@@ -7,7 +7,7 @@
  * for all existing tenants.
  */
 
-import { getStorage } from '../storage';
+import { getStorage } from '../storage.js';
 import { InsertOrganizationHoliday } from '@shared/schema';
 
 // US Federal Holidays for 2025-2026

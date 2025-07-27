@@ -1,5 +1,5 @@
-import { IStorage } from '../../storage';
-import { AppointmentStatus, AppointmentType, SAMPLE_DATA_CONFIG } from '../constants/enums';
+import { IStorage } from '../../storage.js';
+import { AppointmentStatus, AppointmentType, SAMPLE_DATA_CONFIG } from '../constants/enums.js';
 
 export interface SampleDataOptions {
   appointmentCount?: number;

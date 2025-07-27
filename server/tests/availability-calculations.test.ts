@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { IStorage } from "../storage";
+import { IStorage } from "../storage.js.js.js";
 
 // Create a simplified version of the calculateAvailabilitySlots function
 // that doesn't rely on external dependencies or mocks

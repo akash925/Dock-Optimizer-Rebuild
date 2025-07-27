@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventEmitter } from 'events';
-import { eventSystem } from '../services/enhanced-event-system';
-import { EnhancedSchedule } from '../notifications';
+import { eventSystem } from '../services/enhanced-event-system.js';
+import { EnhancedSchedule } from '../notifications.js';
 
 // Mock the WebSocket broadcast functionality
 vi.mock('../websocket', () => ({

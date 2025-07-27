@@ -1,5 +1,5 @@
 import { MailService } from '@sendgrid/mail';
-import { formatDateTimeInTimezone } from '../utils/timezone';
+import { formatDateTimeInTimezone } from '../utils/timezone.js';
 
 if (!process.env.SENDGRID_API_KEY) {
   throw new Error("SENDGRID_API_KEY environment variable must be set");

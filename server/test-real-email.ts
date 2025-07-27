@@ -1,5 +1,5 @@
 import sgMail from '@sendgrid/mail';
-import { EnhancedSchedule, sendConfirmationEmail } from './notifications';
+import { EnhancedSchedule, sendConfirmationEmail } from './notifications.js';
 
 /**
  * This is a utility to test sending a real email directly through SendGrid

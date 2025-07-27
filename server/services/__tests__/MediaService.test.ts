@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, Mock } from 'vitest';
-import MediaService from '../MediaService';
+import MediaService from '../MediaService.js';
 import { S3Client, PutObjectCommand, HeadObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { getStorage, IStorage } from '../../storage';
+import { getStorage, IStorage } from '../../storage.js';
 
 vi.mock('@aws-sdk/client-s3');
 vi.mock('@aws-sdk/s3-request-presigner');

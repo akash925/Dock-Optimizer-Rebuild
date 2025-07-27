@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { getStorage } from '../storage';
-import { sendPasswordResetEmail } from '../notifications';
+import { getStorage } from '../storage.js';
+import { sendPasswordResetEmail } from '../notifications.js';
 
 const router = Router();
 

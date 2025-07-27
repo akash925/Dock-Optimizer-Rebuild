@@ -2,9 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
 import { Asset, InsertAsset, CompanyAsset, InsertCompanyAsset, UpdateCompanyAsset } from '@shared/schema';
-import { getStorage } from '../../storage';
-import { blobStorageService } from '../../services/blob-storage';
-import { assetStorage } from '../../services/assetStorage';
+import { getStorage } from '../../storage.js';
+import { blobStorageService } from '../../services/blob-storage.js';
+import { assetStorage } from '../../services/assetStorage.js';
 import mime from 'mime-types';
 
 // REMOVED: Direct filesystem operations - now using blob storage

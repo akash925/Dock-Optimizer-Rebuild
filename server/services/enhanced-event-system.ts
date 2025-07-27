@@ -3,10 +3,10 @@ import {
   queueEmailNotification, 
   queueWebSocketNotification, 
   createAndQueueNotification 
-} from './notification-queue.js';
-import { broadcastToTenant } from '../websocket';
-import { logger } from '../utils/logger';
-import { EnhancedSchedule } from '../notifications';
+} from './notification-queue.js.js';
+import { broadcastToTenant } from '../websocket.js';
+import { logger } from '../utils/logger.js';
+import { EnhancedSchedule } from '../notifications.js';
 
 // Define all possible event types for type safety
 export interface DockOptimizerEvents {

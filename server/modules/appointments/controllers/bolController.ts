@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
-import { getStorage } from '../../../storage';
-import { blobStorageService } from '../../../services/blob-storage';
+import { getStorage } from '../../../storage.js';
+import { blobStorageService } from '../../../services/blob-storage.js';
 import { insertBolDocumentSchema, type BolDocument } from '@shared/schema';
 
 // Configure multer for BOL document uploads

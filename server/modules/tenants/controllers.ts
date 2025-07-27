@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { tenantService } from './service.js';
+import { tenantService } from './service.js.js';
 import { TenantStatus, insertTenantSchema, AvailableModule } from '@shared/schema';
 import { z } from 'zod';
 

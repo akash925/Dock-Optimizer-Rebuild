@@ -1,6 +1,6 @@
 // server/storage/organizations.ts
 
-import { db } from "../db";
+import { db } from "../db.js.js.js";
 import { organizationUsers } from "@shared/schema";
 
 export async function getOrganizationNameForTenant(

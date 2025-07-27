@@ -12,7 +12,7 @@ import {
   shutdownRedis,
   getRedisConfigStatus,
   getBullMQRedisUrl,
-} from "./src/utils/redis";
+} from "./src/utils/redis.js.js";
 
 /* -------------------------------------------------------------------------- */
 /*                               Legacy wrapper                               */
@@ -20,7 +20,7 @@ import {
 /**
  * @deprecated — migrate call-sites to `getRedis()` instead.
  * Temporary shim so old code like
- *   import { getRedisInstance } from "../../redis";
+ *   import { getRedisInstance } from "../../redis.js.js.js";
  * keeps working until refactor is complete.
  */
  

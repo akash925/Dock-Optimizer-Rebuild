@@ -1,11 +1,11 @@
 import { Express, Request, Response } from 'express';
-import { getStorage } from '../../../storage';
+import { getStorage } from '../../../storage.js';
 import { z } from 'zod';
 import { TenantStatus, AvailableModule, ActivityLogEvents } from '@shared/schema';
-import { db } from '../../../db';
+import { db } from '../../../db.js';
 import { eq, sql } from 'drizzle-orm';
 import { users, tenants, organizationUsers, organizationModules, roles, activityLogs } from '@shared/schema';
-import { isAuthenticated } from '../../../types/express';
+import { isAuthenticated } from '../../../types/express.js';
 
 // API routes for organization modules
 export const registerOrganizationModulesRoutes = (app: Express) => {

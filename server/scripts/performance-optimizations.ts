@@ -1,5 +1,5 @@
-import { db } from "../db";
-import { getStorage } from "../storage";
+import { db } from "../db.js.js.js";
+import { getStorage } from "../storage.js.js.js";
 
 /**
  * Performance Optimization Script

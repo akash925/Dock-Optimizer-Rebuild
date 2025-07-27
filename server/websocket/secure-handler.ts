@@ -7,7 +7,7 @@
 
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
-import { IStorage } from '../storage';
+import { IStorage } from '../storage.js';
 import { z } from 'zod';
 
 // Extend WebSocket to include tenant information

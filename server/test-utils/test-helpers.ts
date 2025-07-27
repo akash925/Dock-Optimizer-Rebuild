@@ -1,4 +1,4 @@
-import { mockStorage } from '../__mocks__/storage';
+import { mockStorage } from '../__mocks__/storage.js';
 
 /**
  * Clean up test data - resets all mock storage

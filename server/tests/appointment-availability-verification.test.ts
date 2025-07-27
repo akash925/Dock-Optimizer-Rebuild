@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { calculateAvailabilitySlots } from '../src/services/availability';
-import { getStorage } from '../storage';
-import { MockStorage } from '../__mocks__/storage';
+import { calculateAvailabilitySlots } from '../src/services/availability.js';
+import { getStorage } from '../storage.js';
+import { MockStorage } from '../__mocks__/storage.js';
 
 // Mock storage implementation for testing
 const mockStorage = new MockStorage();

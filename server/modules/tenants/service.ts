@@ -1,7 +1,7 @@
-import { db } from '../../db';
+import { db } from '../../db.js';
 import { tenants, TenantStatus, InsertTenant, featureFlags, AvailableModule } from '@shared/schema';
 import { eq } from 'drizzle-orm';
-import { featureFlagService } from '../featureFlags/service';
+import { featureFlagService } from '../featureFlags/service.js';
 
 // In-memory tenant cache for when database is not available
 const defaultTenant = {

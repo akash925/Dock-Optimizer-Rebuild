@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { getStorage } from '../../storage';
-import { mediaService } from '../../services/MediaService';
+import { getStorage } from '../../storage.js';
+import { mediaService } from '../../services/MediaService.js';
 import { User } from '@shared/types/user';
 
 // @ts-expect-error: AuthenticatedRequest interface extension mismatch

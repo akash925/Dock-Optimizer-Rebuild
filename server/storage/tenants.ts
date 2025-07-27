@@ -1,6 +1,6 @@
 // server/storage/tenants.ts
 
-import { db } from "../db";
+import { db } from "../db.js.js.js";
 import { users, tenants, organizationUsers } from "@shared/schema";
 import { eq } from "drizzle-orm";
 

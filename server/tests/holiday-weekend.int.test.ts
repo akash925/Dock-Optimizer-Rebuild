@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { db } from '../db';
-import { organizationHolidays, facilities, organizationModules } from '../../shared/schema';
+import { db } from '../db.js';
+import { organizationHolidays, facilities, organizationModules } from '../../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 
 describe('Holiday & Weekend Logic Integration Tests', () => {

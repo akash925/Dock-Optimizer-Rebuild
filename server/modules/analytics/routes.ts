@@ -1,6 +1,6 @@
 import express from 'express';
-import * as controllers from './controllers';
-import { isAuthenticated } from '../../middleware/auth';
+import * as controllers from './controllers.js';
+import { isAuthenticated } from '../../middleware/auth.js';
 
 // Middleware to disable caching for analytics endpoints
 const disableCache = (req: express.Request, res: express.Response, next: express.NextFunction) => {

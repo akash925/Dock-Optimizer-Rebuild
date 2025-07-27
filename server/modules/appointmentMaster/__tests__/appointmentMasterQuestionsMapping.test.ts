@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { AppointmentMasterService } from '../service';
-import { camelToSnake, snakeToCamel } from '../../../../shared/utils/object-mapper';
+import { AppointmentMasterService } from '../service.js';
+import { camelToSnake, snakeToCamel } from '../../../../shared/utils/object-mapper.js';
 import { getStorage } from '@/storage';
 
 // Mock the storage

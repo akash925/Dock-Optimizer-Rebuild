@@ -4,12 +4,12 @@ import bcrypt from "bcryptjs";
 import session from "express-session";
 import type { Request, Response, NextFunction } from "express";
 import { eq } from "drizzle-orm";
-import { db } from "./db.js";
+import { db } from "./db.js.js.js";
 import { users } from "@shared/schema";
-import { getUserByUsername, validatePassword } from "./storage/users";
-import { getTenantIdForUser } from "./storage/tenants";
-import { getModulesForOrganization } from "./storage/modules";
-import { setTenantSearchPath, resetSearchPath } from "./utils/setTenantSearchPath.js";
+import { getUserByUsername, validatePassword } from "./storage/users.js.js";
+import { getTenantIdForUser } from "./storage/tenants.js.js";
+import { getModulesForOrganization } from "./storage/modules.js.js";
+import { setTenantSearchPath, resetSearchPath } from "./utils/setTenantSearchPath.js.js.js";
 
 
 passport.use(

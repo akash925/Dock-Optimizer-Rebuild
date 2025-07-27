@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
-import { initializeCompanyAssetsModule } from '../index';
+import { initializeCompanyAssetsModule } from '../index.js';
 
 // Mock the storage
 vi.mock('../../../storage', () => ({

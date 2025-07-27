@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
-import { db } from '../db';
-import { logger } from '../utils/logger';
+import { db } from '../db.js';
+import { logger } from '../utils/logger.js';
 
 type DrizzleDBInstance = typeof db;
 

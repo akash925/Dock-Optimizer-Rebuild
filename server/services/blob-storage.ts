@@ -8,7 +8,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { getStorage } from '../storage';
+import { getStorage } from '../storage.js';
 
 export interface BlobStorageConfig {
   type: 'filesystem' | 's3' | 'azure' | 'gcp';

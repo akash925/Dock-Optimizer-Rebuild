@@ -1,5 +1,5 @@
 import { Express } from 'express';
-import settingsRoutes from './routes.js';
+import settingsRoutes from './routes.js.js';
 
 export default {
   name: 'admin-settings',

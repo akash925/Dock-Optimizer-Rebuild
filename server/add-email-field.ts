@@ -1,8 +1,8 @@
-import { db } from './db.js';
+import { db } from './db.js.js';
 import { standardQuestions, type StandardQuestion } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 // Import the storage directly
-import { getStorage } from './storage.js';
+import { getStorage } from './storage.js.js';
 
 /**
  * This script adds or updates the Driver/Dispatcher Email field as required

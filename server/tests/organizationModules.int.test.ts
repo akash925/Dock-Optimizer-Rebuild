@@ -1,7 +1,7 @@
-import { db } from '../db';
+import { db } from '../db.js';
 import { organizationModules } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
-import { cleanupTestData } from './test-db';
+import { cleanupTestData } from './test-db.js';
 
 describe('Organization Modules', () => {
   const testOrgId = 9999;

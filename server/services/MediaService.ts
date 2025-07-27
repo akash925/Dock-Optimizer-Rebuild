@@ -9,7 +9,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomBytes } from 'crypto';
 import { extname } from 'path';
-import { getStorage, IStorage } from '../storage';
+import { getStorage, IStorage } from '../storage.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface PresignedUploadResponse {

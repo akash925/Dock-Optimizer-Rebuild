@@ -1,4 +1,4 @@
-import { User as SharedUser } from '../../shared/types/user';
+import { User as SharedUser } from '../../shared/types/user.js';
 
 declare global {
   namespace Express {

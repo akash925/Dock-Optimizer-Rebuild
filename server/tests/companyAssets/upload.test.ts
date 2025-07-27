@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
-import { initializeCompanyAssetsModule } from '../../modules/companyAssets';
-import { companyAssetsService } from '../../modules/companyAssets/service';
+import { initializeCompanyAssetsModule } from '../../modules/companyAssets.js';
+import { companyAssetsService } from '../../modules/companyAssets/service.js';
 
 // Mock the service
 vi.mock('../../modules/companyAssets/service');

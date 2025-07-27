@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getStorage } from '../../storage';
+import { getStorage } from '../../storage.js';
 
 export interface Holiday {
   name: string;

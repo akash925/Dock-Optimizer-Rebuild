@@ -6,7 +6,7 @@ import {
   sendCancellationEmail, 
   sendReminderEmail, 
   EnhancedSchedule 
-} from './notifications';
+} from './notifications.js';
 
 /**
  * This is a development utility function to test email templates

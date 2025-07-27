@@ -13,5 +13,5 @@ export {
   getRedisConfigStatus,
   getBullMQRedisUrl,
   redis
-} from '../utils/redis';
+} from '../utils/redis.js';
 

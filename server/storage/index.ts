@@ -1,9 +1,9 @@
 // server/storage/index.ts
 // Main storage interface that re-exports all storage functions
 
-export * from './tenants';
-export * from './modules';
-export * from './organizations';
-export * from './users';
-export * from './features';
-export * from './utils';
+export * from './tenants.js';
+export * from './modules.js';
+export * from './organizations.js';
+export * from './users.js';
+export * from './features.js';
+export * from './utils.js';

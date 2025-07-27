@@ -1,8 +1,8 @@
 import express from 'express';
-import analyticsRoutes from './routes.js';
+import analyticsRoutes from './routes.js.js';
 
 // Export all controllers for use in the routes file
-export * from './controllers';
+export * from './controllers.js';
 
 // Initialize the analytics module
 export function initializeAnalyticsModule(app: express.Express): void {

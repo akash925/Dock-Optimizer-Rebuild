@@ -1,13 +1,13 @@
 import sgMail from '@sendgrid/mail';
-import { Schedule } from '../shared/schema';
+import { Schedule } from '../shared/schema.js';
 import { format } from 'date-fns';
 import { formatToTimeZone, parseFromTimeZone } from 'date-fns-timezone';
 // Use existing QR code generation function from the server
-import { generateQRCodeSVG as generateQRCode } from './endpoints/qr-codes';
+import { generateQRCodeSVG as generateQRCode } from './endpoints/qr-codes.js';
 // Import shared timezone utilities
-import { getTimeZoneAbbreviation, getTimeZoneName } from '../shared/timezone-utils';
+import { getTimeZoneAbbreviation, getTimeZoneName } from '../shared/timezone-utils.js';
 // Import storage to get organization settings
-import { getStorage } from './storage.js';
+import { getStorage } from './storage.js.js';
 
 /**
  * Check if email service is configured and ready to send emails
@@ -292,7 +292,7 @@ export function generateICalEvent(
   return icalContent;
 }
 
-import logger from './logger.js';
+import logger from './logger.js.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -478,7 +478,7 @@ ${msg.text}
 /**
  * Format a date for a specific timezone with enhanced error handling and debugging
  */
-import { formatWithTZ, formatForEmail } from './utils/dateTime.js';
+import { formatWithTZ, formatForEmail } from './utils/dateTime.js.js';
 
 function formatDateForTimezone(date: Date, timezone: string, formatStr: string): string {
   try {

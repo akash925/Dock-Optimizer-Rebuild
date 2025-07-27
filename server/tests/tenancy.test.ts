@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { IStorage } from '../storage';
-import { getStorage } from '../storage';
-import { MockStorage } from './__mocks__/storage';
+import type { IStorage } from '../storage.js';
+import { getStorage } from '../storage.js';
+import { MockStorage } from './__mocks__/storage.js';
 
 // Mock the storage module
 vi.mock('../storage', async () => {

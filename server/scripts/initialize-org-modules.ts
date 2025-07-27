@@ -1,5 +1,5 @@
-import { db } from "../db";
-import { getStorage } from "../storage";
+import { db } from "../db.js.js.js";
+import { getStorage } from "../storage.js.js.js";
 import { AvailableModule } from "@shared/schema";
 
 export async function initializeOrganizationModules() {

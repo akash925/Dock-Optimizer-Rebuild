@@ -1,4 +1,4 @@
-import { getStorage, hashPassword } from "./storage.js";
+import { getStorage, hashPassword } from "./storage.js.js.js";
 import { TenantStatus, AvailableModule } from "@shared/schema";
 
 // Fix the testadmin account password and organization association

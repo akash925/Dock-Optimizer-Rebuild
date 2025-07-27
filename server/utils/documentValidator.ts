@@ -8,7 +8,7 @@
 import fs from 'fs';
 import path from 'path';
 const { execSync } = require('child_process');
-import logger from '../logger';
+import logger from '../logger.js';
 
 /**
  * Validates a PDF file to ensure it's properly formatted and has content

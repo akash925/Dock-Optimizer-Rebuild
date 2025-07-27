@@ -8,7 +8,7 @@
 import fs from 'fs';
 import path from 'path';
 const { pool } = require('../db');
-import logger from '../logger';
+import logger from '../logger.js';
 
 // In-memory metrics store for aggregation
 const metricsStore = {
