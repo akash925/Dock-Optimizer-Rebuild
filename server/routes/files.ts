@@ -74,7 +74,7 @@ router.post('/upload/organization-logo', upload.single('logo'), async (req: Requ
     );
 
     // Store file record in database
-    await storage.createFileRecord(uploadedFile);
+    await storage.createFileRecord(uploadedFile as any); // Type assertion for parameter compatibility
 
     res.json({
       success: true,
@@ -120,7 +120,7 @@ router.get('/:folder/:filename', async (req: Request, res: Response) => {
       '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     };
     
-    const mimeType = mimeTypes[ext] || 'application/octet-stream';
+    const mimeType = (mimeTypes as any)[ext] || 'application/octet-stream'; // Type assertion for indexing
     
     // Set appropriate headers
     res.setHeader('Content-Type', mimeType);
