@@ -228,8 +228,8 @@ export async function syncOrganizationHolidays(req: Request, res: Response) {
     
     // Create or update metadata object with merged holidays
     const metadata = organization.metadata || {};
-    metadata.holidays = mergedHolidays;
-    metadata.holidaysLastSynced = new Date().toISOString();
+    (metadata as any).holidays = mergedHolidays;
+    (metadata as any).holidaysLastSynced = new Date().toISOString();
     
     // Update organization with new metadata
     await storage.updateTenant(organizationId, {
@@ -260,7 +260,7 @@ export async function isHoliday(organizationId: number, dateStr: string): Promis
     }
     
     // Get holidays from organization metadata
-    const holidays: Holiday[] = organization.metadata?.holidays || [];
+    const holidays: Holiday[] = (organization.metadata as any)?.holidays || [];
     
     // Check if the date matches any enabled holiday
     return holidays.some(holiday => 
