@@ -2211,7 +2211,7 @@ export class DatabaseStorage implements IStorage {
         required: q.required,
         orderPosition: q.orderPosition,
         createdAt: q.createdAt
-      }));
+      })) as any;
     } catch (error) {
       console.error('Error fetching standard questions by appointment type:', error);
       return [];
