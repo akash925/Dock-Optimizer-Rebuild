@@ -1,5 +1,5 @@
 import express from 'express';
-import analyticsRoutes from './routes.js.js';
+import analyticsRoutes from './routes.js';
 
 // Export all controllers for use in the routes file
 export * from './controllers.js';

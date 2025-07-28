@@ -1,4 +1,4 @@
-import { pool } from './db.js.js';
+import { pool } from './db.js';
 
 async function createOrganizationModulesTable() {
   try {

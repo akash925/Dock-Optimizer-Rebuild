@@ -24,8 +24,8 @@ import {
   deleteAssetPhoto,
   // Test endpoints
   testS3Connectivity
-} from "./controllers.js.js";
-import { isAuthenticated } from "../../middleware/auth.js.js.js";
+} from "./controllers.js";
+import { isAuthenticated } from "../../middleware/auth.js";
 import express from "express";
 import multer from "multer";
 

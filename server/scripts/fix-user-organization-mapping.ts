@@ -1,5 +1,5 @@
-import { db, safeQuery } from "../db.js.js.js";
-import { getStorage } from "../storage.js.js.js";
+import { db, safeQuery } from "../db.js";
+import { getStorage } from "../storage.js";
 import { users, organizationUsers, roles, tenants } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 

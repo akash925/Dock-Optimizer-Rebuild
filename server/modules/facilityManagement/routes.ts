@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
-import { getStorage } from "../../storage.js.js.js";
-import { isAuthenticated } from "../../middleware/auth.js.js.js";
-import { db } from "../../db.js.js.js.js";
+import { getStorage } from "../../storage.js";
+import { isAuthenticated } from "../../middleware/auth.js";
+import { db } from "../../db.js";
 import { organizationFacilities } from "@shared/schema";
 
 const router = Router();

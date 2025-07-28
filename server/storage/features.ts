@@ -1,6 +1,6 @@
 // server/storage/features.ts
 
-import { db } from "../db.js.js.js";
+import { db } from "../db.js";
 import { featureFlags } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 

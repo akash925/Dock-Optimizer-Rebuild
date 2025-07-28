@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { featureFlagService } from './service.js.js';
+import { featureFlagService } from './service.js';
 import { AvailableModule } from '@shared/schema';
 
 export const getModuleStatus = async (req: Request, res: Response) => {

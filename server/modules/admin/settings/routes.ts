@@ -1,8 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { getStorage } from "../../../storage.js.js.js";
+import { getStorage } from "../../../storage.js";
 import { roles } from "@shared/schema";
 import { eq } from "drizzle-orm";
-import { db } from "../../../db.js.js.js";
+import { db } from "../../../db.js";
 
 // Super admin middleware
 const isSuperAdmin = (req: Request, res: Response, next: NextFunction) => {

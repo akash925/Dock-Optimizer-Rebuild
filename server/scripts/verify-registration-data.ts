@@ -1,4 +1,4 @@
-import { db, safeQuery } from "../db.js.js.js";
+import { db, safeQuery } from "../db.js";
 import { users, passwordResetTokens } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 

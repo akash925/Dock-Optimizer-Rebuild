@@ -1,6 +1,6 @@
 import express, { Request, Response, NextFunction } from "express";
-import { getStorage } from "../../../storage.js.js.js";
-import { db } from "../../../db.js.js.js";
+import { getStorage } from "../../../storage.js";
+import { db } from "../../../db.js";
 import { eq, sql } from "drizzle-orm";
 import { users, organizationUsers, roles } from "@shared/schema";
 import { tenants as organizations } from "@shared/schema";

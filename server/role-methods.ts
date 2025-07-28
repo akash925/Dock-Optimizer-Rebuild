@@ -1,4 +1,4 @@
-import { db } from "./db.js.js.js";
+import { db } from "./db.js";
 import { roles, type RoleRecord, type InsertRoleRecord } from "@shared/schema";
 import { eq } from "drizzle-orm";
 

@@ -1,6 +1,6 @@
 // server/storage/modules.ts
 
-import { db } from "../db.js.js.js";
+import { db } from "../db.js";
 import { organizationModules } from "@shared/schema";
 import { eq } from "drizzle-orm";
 

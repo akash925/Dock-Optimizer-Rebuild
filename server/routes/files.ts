@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import multer from "multer";
-import { blobStorageService } from "../services/blob-storage.js.js.js";
-import { getStorage } from "../storage.js.js.js";
+import { blobStorageService } from "../services/blob-storage.js";
+import { getStorage } from "../storage.js";
 
 const router = express.Router();
 

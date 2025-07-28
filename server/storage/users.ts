@@ -3,7 +3,7 @@
 import bcrypt from "bcryptjs";
 import { createHash } from "crypto";
 import { eq } from "drizzle-orm";
-import { db } from "../db.js.js.js";
+import { db } from "../db.js";
 import { users } from "@shared/schema";
 
 type User = typeof users.$inferSelect;

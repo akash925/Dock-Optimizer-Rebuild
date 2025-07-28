@@ -16,7 +16,7 @@ function getEnvVar(key: string, defaultValue: string = ''): string {
   } else {
     // Client-side: use import.meta.env with VITE_ prefix
     const viteKey = `VITE_${key}`;
-    return (import.meta.env?.[viteKey] as string) || defaultValue;
+    return ((import.meta as any).env?.[viteKey] as string) || defaultValue;
   }
 }
 

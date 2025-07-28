@@ -1,8 +1,8 @@
-import { getStorage } from "./storage.js.js.js";
+import { getStorage } from "./storage.js";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { TenantStatus, AvailableModule } from "@shared/schema";
-import { hashPassword } from './storage.js.js';
+import { hashPassword } from './storage.js';
 
 const scryptAsync = promisify(scrypt);
 

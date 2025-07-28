@@ -3,8 +3,8 @@ import {
   queueEmailNotification, 
   queueWebSocketNotification, 
   createAndQueueNotification 
-} from './notification-queue.js.js';
-import { broadcastToTenant } from '../websocket.js';
+} from './notification-queue.js';
+import { broadcastToTenant } from '../websocket/index.js';
 import { logger } from '../utils/logger.js';
 import { EnhancedSchedule } from '../notifications.js';
 

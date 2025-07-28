@@ -2,7 +2,7 @@ import { Queue, Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import { getRedis, getBullMQRedisUrl } from '../src/utils/redis.js';
 import { getStorage } from '../storage.js';
-import { broadcastToTenant } from '../websocket.js';
+import { broadcastToTenant } from '../websocket/index.js';
 import { 
   sendConfirmationEmail, 
   sendReminderEmail, 

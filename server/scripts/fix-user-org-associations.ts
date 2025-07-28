@@ -1,5 +1,5 @@
-import { db } from "../db.js.js.js";
-import { getStorage } from "../storage.js.js.js";
+import { db } from "../db.js";
+import { getStorage } from "../storage.js";
 import { users, organizationUsers, roles } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
