@@ -1,24 +1,29 @@
 {
-  "extends": "./tsconfig.json",
-
   "compilerOptions": {
     "noEmit": false,
     "noEmitOnError": false,
     "outDir": "dist/server",
+    "rootDir": ".",
 
     "module": "ES2022",
     "moduleResolution": "Node",
     "target": "ES2020",
 
-    /* 👇 override the inherited true value */
-    "allowImportingTsExtensions": false,
-
     "skipLibCheck": true,
+    "strict": false,
+    "noImplicitAny": false,
+    "noImplicitReturns": false,
     "noPropertyAccessFromIndexSignature": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitOverride": false,
+    "noUncheckedIndexedAccess": false,
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": false,
     "types": [],
     
-    /* 🔧 Fix path mapping for proper runtime resolution */
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["./shared/*"]
@@ -26,5 +31,5 @@
   },
 
   "include": ["server/**/*", "shared/**/*"],
-  "exclude": ["client", "scripts", "**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx", "**/__tests__/**", "**/tests/**"]
+  "exclude": ["client", "scripts", "**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx", "**/__tests__/**", "**/tests/**", "node_modules", "dist"]
 }
