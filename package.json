@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build:client": "vite build",
-    "build:server": "(npx tsc -p tsconfig.build.json --skipLibCheck || true) && (npx tsc-alias -p tsconfig.build.json || true) && (find dist/server -name '*.js' -exec sed -i'' \"s|from '@shared/\\([^']*\\)'|from '../../../shared/\\1.js'|g\" {} \\; 2>/dev/null || true) && (find dist/server -name '*.js' -exec sed -i'' 's|\\.js\\.js|\\.js|g' {} \\; 2>/dev/null || true)",
+    "build:server": "(npx tsc -p tsconfig.build.json --skipLibCheck || true) && (npx tsc-alias -p tsconfig.build.json || true) && find dist/server -name '*.js' -exec sed -i '' \"s|from '\\([^']*\\)/shared/\\([^']*\\)'|from '\\1/shared/\\2.js'|g\" {} \\; && find dist/server -name '*.js' -exec sed -i '' 's|\\.js\\.js|\\.js|g' {} \\;",
     "build": "pnpm run build:client && pnpm run build:server",
     "dev:client": "vite",
     "dev:server": "tsx watch server/index.ts",
