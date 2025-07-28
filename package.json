@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build:client": "vite build",
-    "build:server": "npx tsc -p tsconfig.build.json",
+    "build:server": "npx tsc -p tsconfig.build.json && npx tsc-alias -p tsconfig.build.json && (find dist/server -name '*.js' -exec sed -i'' 's|from \"../shared/\\([^\"]*\\)\"|from \"../shared/\\1.js\"|g' {} \\; 2>/dev/null || true) && (find dist/server -name '*.js' -exec sed -i'' 's|\\.js\\.js|\\.js|g' {} \\; 2>/dev/null || true)",
     "build": "pnpm run build:client && pnpm run build:server",
     "dev:client": "vite",
     "dev:server": "tsx watch server/index.ts",
@@ -18,7 +18,7 @@
     "ts:bootstrap": "pnpm add -D ts-migrate ts-autofix eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin ts-node",
     "ts:migrate": "ts-migrate-full .",
     "ts:autofix": "ts-autofix --apply --project tsconfig.server.json",
-    "ts:lintfix":   "eslint \"src/**/*.{ts,tsx}\" --fix --quiet || true",
+    "ts:lintfix": "eslint \"src/**/*.{ts,tsx}\" --fix --quiet || true",
     "ts:codemods": "ts-node scripts/*.ts || true",
     "ts:cleanup": "pnpm run ts:migrate && pnpm run ts:autofix && pnpm run ts:lintfix && pnpm run ts:codemods"
   },
@@ -171,6 +171,7 @@
     "ts-autofix": "^1.0.0",
     "ts-migrate": "^0.1.35",
     "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.16",
     "tsx": "^4.20.3",
     "typescript": "5.6.3",
     "vite": "^5.4.14",

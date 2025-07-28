@@ -16,7 +16,13 @@
     "skipLibCheck": true,
     "noPropertyAccessFromIndexSignature": false,
     "esModuleInterop": true,
-    "types": []
+    "types": [],
+    
+    /* 🔧 Fix path mapping for proper runtime resolution */
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["./shared/*"]
+    }
   },
 
   "include": ["server/**/*", "shared/**/*"],
